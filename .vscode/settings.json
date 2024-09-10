@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "file_manager.h": "c",
+        "cstdio": "c"
+    }
+}
