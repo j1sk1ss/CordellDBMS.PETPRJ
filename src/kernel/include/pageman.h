@@ -1,3 +1,8 @@
+/*
+ *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+ *  Credits: j1sk1ss
+ */
+
 #ifndef PAGEMAN_H_
 #define PAGEMAN_H_
 
@@ -9,13 +14,12 @@
 #include "common.h"
 
 
-#define COLUMN_DELIMITER    0xEE
 #define PAGE_END            0xED
 #define PAGE_CONTENT_SIZE   256
 #define PAGE_MAGIC          0xCA
 #define PAGE_NAME_SIZE      8
 
-// We have *.cpg bin file, where at start placed header
+// We have *.pg bin file, where at start placed header
 //================================================
 // INDEX | CONTENT_SIZE | CONTENT -> size -> end |
 //================================================
@@ -39,6 +43,7 @@
 
 
 // Create page
+//
 // name - page name
 // buffer - page content
 //
@@ -47,17 +52,26 @@
 page_t* create_page(char* name, uint8_t* buffer);
 
 // Save page on disk
+//
 // page - pointer to page
 // path - path where save
+//
+// Return 0 - if something goes wrong
+// Return 1 - if Release was success
 int save_page(page_t* page, char* path);
 
 // Open file, load page, close file
+//
 // name - page name (don`t forget path)
 // TODO: Maybe it will take too much time? Maybe save FILE descriptor?
 page_t* load_page(char* name);
 
 // Release page
+//
 // page - pointer to page
+//
+// Return 0 - if something goes wrong
+// Return 1 - if Release was success
 int free_page(page_t* page);
 
 #endif

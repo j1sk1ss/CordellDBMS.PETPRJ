@@ -1,7 +1,7 @@
 #include "../include/dirman.h"
 
 
-directory_t* create_directory(char* name, directory_column_t* col[], int col_count) {
+directory_t* create_directory(char* name) {
     directory_t* dir = (directory_t*)malloc(sizeof(directory_t));
     dir->header = (directory_header_t*)malloc(sizeof(directory_header_t));
 
@@ -58,23 +58,13 @@ directory_t* load_directory(char* name) {
     }
 
     // First we allocate memory for directory struct
-    // Then we allocate memory for columns
+    // Then we read page names
     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-    directory_column_t** columns = (directory_t**)malloc(header->column_count);
-
-    // We got all columns from file
-    for (int i = 0; i < header->column_count; i++) {
-        columns[i] = (directory_t*)malloc(sizeof(directory_column_t));
-        fread(columns[i], sizeof(directory_column_t), SEEK_END, file);
-    }
-
-    // Read page names from file
     for (int i = 0; i < header->page_count; i++) {
         fread(directory->names[i], PAGE_NAME_SIZE, SEEK_CUR, file);
     }
 
     directory->header = header;
-    directory->columns = columns;
 
     // Close file page
     fclose(file);
