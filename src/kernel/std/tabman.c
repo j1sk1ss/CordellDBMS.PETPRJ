@@ -1,22 +1,22 @@
 #include "../include/tabman.h"
 
 
-int link_dir2table(table_t* table, directory_t* directory) {
-
+int TBM_link_dir2table(table_t* table, directory_t* directory) {
+    return 1;
 }
 
-table_t* create_table(char* name, table_column_t* columns[], int col_count) {
-
+table_t* TBM_create_table(char* name, table_column_t* columns[], int col_count) {
+    return NULL;
 }
 
-int save_table(table_t* table, char* path) {
-
+int TBM_save_table(table_t* table, char* path) {
+    return 1;
 }
 
-table_t* load_table(char* name) {
-
+table_t* TBM_load_table(char* name) {
+    return NULL;
 }
 
-int free_table(table_t* table) {
-
+int TBM_free_table(table_t* table) {
+    return 1;
 }

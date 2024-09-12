@@ -18,10 +18,12 @@
 
 
 #define TABLE_MAGIC     0xAA
+#define TABLE_NAME_SIZE 8
 
 #pragma region [Column]
 
     #define COLUMN_DELIMITER    0xEE
+    #define ROW_DELIMITER       0xEF
 
     #define COLUMN_MAGIC        0xEA
     #define COLUMN_NAME_SIZE    16
@@ -45,9 +47,11 @@
 
     struct table_column {
         // Column type byte
+        // Column type indicates what type should user insert to this column
         uint8_t type;
 
         // Column name with fixed size
+        // Column name
         uint8_t name[COLUMN_NAME_SIZE];
     } typedef table_column_t;
 
@@ -55,10 +59,16 @@
         // Table magic
         uint8_t magic;
 
+        // Table name
+        // Table name needs for working with modfication exist table
+        uint8_t name[TABLE_NAME_SIZE];
+
         // Column count in this table
+        // How much columns in this table
         uint8_t column_count;
 
         // Dir count in this table
+        // How much directories in this table
         uint8_t dir_count;
 
         // TODO: Maybe add something like checksum?
@@ -77,45 +87,55 @@
     } typedef table_t;
 
 
-// TODO: Add some error codes
-// Link directory to table
-// Note: Be sure that directory has same signature with table
-//
-// table - pointer to table
-// directory - pointer to directory
-//
-// Return 0 - if something goes wrong
-// Return 1 - if link was success
-int link_dir2table(table_t* table, directory_t* directory);
+#pragma region [Directories]
 
-// Create new table
-//
-// name - name of table
-// columns - columns in table
-// col_count - columns count
-table_t* create_table(char* name, table_column_t* columns[], int col_count);
+    // TODO
 
-// Save table to the disk
-//
-// table - pointer to table
-// path - place where table will be saved
-//
-// Return 0 - if something goes wrong
-// Return 1 - if save was success
-int save_table(table_t* table, char* path);
+#pragma endregion
 
-// Load table from .tb bin file
-//
-// name - name of file
-// Note: Don't forget about full path. Be sure that all code coreectly use paths
-table_t* load_table(char* name);
+#pragma region [Table]
 
-// Release table
-//
-// table - pointer to directory
-//
-// Return 0 - if something goes wrong
-// Return 1 - if Release was success
-int free_table(table_t* table);
+    // TODO: Add some error codes
+    // Link directory to table
+    // Note: Be sure that directory has same signature with table
+    //
+    // table - pointer to table
+    // directory - pointer to directory
+    //
+    // Return 0 - if something goes wrong
+    // Return 1 - if link was success
+    int TBM_link_dir2table(table_t* table, directory_t* directory);
+
+    // Create new table
+    //
+    // name - name of table
+    // columns - columns in table
+    // col_count - columns count
+    table_t* TBM_create_table(char* name, table_column_t* columns[], int col_count);
+
+    // Save table to the disk
+    //
+    // table - pointer to table
+    // path - place where table will be saved
+    //
+    // Return 0 - if something goes wrong
+    // Return 1 - if save was success
+    int TBM_save_table(table_t* table, char* path);
+
+    // Load table from .tb bin file
+    //
+    // name - name of file
+    // Note: Don't forget about full path. Be sure that all code coreectly use paths
+    table_t* TBM_load_table(char* name);
+
+    // Release table
+    //
+    // table - pointer to directory
+    //
+    // Return 0 - if something goes wrong
+    // Return 1 - if Release was success
+    int TBM_free_table(table_t* table);
+
+#pragma endregion
 
 #endif

@@ -15,7 +15,7 @@
 
 
 #define DIRECTORY_MAGIC     0xCC
-#define PAGES_PER_DIRECTORY 32
+#define PAGES_PER_DIRECTORY 255
 #define DIRECTORY_NAME_SIZE 8
 
 
@@ -48,42 +48,52 @@
     } typedef directory_t;
 
 
-// Save directory on the disk
-//
-// directory - pointer to directory
-// path - path where save
-//
-// Return 0 - if something goes wrong
-// Return 1 - if Release was success
-int save_directory(directory_t* directory, char* path);
+#pragma region [Pages]
 
-// Link current page to this directory
-//
-// directory - home directory
-// page - page for linking
-//
-// If sighnature wrong, return 0
-// If all okey - return 1
-int link_page2dir(directory_t* directory, page_t* page);
+    // TODO
 
-// Allocate memory and create new directory
-//
-// name - directory name
-// col - column names (First symbol reserver for type)
-// col_count - column count
-directory_t* create_directory(char* name);
+#pragma endregion
 
-// Open file, load directory and page names, close file
-//
-// name - file name (don`t forget path)
-directory_t* load_directory(char* name);
+#pragma region [Directory]
 
-// Release directory
-//
-// directory - pointer to directory
-//
-// Return 0 - if something goes wrong
-// Return 1 - if Release was success
-int free_directory(directory_t* directory);
+    // Save directory on the disk
+    //
+    // directory - pointer to directory
+    // path - path where save
+    //
+    // Return 0 - if something goes wrong
+    // Return 1 - if Release was success
+    int DRM_save_directory(directory_t* directory, char* path);
+
+    // Link current page to this directory
+    //
+    // directory - home directory
+    // page - page for linking
+    //
+    // If sighnature wrong, return 0
+    // If all okey - return 1
+    int DRM_link_page2dir(directory_t* directory, page_t* page);
+
+    // Allocate memory and create new directory
+    //
+    // name - directory name
+    // col - column names (First symbol reserver for type)
+    // col_count - column count
+    directory_t* DRM_create_directory(char* name);
+
+    // Open file, load directory and page names, close file
+    //
+    // name - file name (don`t forget path)
+    directory_t* DRM_load_directory(char* name);
+
+    // Release directory
+    //
+    // directory - pointer to directory
+    //
+    // Return 0 - if something goes wrong
+    // Return 1 - if Release was success
+    int DRM_free_directory(directory_t* directory);
+
+#pragma endregion
 
 #endif
