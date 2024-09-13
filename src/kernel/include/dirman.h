@@ -1,4 +1,9 @@
+// TODO: Think about page table for minimizatio IO file operations
+//       and move main operations to RAM
+
 /*
+ *  Directory is the next abstraction level, that work directly with pages
+ *
  *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
  *  Credits: j1sk1ss
  */
@@ -50,7 +55,55 @@
 
 #pragma region [Pages]
 
-    // TODO
+    // Rewrite all line by EMPTY symbols
+    //
+    // directory - pointer to directory
+    // offset - offset in directory
+    // length - length of data to mark as delete
+    //
+    // Return 1 - if write was success
+    // Return -1 - if index not found in page
+    int DRM_delete_content(directory_t* directory, int offset, size_t length);
+
+    // Append content to directory. This function move page_end symbol to new location
+    // Note: If it can't append to existed pages, it creates new one
+    // Note 2: This function not guarantees that content will be append to last page. 
+    //         Content will be placed at first empty space with fit size
+    //
+    // directory - pointer to directory
+    // data - data for append
+    // data_lenght - lenght of data
+    //
+    // Return 2 if all success and content was append to new page
+    // Return 1 if all success and content was append to existed page
+    // Return 0 if write succes, but content was trunc
+    // Return -1 if something goes wrong
+    int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght);
+
+    // Insert content to directory. This function don't move page_end in first empty page symbol to new location
+    // Note: This function don't give ability for creation new pages. If content too large - it will trunc.
+    //       To avoid this, use append_content function
+    // Note 2: If directory don't have any pages - this function don't work
+    //
+    // directory - pointer to directory
+    // offset - offset in bytes
+    // data - data for append
+    // data_lenght - lenght of data
+    //
+    // Return 1 if all success
+    // Return 2 if write succes, but content was trunc
+    // Return -1 if something goes wrong
+    int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght);
+
+    // Find value in assosiatet pages
+    //
+    // directory - pointer to directory
+    // offset - offset in bytes
+    // value - value that we want to find
+    //
+    // Return -1 - if not found
+    // Return index of value in page
+    int DRM_find_value(directory_t* directory, int offset, uint8_t value);
 
 #pragma endregion
 

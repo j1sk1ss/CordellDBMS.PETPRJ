@@ -29,6 +29,7 @@
         "vector": "c",
         "complex": "c",
         "*.tcc": "c",
-        "format": "c"
+        "format": "c",
+        "common.h": "c"
     }
 }
