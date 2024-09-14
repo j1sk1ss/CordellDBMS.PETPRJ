@@ -124,9 +124,6 @@
             return NULL;
         }
 
-        // Skip header
-        fseek(file, sizeof(page_header_t), SEEK_SET);
-
         // Allocate memory for page structure
         page_t* page = (page_t*)malloc(sizeof(page_t));
         fread(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file);

@@ -10,7 +10,7 @@
         int current_index = offset % PAGE_CONTENT_SIZE;
 
         char page_name[25];
-        sprintf(page_name, "%s.pg", directory->names[page_offset]);
+        sprintf(page_name, "%s.%s", directory->names[page_offset], PAGE_EXTENSION);
 
         page_t* page = PGM_load_page(page_name);
         PGM_delete_content(page, current_index, length);
@@ -27,7 +27,7 @@
     int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght) {
         for (int i = 0; i < directory->header->page_count; i++) {
             char page_name[25];
-            sprintf(page_name, "%s.pg", directory->names[i]);
+            sprintf(page_name, "%s.%s", directory->names[i], PAGE_EXTENSION);
 
             page_t* page = PGM_load_page(page_name);
             int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
@@ -37,7 +37,7 @@
             }
 
             char save_path[25];
-            sprintf(save_path, "%s.pg", page->header->name);
+            sprintf(save_path, "%s.%s", page->header->name, PAGE_EXTENSION);
 
             PGM_append_content(page, data, data_lenght);
             PGM_save_page(page, save_path);
@@ -53,7 +53,7 @@
 
         // Then we create save path with extention
         char save_path[25];
-        sprintf(save_path, "%s.pg", new_page_name);
+        sprintf(save_path, "%s.%s", new_page_name, PAGE_EXTENSION);
 
         // Here we check generated name
         // It need for avoid situations, where we can rewrite existed page
@@ -67,7 +67,7 @@
                 fclose(file);
 
                 rand_str(new_page_name, 8);
-                sprintf(save_path, "%s.pg", new_page_name);
+                sprintf(save_path, "%s.%s", new_page_name, PAGE_EXTENSION);
 
                 delay--;
                 if (delay <= 0) return -1;
@@ -103,7 +103,7 @@
         int current_index = offset % PAGE_CONTENT_SIZE;
 
         char page_name[25];
-        sprintf(page_name, "%s.pg", directory->names[page_offset]);
+        sprintf(page_name, "%s.%s", directory->names[page_offset], PAGE_EXTENSION);
 
         page_t* page = PGM_load_page(page_name);
         int result = PGM_insert_content(page, current_index, data, data_lenght);
@@ -124,7 +124,7 @@
         int current_index = offset % PAGE_CONTENT_SIZE;
         
         char page_name[25];
-        sprintf(page_name, "%s.pg", directory->names[page_offset]);
+        sprintf(page_name, "%s.%s", directory->names[page_offset], PAGE_EXTENSION);
 
         page_t* page = PGM_load_page(page_name);
         int result = PGM_find_value(page, current_index, value);
@@ -165,10 +165,8 @@
         fwrite(directory->header, sizeof(directory_header_t), SEEK_CUR, file);
 
         // Write names
-        for (int i = 0; i < directory->header->page_count; i++) {
+        for (int i = 0; i < directory->header->page_count; i++) 
             fwrite(directory->names[i], PAGE_NAME_SIZE, SEEK_CUR, file);
-            fseek(file, PAGE_NAME_SIZE, SEEK_CUR);
-        }
 
         // Close file
         fclose(file);

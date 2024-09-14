@@ -21,6 +21,8 @@
 #include "common.h"
 
 
+#define PAGE_EXTENSION "pg"
+
 #pragma region [Page memory]
 
     #define PAGE_EMPTY          0xEE

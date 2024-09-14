@@ -29,6 +29,8 @@
 #include "pageman.h"
 
 
+#define DIRECTORY_EXTENSION "dr"
+
 #define DIRECTORY_NAME_SIZE 8
 #define DIRECTORY_MAGIC     0xCC
 
