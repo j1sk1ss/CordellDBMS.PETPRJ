@@ -89,7 +89,50 @@
 
 #pragma region [Directories]
 
-    // TODO
+    // Append data to content pages in directories
+    // Note: If table don't have any directories, it will create one, then create one additional page
+    // Note 2: If during append process, we reach page limit in directory, we create a new one
+    //
+    // table - pointer to table
+    // data - append data
+    // data_size - size of data
+    //
+    // Return -1 if something goes wrong
+    // Return 0 if append was success
+    // Return 1 if append was success and we create new pages
+    // Return 2 if append was success and we create new directories
+    int TBM_append_content(table_t* table, uint8_t* data, size_t data_size);
+
+    // Delete content in table. All steps below:
+    // TABLE -> DIRECTORY -> PAGE
+    // This is a highest abstraction level delete function, that can delete content in many directories at one function call
+    // Note: If you will try to delete content from not existed pages or directories, this function will return -1
+    // Note 2: For offset in pages or directories use defined vars like:
+    // - DIRECTORY_OFFSET for directory offset
+    // - PAGE_CONTENT_SIZE for page offset
+    //
+    // table - pointer to table
+    // offset - offset in bytes
+    // size - size of deleted content
+    //
+    // Return -2 if something goes wrong
+    // Return -1 if you try to delete more, then already have
+    // Return 0 if delete was success
+    int TBM_delete_content(table_t* table, int offset, size_t size);
+
+    // Find value in assosiatet directories
+    // In summary it just invoke similar functions in directories for finding value in pages
+    // Note 2: For offset in pages or directories use defined vars like:
+    // - DIRECTORY_OFFSET for directory offset
+    // - PAGE_CONTENT_SIZE for page offset
+    //
+    // directory - pointer to directory
+    // offset - offset in bytes
+    // value - value that we want to find
+    //
+    // Return -1 - if not found
+    // Return index of value in page with end offset
+    int TBM_find_content(table_t* table, int offset, uint8_t value);
 
 #pragma endregion
 

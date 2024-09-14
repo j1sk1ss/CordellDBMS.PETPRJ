@@ -9,7 +9,7 @@
 #include "include/pageman.h"
 
 
-#define DIR_INSERT_TEST
+#define DIR_APPEND_TEST
 
 
 int main() {

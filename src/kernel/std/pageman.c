@@ -4,7 +4,7 @@
 #pragma region [Content]
 
     int PGM_append_content(page_t* page, uint8_t* data, size_t data_lenght) {
-        int eof = PGM_find_content(page, PAGE_START, PAGE_END);
+        int eof = PGM_find_value(page, PAGE_START, PAGE_END);
         for (int i = eof, j = 0; i < (int)data_lenght + eof, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
         page->content[eof + (int)data_lenght] = PAGE_END;
         return 1;
@@ -22,7 +22,7 @@
         return 1;
     }
 
-    int PGM_find_content(page_t* page, int offset, uint8_t value) {
+    int PGM_find_value(page_t* page, int offset, uint8_t value) {
         int index = offset;
         while (page->content[index++] != value) {}
         return MAX(index - 1, 0);

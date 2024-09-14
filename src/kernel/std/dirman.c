@@ -79,6 +79,12 @@
             }
         }
 
+        // If we reach pages limit we return error code
+        // We return error instead creationg a new directory, because it not our abstraction level
+        if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) {
+            return -1;
+        }
+
         // We allocate memory for page structure with all needed data
         page_t* new_page = PGM_create_page(new_page_name, data, data_lenght);
         PGM_save_page(new_page, save_path);
@@ -112,7 +118,20 @@
     }
 
     int DRM_find_value(directory_t* directory, int offset, uint8_t value) {
-        return 1;
+        if (directory->header->page_count < (offset / PAGE_CONTENT_SIZE) + 1) return -1;
+
+        int page_offset = offset / PAGE_CONTENT_SIZE;
+        int current_index = offset % PAGE_CONTENT_SIZE;
+        
+        char page_name[25];
+        sprintf(page_name, "%s.pg", directory->names[page_offset]);
+
+        page_t* page = PGM_load_page(page_name);
+        int result = PGM_find_value(page, current_index, value);
+        
+        PGM_free_page(page);
+
+        return page_offset * PAGE_CONTENT_SIZE + result;
     }
 
 #pragma endregion

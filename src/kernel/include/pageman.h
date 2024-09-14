@@ -1,5 +1,10 @@
 /*
  *  Pages - first abstraction level, that responsible for working with files
+ *  Pageman - list of functions for working with pages and low-level content presentation in files:
+ *  We can:
+ *      - Create new pages
+ *      - Free pages
+ *      - Append / delete / find content in files
  * 
  *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
  *  Credits: j1sk1ss
@@ -99,7 +104,7 @@
     // value - target value
     //
     // Return -1 - if not found
-    int PGM_find_content(page_t* page, int offset, uint8_t value);
+    int PGM_find_value(page_t* page, int offset, uint8_t value);
 
     // Return value in bytes of free page space
     // Note: Will return only block of free space. For examle if in page we have situation like below:

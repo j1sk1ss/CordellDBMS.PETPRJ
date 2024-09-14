@@ -1,8 +1,18 @@
 // TODO: Think about page table for minimizatio IO file operations
 //       and move main operations to RAM
+// TODO: Ask about this stuff:
+//      1) Page Descriptor Table PDT (Maybe it will take to much memory)
+//      2) Directory Descriptor Table DDT (Same situation as in page case)
 
 /*
- *  Directory is the next abstraction level, that work directly with pages
+ *  Directory is the next abstraction level, that work directly with pages.
+ *  Dirman - list of functions for working with directories and pages:
+ *  We can:
+ *      - Create new directory
+ *      - Link pages to directory
+ *      - Unlink pages from directory (TODO)
+ *      - Free directory
+ *      - Append / delete / find content in assosiated pages
  *
  *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
  *  Credits: j1sk1ss
@@ -19,9 +29,12 @@
 #include "pageman.h"
 
 
-#define DIRECTORY_MAGIC     0xCC
-#define PAGES_PER_DIRECTORY 255
 #define DIRECTORY_NAME_SIZE 8
+#define DIRECTORY_MAGIC     0xCC
+
+#define PAGES_PER_DIRECTORY 255
+#define DIRECTORY_OFFSET    PAGES_PER_DIRECTORY * PAGE_CONTENT_SIZE
+
 
 
 // We have *.dr bin file, where at start placed header
@@ -82,8 +95,8 @@
 
     // Insert content to directory. This function don't move page_end in first empty page symbol to new location
     // Note: This function don't give ability for creation new pages. If content too large - it will trunc.
-    //       To avoid this, use append_content function
-    // Note 2: If directory don't have any pages - this function don't work
+    //       To avoid this, use DRM_append_content function
+    // Note 2: If directory don't have any pages - this function will fall and return -1
     //
     // directory - pointer to directory
     // offset - offset in bytes
@@ -102,7 +115,7 @@
     // value - value that we want to find
     //
     // Return -1 - if not found
-    // Return index of value in page
+    // Return index of value in page with offset
     int DRM_find_value(directory_t* directory, int offset, uint8_t value);
 
 #pragma endregion
@@ -110,6 +123,8 @@
 #pragma region [Directory]
 
     // Save directory on the disk
+    // Note: Be carefull with this function, it can rewrite existed content
+    // Note 2: If you want update data on disk, just create same path with existed directory
     //
     // directory - pointer to directory
     // path - path where save
@@ -118,7 +133,11 @@
     // Return 1 - if Release was success
     int DRM_save_directory(directory_t* directory, char* path);
 
-    // Link current page to this directory
+    // Link current page to this directory.
+    // This function just add page name to directory page names and increment page count.
+    // Note: You can avoid page loading from disk if you want just link.
+    //       For avoiuding additional IO file operations, use create_page function with same name,
+    //       then just link allocated struct to directory.
     //
     // directory - home directory
     // page - page for linking
@@ -130,13 +149,16 @@
     // Allocate memory and create new directory
     //
     // name - directory name
-    // col - column names (First symbol reserver for type)
-    // col_count - column count
+    //
+    // Return directory pointer
     directory_t* DRM_create_directory(char* name);
 
     // Open file, load directory and page names, close file
+    // Note: This function invoke create_directory function
     //
     // name - file name (don`t forget path)
+    //
+    // Return directory pointer
     directory_t* DRM_load_directory(char* name);
 
     // Release directory
