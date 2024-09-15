@@ -178,7 +178,7 @@
         // Open file page
         FILE* file = fopen(name, "rb");
         if (file == NULL) {
-            return NULL;
+            return -1;
         }
 
         // Read header from file
@@ -188,7 +188,7 @@
         // Check directory magic
         if (header->magic != DIRECTORY_MAGIC) {
             free(header);
-            return NULL;
+            return -2;
         }
 
         // First we allocate memory for directory struct

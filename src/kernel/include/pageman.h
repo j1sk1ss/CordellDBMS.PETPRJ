@@ -17,11 +17,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <libgen.h>
 
 #include "common.h"
 
 
 #define PAGE_EXTENSION "pg"
+#define PDT_SIZE        10
 
 #pragma region [Page memory]
 
@@ -159,7 +162,11 @@
     //
     // name - page name (don`t forget path)
     // TODO: Maybe it will take too much time? Maybe save FILE descriptor?
+    //
+    // Return -2 if Magic is wrong. Check file.
+    // Return -1 if file nfound. Check path.
     // Return NULL if magic wrong
+    // Return pointer to page struct
     page_t* PGM_load_page(char* name);
 
     // Release page
@@ -169,6 +176,54 @@
     // Return 0 - if something goes wrong
     // Return 1 - if Release was success
     int PGM_free_page(page_t* page);
+
+    #pragma region [PDT]
+
+        /*
+        Add page to PDT table.
+        Note: It will unload old page if we earn end of PDT. 
+
+        Params:
+        - page - pointer to page (Be sure that you don't realise this page. We save link in PDT)
+
+        Return struct page_t pointer
+        */
+        int PGM_PDT_add_page(page_t* page);
+
+        /*
+        Find page in PDT by name
+
+        Params:
+        - name - name of page for find.
+                Note: not path to file. Name of page.
+                    Usuale names placed in directories.
+
+        Return page_t struct or NULL if page not found.
+        */
+        page_t* PGM_PDT_find_page(char* name);
+
+        /*
+        Save and load pages from PDT.
+
+        Return -1 if something goes wrong.
+        Return 1 if sync success.
+        */
+        int PGM_PDT_sync();
+
+        /*
+        Hard cleanup of PDT. Really not recomment for use!
+        Note: It will just unload data from PDT to disk by provided index.
+        Note 2: Empty space will be marked by NULL.
+
+        Params:
+        - index - index of page for flushing
+
+        Return -1 if something goes wrong.
+        Return 1 if cleanup success.
+        */
+        int PGM_PDT_flush(int index);
+
+    #pragma endregion
 
 #pragma endregion
 

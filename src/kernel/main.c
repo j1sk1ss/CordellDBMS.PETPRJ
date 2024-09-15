@@ -10,7 +10,7 @@
 #include "include/traceback.h"
 
 
-#define SIGNATURE_TEST
+#define DIR_APPEND_TEST
 
 
 int main() {

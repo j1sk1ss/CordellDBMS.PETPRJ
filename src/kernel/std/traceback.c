@@ -14,4 +14,5 @@ void handler(int sig) {
 
 int TB_enable(void) {
     signal(SIGSEGV, handler);
+    return 1;
 }

@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "dirman.h"
 
@@ -147,6 +148,26 @@
     Return 2 if row append was success and we create new directories
     */
     int TBM_append_row(table_t* table, uint8_t* data, size_t data_size);
+
+    /*
+    Insert data row to content pages in directories. Main difference with append_content is hard part.
+    This maeans, that we don't care about signature and other stuff. One thing that can cause fail, directory end.
+    Note: If table don't have any directories, it will return error code (-3)
+    Note 2: If during append process, we reach page limit in directory, we return error code (-2)
+
+    ! In summary, this function shouldn't be used in ususal tasks. It may broke whole table at one time. !
+    
+    table - pointer to table
+    data - append data
+    data_size - size of data
+    
+    Return -3 if table is empty
+    Return -2 if we reach page limit in directory (Prefere using append_content)
+    Return -1 if something goes wrong
+    Return 0 if row append was success
+    Return 1 if row append was success and we create new pages
+    */
+    int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_size);
 
     /*
     Append data to content pages in directories

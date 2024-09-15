@@ -7,6 +7,10 @@
         return 1; // TODO
     }
 
+    int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_size) {
+        return 1; // TODO
+    }
+
     int TBM_delete_content(table_t* table, int offset, size_t size) {
         return 1; // TODO
     }
@@ -108,6 +112,7 @@
             fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
 
         // Close file
+        fsync(fileno(file));
         fclose(file);
 
         return 1;

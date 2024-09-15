@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "pageman.h"
 
@@ -160,6 +161,8 @@
     //
     // name - file name (don`t forget path)
     //
+    // Return -2 if Magic is wrong. Check file.
+    // Return -1 if file nfound. Check path.
     // Return directory pointer
     directory_t* DRM_load_directory(char* name);
 

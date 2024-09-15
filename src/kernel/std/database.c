@@ -83,11 +83,68 @@
         return 1;
     }
 
+    database_t* DB_create_database(char* name) {
+        database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
+        header->magic = DATABASE_MAGIC;
+        strncpy(header->name, name, DATABASE_NAME_SIZE);
+        header->table_count = 0;
+
+        database_t* database = (database_t*)malloc(sizeof(database_t));
+        database->header = header;
+
+        return database;
+    }
+
+    int DB_free_database(database_t* database) {
+        for (int i = 0; i < database->header->table_count; i++) {
+            free(database->table_names[i]);
+        }
+
+        free(database->table_names);
+        free(database->header);
+        free(database);
+    }
+
     database_t* DB_load_database(char* name) {
-        return NULL;
+        FILE* file = fopen(name, "rb");
+        if (file == NULL) {
+            return -1;
+        }
+
+        database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
+        fread(header, sizeof(database_header_t), SEEK_CUR, file);
+
+        if (header->magic != DATABASE_MAGIC) {
+            free(header);
+            return -2;
+        }
+
+        uint8_t** names = (uint8_t**)malloc(header->table_count);
+        for (int i = 0; i < header->table_count; i++) {
+            names[i] = (uint8_t*)malloc(TABLE_NAME_SIZE);
+            fread(names[i], TABLE_NAME_SIZE, SEEK_CUR, file);
+        }
+
+        database_t* database = (database_t*)malloc(sizeof(database_t));
+        database->header = header;
+        database->table_names = names;
+
+        return database;
     }
 
     int DB_save_database(database_t* database, char* path) {
+        FILE* file = fopen(path, "wb");
+        if (file == NULL) {
+            return -1;
+        }
+
+        fwrite(database->header, sizeof(database_header_t), SEEK_CUR, file);
+        for (int i = 0; i < database->header->table_count; i++)
+            fwrite(database->table_names[i], TABLE_NAME_SIZE, SEEK_CUR, file);
+
+        fsync(fileno(file));
+        fclose(file);
+
         return 1;
     }
 

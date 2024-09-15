@@ -2,6 +2,9 @@
  *  Database is the end abstraction level, that work with tables.
  *  Main idea is to have main list of functions for handle user commands.
  *
+ *  Also thanks to https://habr.com/ru/articles/803347/ for additional info about fflash and fsync,
+ *  info about file based DBMS optimisation and ither usefull stuff. 
+ * 
  *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
  *  Credits: j1sk1ss
  */
@@ -13,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "tabman.h"
 
@@ -23,8 +27,6 @@
 #define DATABASE_MAGIC      0xFC
 // Database name (For higher abstractions)
 #define DATABASE_NAME_SIZE  8
-// Maxim tables in one database
-#define MAX_TABLE_COUNT     10
 
 
 // We have *.db bin file, where at start placed header
@@ -32,24 +34,27 @@
 // HEADER (MAGIC | NAME) -> | TABLE_NAMES -> ... -> end |
 //=======================================================
 
-struct database_header {
-    // Database header magic
-    uint8_t magic;
+    struct database_header {
+        // Database header magic
+        uint8_t magic;
 
-    // Database name
-    uint8_t name[DATABASE_NAME_SIZE];
+        // Database name
+        uint8_t name[DATABASE_NAME_SIZE];
 
-    // TODO: Maybe add something like checksum?
-    //       For fast comparing databases
-} typedef database_header_t;
+        // Table count in database
+        uint8_t table_count;
 
-struct database {
-    // Database header
-    database_header_t header;
+        // TODO: Maybe add something like checksum?
+        //       For fast comparing databases
+    } typedef database_header_t;
 
-    // Database linked tables
-    uint8_t table_names[MAX_TABLE_COUNT][TABLE_NAME_SIZE];
-} typedef database_t;
+    struct database {
+        // Database header
+        database_header_t* header;
+
+        // Database linked tables
+        uint8_t** table_names;
+    } typedef database_t;
 
 
 #pragma region [Table]
@@ -138,8 +143,64 @@ struct database {
 
 #pragma region [Database]
 
+    /*
+    Add table to database. You can add infinity count of tables.
+
+    Params:
+    - database - pointer to database
+    - table - pointer to table
+
+    Return -1 if something goes wrong
+    Return 1 if link was success
+    */
     int DB_link_table2database(database_t* database, table_t* table);
+
+    /*
+    Delete assosiation with provided table in provided database.
+    Note: This function don't delete table. This function just unlink table.
+          For deleting tables - manualy use C file delete (Or higher abstaction language file operation).
+
+    Params:
+    - database - pointer to database
+    - name - table name for delete
+
+    Return -1 if something goes wrong
+    Return 1 if unlink was success
+    */
     int DB_unlink_table_from_database(database_t* database, char* name);
+
+    /*
+    Create new empty data base with provided name.
+    Created database has 0 tables.
+
+    Params:
+    - name - database name. Be sure that this name is uniqe. Function don't check this!
+
+    Return pointer to new database
+    */
+    database_t* DB_create_database(char* name);
+
+    /*
+    Free allocated data base
+
+    Params:
+    - database - pointer to database
+
+    Return -1 if something goes wrong
+    Return 1 if realise was success
+    */
+    int DB_free_database(database_t* database);
+
+    /*
+    Load database from disk by provided path to *.db file.
+    
+    Params:
+    - name - path to *.db file
+
+    Return -2 if Magic is wrong. Check file.
+    Return -1 if file nfound. Check path.
+    Return pointer to database if all was success.
+    */
     database_t* DB_load_database(char* name);
     int DB_save_database(database_t* database, char* path);
 

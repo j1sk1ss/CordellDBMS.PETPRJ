@@ -1,6 +1,23 @@
 #include "../include/pageman.h"
 
 
+int PGM_PDT_current = 0;
+/*
+Page destriptor table, is an a static array of pages indexes.
+Main idea in saving pages temporary in static table somewhere in memory.
+Max size of this table equals 1024 * 10 = 10Kb.
+
+For working with table we have PAGE struct, that have index of table in PDT.
+
+If we access to pages with full PGM_PDT, we also unload old page and load new page.
+(Stack)
+
+Main problem in parallel work. If we have threads, they can try to access this table at one time.
+If you use OMP parallel libs, or something like this, please, define NO_PDT flag (For avoiding ABA problem).
+*/
+page_t* PGM_PDT[PDT_SIZE] = { NULL };
+
+
 #pragma region [Content]
 
     int PGM_append_content(page_t* page, uint8_t* data, size_t data_lenght) {
@@ -101,16 +118,20 @@
         fwrite(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file);
 
         // Close file
+        fsync(fileno(file));
         fclose(file);
 
         return 1;
     }
 
     page_t* PGM_load_page(char* name) {
+        page_t* pdt_page = PGM_PDT_find_page(basename(name));
+        if (pdt_page != NULL) return pdt_page;
+
         // Open file page
         FILE* file = fopen(name, "rb");
         if (file == NULL) {
-            return NULL;
+            return -1;
         }
 
         // Read header from file
@@ -121,7 +142,7 @@
         // Check page magic
         if (header->magic != PAGE_MAGIC) {
             free(header);
-            return NULL;
+            return -2;
         }
 
         // Allocate memory for page structure
@@ -132,6 +153,7 @@
         // Close file page
         fclose(file);
 
+        PGM_PDT_add_page(page);
         return page;
     }
 
@@ -141,5 +163,63 @@
 
         return 1;
     }
+
+    #pragma region [PDT]
+
+        int PGM_PDT_add_page(page_t* page) {
+            #ifndef NO_PDT
+                if (PGM_PDT_current++ >= PDT_SIZE) PGM_PDT_current = 0;
+
+                PGM_PDT_flush(PGM_PDT_current);
+                PGM_PDT[PGM_PDT_current] = page;
+            #endif
+
+            return 1;
+        }
+
+        page_t* PGM_PDT_find_page(char* name) {
+            #ifndef NO_PDT
+                for (int i = 0; i < PDT_SIZE; i++) {
+                    if (PGM_PDT[i] == NULL) continue;
+                    if (strncmp(PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0) {
+                        return PGM_PDT[i];
+                    }
+                }
+            #endif
+
+            return NULL;
+        }
+
+        int PGM_PDT_sync() {
+            #ifndef NO_PDT
+                for (int i = 0; i < PDT_SIZE; i++) {
+                    if (PGM_PDT[i] == NULL) continue;
+                    char save_path[50];
+                    sprintf(save_path, "%s.%s", PGM_PDT[i]->header->name, PAGE_EXTENSION);
+                    PGM_PDT_flush(i);
+                    PGM_PDT[i] = PGM_load_page(save_path);
+                }
+            #endif
+
+            return 1;
+        }
+
+        int PGM_PDT_flush(int index) {
+            #ifndef NO_PDT
+                if (PGM_PDT[index] == NULL) return -1;
+
+                char save_path[50];
+                sprintf(save_path, "%s.%s", PGM_PDT[index]->header->name, PAGE_EXTENSION);
+
+                PGM_save_page(PGM_PDT[index], save_path);
+                PGM_free_page(PGM_PDT[index]);
+
+                PGM_PDT[index] = NULL;
+            #endif
+
+            return 1;
+        }
+
+    #pragma endregion
 
 #pragma endregion

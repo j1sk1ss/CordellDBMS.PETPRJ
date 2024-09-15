@@ -1,0 +1,3 @@
+/*
+Kmain file. In future here will be placed some kernel init stuff.
+*/
