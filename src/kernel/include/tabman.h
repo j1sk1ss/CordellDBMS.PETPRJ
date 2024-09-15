@@ -17,6 +17,18 @@
 #include "dirman.h"
 
 
+#pragma region [Access]
+
+    #define CREATE_ACCESS_BYTE(read_access, write_access, delete_access) \
+        (((read_access & 0b111) << 6) | ((write_access & 0b111) << 3) | (delete_access & 0b111))
+
+    // Macros for getting access level
+    #define GET_READ_ACCESS(access_byte)    ((access_byte >> 6) & 0b111)
+    #define GET_WRITE_ACCESS(access_byte)   ((access_byte >> 3) & 0b111)
+    #define GET_DELETE_ACCESS(access_byte)  (access_byte & 0b111)
+
+#pragma endregion
+
 #define TABLE_MAGIC     0xAA
 #define TABLE_NAME_SIZE 8
 #define TABLE_EXTENSION "tb"
@@ -51,10 +63,10 @@
 #pragma endregion
 
 
-// We have *.cdir bin file, where at start placed header
-//=========================================================================================================
-// HEADER (MAGIC | COLUMN_COUNT | PAGE_COUNT) -> | COLUMNS (TYPE | NAME, ... ) | DIR_NAMES -> dyn. -> end |
-//=========================================================================================================
+// We have *.tb bin file, where at start placed header
+//==========================================================================================================================
+// HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) | DIR_NAMES -> dyn. -> end |
+//==========================================================================================================================
 
     struct table_column {
         // Column magic byte
@@ -76,6 +88,20 @@
         // Table name
         // Table name needs for working with modfication exist table
         uint8_t name[TABLE_NAME_SIZE];
+
+        /*
+        Main idea:
+        We have table with RWD access (Read, Write and Delete). If user have all levels, he can delete rows,
+        append / insert data and read any values from table. 
+        If user level is higher then table level, that indicates that user can't do some stuff.
+        In summary, 000 - highest level access (like root). 777 - lowest level access.
+
+        How byte looks like:
+        0bRRR|WWW|DDD
+
+        Access byte used in higher abstraction levels like database, because here, in tabman, we don't know user.
+        */
+        uint8_t access;
 
         // Column count in this table
         // How much columns in this table
@@ -203,6 +229,23 @@
 #pragma endregion
 
 #pragma region [Table]
+
+    /*
+    Check signature function check input data with column signature.
+    Be sure that you include CD symbols into your data.
+
+    Params:
+    - table - table signature
+    - data - data for check
+
+    Return -4 if column type unknown. Check table, that you provide into function.
+    Return -3 if signature is wrong. You provide value for FLOAT column, but value is not float.
+    Return -2 if signature is wrong. You provide value for INT column, but value is not integer.
+    Return -1 if provided data too small. Maybe you forgot additional CD?
+              This error indicates, that data to small for this column count.
+    Return 1 if signature is correct.
+    */
+    int TBM_check_signature(table_t* table, uint8_t* data);
 
     /*
     TODO: Add some error codes

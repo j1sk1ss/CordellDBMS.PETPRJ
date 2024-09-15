@@ -7,12 +7,15 @@
 #include "include/tabman.h"
 #include "include/dirman.h"
 #include "include/pageman.h"
+#include "include/traceback.h"
 
 
-#define TABLE_LOAD_TEST
+#define SIGNATURE_TEST
 
 
 int main() {
+    TB_enable();
+
 #ifdef DIR_PAGE_SAVE_TEST
 
     directory_t* dir = DRM_create_directory("dir1");
@@ -102,6 +105,39 @@ int main() {
 #ifdef TABLE_APPEND_TEST
 
 
+
+#endif
+
+#ifdef SIGNATURE_TEST
+
+    table_column_t** columns = (table_column_t**)calloc(4, sizeof(table_column_t*));
+
+    table_column_t* column1 = TBM_create_column(COLUMN_TYPE_ANY, "col1");
+    table_column_t* column2 = TBM_create_column(COLUMN_TYPE_STRING, "col2");
+    table_column_t* column3 = TBM_create_column(COLUMN_TYPE_INT, "col3");
+
+    columns[0] = column1;
+    columns[1] = column2;
+    columns[2] = column3; 
+
+    table_t* table = TBM_create_table("table1", columns, 3);
+    
+    char wrong_data[60];
+    sprintf(wrong_data, "column%cstring%c1.00", COLUMN_DELIMITER, COLUMN_DELIMITER);
+
+    char wrong_data_1[60];
+    sprintf(wrong_data_1, "column%c123%c1.00", COLUMN_DELIMITER, COLUMN_DELIMITER);
+
+    char wrong_data_2[60];
+    sprintf(wrong_data_2, "column%c1.00", COLUMN_DELIMITER);
+
+    char correct_data[60];
+    sprintf(correct_data, "column%cstring%c100", COLUMN_DELIMITER, COLUMN_DELIMITER);
+    
+    printf("Wrong data: %i\n", TBM_check_signature(table, wrong_data));
+    printf("Wrong data 1: %i\n", TBM_check_signature(table, wrong_data_1));
+    printf("Wrong data 2: %i\n", TBM_check_signature(table, wrong_data_2));
+    printf("Correct data: %i\n", TBM_check_signature(table, correct_data));
 
 #endif
     return 1;

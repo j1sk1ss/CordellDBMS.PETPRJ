@@ -30,6 +30,10 @@
         "complex": "c",
         "*.tcc": "c",
         "format": "c",
-        "common.h": "c"
+        "common.h": "c",
+        "database.h": "c",
+        "ostream": "c",
+        "cstring": "c",
+        "traceback.h": "c"
     }
 }

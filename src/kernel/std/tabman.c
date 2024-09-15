@@ -4,15 +4,15 @@
 #pragma region [Directory]
 
     int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
-        return 1;
+        return 1; // TODO
     }
 
     int TBM_delete_content(table_t* table, int offset, size_t size) {
-        return 1;
+        return 1; // TODO
     }
 
     int TBM_find_content(table_t* table, int offset, uint8_t value) {
-        return 1;
+        return 1; // TODO
     }
 
 #pragma endregion
@@ -37,6 +37,35 @@
 #pragma endregion
 
 #pragma region [Table]
+
+    int TBM_check_signature(table_t* table, uint8_t* data) {
+        char* data_str = (char*)data;
+        char* current_token = data_str;
+        
+        for (int i = 0; i < table->header->column_count; i++) {
+            if (current_token == NULL) {
+                return -1;
+            }
+
+            char* value = get_next_token(&current_token, COLUMN_DELIMITER);
+            switch (table->columns[i]->type) {
+                case COLUMN_TYPE_STRING:
+                    break;
+                case COLUMN_TYPE_INT:
+                    if (!is_integer(value)) return -2;
+                    break;
+                case COLUMN_TYPE_FLOAT:
+                    if (!is_float(value)) return -3;
+                    break;
+                case COLUMN_TYPE_ANY:
+                    break;
+                default:
+                    return -4;
+            }
+        }
+
+        return 1;
+    }
 
     int TBM_link_dir2table(table_t* table, directory_t* directory) {
         table->dir_names = (uint8_t**)realloc(table->dir_names, ++table->header->dir_count);

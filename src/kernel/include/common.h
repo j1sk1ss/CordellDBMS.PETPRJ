@@ -8,6 +8,8 @@
 #define COMMON_H_
 
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
@@ -20,5 +22,11 @@
 // dest - pointer to place, where mamory for string allocated
 // length - length of string that will be generated bu function
 void rand_str(char *dest, size_t length);
+
+int is_integer(const char* str);
+
+int is_float(const char* str);
+
+char* get_next_token(char** input, char delimiter);
 
 #endif
