@@ -9,16 +9,13 @@
         int page_offset = offset / PAGE_CONTENT_SIZE;
         int current_index = offset % PAGE_CONTENT_SIZE;
 
-        char page_name[25];
-        sprintf(page_name, "%s.%s", directory->names[page_offset], PAGE_EXTENSION);
+        char page_path[50];
+        sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[page_offset], PAGE_EXTENSION);
 
-        page_t* page = PGM_load_page(page_name);
+        page_t* page = PGM_load_page(page_path);
         PGM_delete_content(page, current_index, length);
 
-        // TODO: Think about optimization
-        //       Maybe save pages in pages table?
-        //       I mean we will have something like static array of pages in pagman (Like file descriptor in Linux and etc)
-        PGM_save_page(page, page_name);
+        PGM_save_page(page, page_path);
         PGM_free_page(page);
 
         return 1;
@@ -26,18 +23,18 @@
 
     int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght) {
         for (int i = 0; i < directory->header->page_count; i++) {
-            char page_name[25];
-            sprintf(page_name, "%s.%s", directory->names[i], PAGE_EXTENSION);
+            char page_path[50];
+            sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
 
-            page_t* page = PGM_load_page(page_name);
+            page_t* page = PGM_load_page(page_path);
             int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
             if (index == -2 || index == -1) {
                 PGM_free_page(page);
                 continue;
             }
 
-            char save_path[25];
-            sprintf(save_path, "%s.%s", page->header->name, PAGE_EXTENSION);
+            char save_path[50];
+            sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
 
             PGM_append_content(page, data, data_lenght);
             PGM_save_page(page, save_path);
@@ -52,8 +49,8 @@
         rand_str(new_page_name, 8);
 
         // Then we create save path with extention
-        char save_path[25];
-        sprintf(save_path, "%s.%s", new_page_name, PAGE_EXTENSION);
+        char save_path[50];
+        sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, new_page_name, PAGE_EXTENSION);
 
         // Here we check generated name
         // It need for avoid situations, where we can rewrite existed page
@@ -67,7 +64,7 @@
                 fclose(file);
 
                 rand_str(new_page_name, 8);
-                sprintf(save_path, "%s.%s", new_page_name, PAGE_EXTENSION);
+                sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, new_page_name, PAGE_EXTENSION);
 
                 delay--;
                 if (delay <= 0) return -2;
@@ -102,19 +99,32 @@
         int page_offset = offset / PAGE_CONTENT_SIZE;
         int current_index = offset % PAGE_CONTENT_SIZE;
 
-        char page_name[25];
-        sprintf(page_name, "%s.%s", directory->names[page_offset], PAGE_EXTENSION);
+        char page_path[50];
+        sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[page_offset], PAGE_EXTENSION);
 
-        page_t* page = PGM_load_page(page_name);
+        page_t* page = PGM_load_page(page_path);
         int result = PGM_insert_content(page, current_index, data, data_lenght);
 
-        // TODO: Think about optimization
-        //       Maybe save pages in pages table?
-        //       I mean we will have something like static array of pages in pagman (Like file descriptor in Linux and etc)
-        PGM_save_page(page, page_name);
+        PGM_save_page(page, page_path);
         PGM_free_page(page);
 
         return result;
+    }
+
+    int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size) {
+        if (directory->header->page_count < (offset / PAGE_CONTENT_SIZE) + 1) return -1;
+
+        int page_offset = offset / PAGE_CONTENT_SIZE;
+        int current_index = offset % PAGE_CONTENT_SIZE;
+
+        char page_path[50];
+        sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[page_offset], PAGE_EXTENSION);
+
+        page_t* page = PGM_load_page(page_path);
+        int result = PGM_find_content(page, current_index, data, data_size);
+        PGM_free_page(page);
+
+        return page_offset * PAGE_CONTENT_SIZE + result;
     }
 
     int DRM_find_value(directory_t* directory, int offset, uint8_t value) {
@@ -123,10 +133,10 @@
         int page_offset = offset / PAGE_CONTENT_SIZE;
         int current_index = offset % PAGE_CONTENT_SIZE;
         
-        char page_name[25];
-        sprintf(page_name, "%s.%s", directory->names[page_offset], PAGE_EXTENSION);
+        char page_path[50];
+        sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[page_offset], PAGE_EXTENSION);
 
-        page_t* page = PGM_load_page(page_name);
+        page_t* page = PGM_load_page(page_path);
         int result = PGM_find_value(page, current_index, value);
         
         PGM_free_page(page);
@@ -150,8 +160,15 @@
     }
 
     int DRM_link_page2dir(directory_t* directory, page_t* page) {
+        if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) 
+            return -1;
+
         strcpy((char*)directory->names[directory->header->page_count++], (char*)page->header->name);
         return 1;
+    }
+
+    int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
+        return 1; // TODO
     }
 
     int DRM_save_directory(directory_t* directory, char* path) {
@@ -169,6 +186,12 @@
             fwrite(directory->names[i], PAGE_NAME_SIZE, SEEK_CUR, file);
 
         // Close file
+        #ifndef _WIN32
+            fsync(fileno(file));
+        #else
+            fflush(file);
+        #endif
+
         fclose(file);
 
         return 1;
@@ -207,8 +230,9 @@
     }
 
     int DRM_free_directory(directory_t* directory) {
-        free(directory->header);
-        free(directory);
+        if (directory == NULL) return -1;
+        SOFT_FREE(directory->header);
+        SOFT_FREE(directory);
 
         return 1;
     }

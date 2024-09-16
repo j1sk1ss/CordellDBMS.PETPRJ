@@ -3,6 +3,10 @@
 
 #pragma region [Directory]
 
+    uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
+        return NULL; // TODO
+    }
+
     int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
         return 1; // TODO
     }
@@ -15,7 +19,11 @@
         return 1; // TODO
     }
 
-    int TBM_find_content(table_t* table, int offset, uint8_t value) {
+    int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size) {
+        return 1; // TODO
+    }
+
+    int TBM_find_value(table_t* table, int offset, uint8_t value) {
         return 1; // TODO
     }
 
@@ -34,7 +42,7 @@
     }
 
     int TBM_free_column(table_column_t* column) {
-        free(column);
+        SOFT_FREE(column);
         return 1;
     }
 
@@ -112,7 +120,12 @@
             fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
 
         // Close file
-        fsync(fileno(file));
+        #ifndef _WIN32
+            fsync(fileno(file));
+        #else
+            fflush(file);
+        #endif
+        
         fclose(file);
 
         return 1;
@@ -152,15 +165,16 @@
     }
 
     int TBM_free_table(table_t* table) {
+        if (table == NULL) return -1;
         for (int i = 0; i < table->header->dir_count; i++) 
-            free(table->dir_names[i]);
+            SOFT_FREE(table->dir_names[i]);
 
         for (int i = 0; i < table->header->column_count; i++) 
             TBM_free_column(table->columns[i]);
 
-        free(table->dir_names);
-        free(table->columns);
-        free(table);
+        SOFT_FREE(table->dir_names);
+        SOFT_FREE(table->columns);
+        SOFT_FREE(table);
 
         return 1;
     }

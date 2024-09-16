@@ -34,6 +34,8 @@
         "database.h": "c",
         "ostream": "c",
         "cstring": "c",
-        "traceback.h": "c"
+        "traceback.h": "c",
+        "tabman.h": "c",
+        "string.h": "c"
     }
 }

@@ -41,10 +41,23 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         return 1;
     }
 
+    int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size) {
+        for (int i = offset; i <= PAGE_CONTENT_SIZE - data_size; i++) {
+            if (memcmp(&page->content[i], data, data_size) == 0) return i;
+        }
+
+        return -1;
+    }
+
     int PGM_find_value(page_t* page, int offset, uint8_t value) {
+        if (offset >= PAGE_CONTENT_SIZE) return -2;
+        
         int index = offset;
-        while (page->content[index++] != value) {}
-        return MAX(index - 1, 0);
+        while (index++) {
+            if (page->content[index] == value) return index;
+        }
+
+        return -1;
     }
 
     int PGM_get_free_space(page_t* page, int offset) {
@@ -120,14 +133,24 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         fwrite(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file);
 
         // Close file
-        fsync(fileno(file));
+        #ifndef _WIN32
+            fsync(fileno(file));
+        #else
+            fflush(file);
+        #endif
+        
         fclose(file);
 
         return 1;
     }
 
     page_t* PGM_load_page(char* name) {
-        page_t* pdt_page = PGM_PDT_find_page(basename(name));
+        char file_path[256];
+        char file_name[25];
+        char file_ext[8];
+        get_file_path_parts(name, file_path, file_name, file_ext);
+
+        page_t* pdt_page = PGM_PDT_find_page(file_name);
         if (pdt_page != NULL) return pdt_page;
 
         // Open file page
@@ -160,8 +183,9 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_free_page(page_t* page) {
-        free(page->header);
-        free(page);
+        if (page == NULL) return -1;
+        SOFT_FREE(page->header);
+        SOFT_FREE(page);
 
         return 1;
     }
@@ -197,7 +221,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 for (int i = 0; i < PDT_SIZE; i++) {
                     if (PGM_PDT[i] == NULL) continue;
                     char save_path[50];
-                    sprintf(save_path, "%s.%s", PGM_PDT[i]->header->name, PAGE_EXTENSION);
+                    sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, PGM_PDT[i]->header->name, PAGE_EXTENSION);
                     PGM_PDT_flush(i);
                     PGM_PDT[i] = PGM_load_page(save_path);
                 }
@@ -211,7 +235,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (PGM_PDT[index] == NULL) return -1;
 
                 char save_path[50];
-                sprintf(save_path, "%s.%s", PGM_PDT[index]->header->name, PAGE_EXTENSION);
+                sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, PGM_PDT[index]->header->name, PAGE_EXTENSION);
 
                 PGM_save_page(PGM_PDT[index], save_path);
                 PGM_free_page(PGM_PDT[index]);

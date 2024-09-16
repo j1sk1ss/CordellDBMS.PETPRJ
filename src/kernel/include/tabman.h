@@ -13,7 +13,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 
 #include "dirman.h"
 
@@ -32,7 +35,11 @@
 
 #define TABLE_MAGIC     0xAA
 #define TABLE_NAME_SIZE 8
+
 #define TABLE_EXTENSION "tb"
+// Set here default path for save. 
+// Important Note ! : This path is main for ALL tables
+#define TABLE_BASE_PATH ""
 
 #pragma region [Column]
 
@@ -131,23 +138,17 @@
 #pragma region [Directories]
 
     /*
-    Append data row to content pages in directories. Main difference with append_content is check part.
-    This maeans, that before append data, we check user content signature, and if signature is wrong,
-    we return -2.  
-    Note: If table don't have any directories, it will create one, then create one additional page
-    Note 2: If during append process, we reach page limit in directory, we create a new one
-    
-    table - pointer to table
-    data - append data
-    data_size - size of data
-    
-    Return -2 if signature is wrong
-    Return -1 if something goes wrong
-    Return 0 if row append was success
-    Return 1 if row append was success and we create new pages
-    Return 2 if row append was success and we create new directories
+    Get content return allocated copy of data by provided offset. If size larger than table, will return trunc data.
+    Note: This function don`t check signature, and can return any values, that;s why be sure that you get right size of content.
+
+    Params:
+    - table - pointer to table
+    - offset - global offset in bytes
+    - size - size of content
+
+    Return point to allocated copy of data from table
     */
-    int TBM_append_row(table_t* table, uint8_t* data, size_t data_size);
+    uint8_t* TBM_get_content(table_t* table, int offset, size_t size);
 
     /*
     Insert data row to content pages in directories. Main difference with append_content is hard part.
@@ -157,9 +158,10 @@
 
     ! In summary, this function shouldn't be used in ususal tasks. It may broke whole table at one time. !
     
-    table - pointer to table
-    data - append data
-    data_size - size of data
+    Params:
+    - table - pointer to table
+    - data - append data
+    - data_size - size of data
     
     Return -3 if table is empty
     Return -2 if we reach page limit in directory (Prefere using append_content)
@@ -174,9 +176,10 @@
     Note: If table don't have any directories, it will create one, then create one additional page
     Note 2: If during append process, we reach page limit in directory, we create a new one
     
-    table - pointer to table
-    data - append data
-    data_size - size of data
+    Params:
+    - table - pointer to table
+    - data - append data
+    - data_size - size of data
     
     Return -1 if something goes wrong
     Return 0 if append was success
@@ -194,9 +197,10 @@
     - DIRECTORY_OFFSET for directory offset
     - PAGE_CONTENT_SIZE for page offset
     
-    table - pointer to table
-    offset - offset in bytes
-    size - size of deleted content
+    Params:
+    - table - pointer to table
+    - offset - offset in bytes
+    - size - size of deleted content
     
     Return -2 if something goes wrong
     Return -1 if you try to delete more, then already have
@@ -205,20 +209,48 @@
     int TBM_delete_content(table_t* table, int offset, size_t size);
 
     /*
+    Find data function return global index in table of provided data. (Will return first entry of data).
+    Note: Will return index, if we have perfect fit. That's means:
+    Will return:
+        Targer: hello (size 5)
+        Source: helloworld
+    Will skip:
+        Target: hello (size 6)
+        Source: helloworld
+
+    Note 2: For avoiding situations, where function return part of word, add space to target data (Don't forget to encrease size).
+    Note 3: Don't use CD and RD symbols in data. (Optionaly). If you want find row, use find row function.
+
+    Params:
+    - table - pointer to table.
+    - offset - global offset. For simple use, try:
+                DIRECTORY_OFFSET for directory offset,
+                PAGE_CONTENT_SIZE for page offset.
+    - data - data for seacrh
+    - data_size - data for search size 
+
+    Return -2 if something goes wrong
+    Return -1 if data nfound
+    Return global index (first entry) of target data 
+    */
+    int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size);
+
+    /*
     Find value in assosiatet directories
     In summary it just invoke similar functions in directories for finding value in pages
-    Note 2: For offset in pages or directories use defined vars like:
+    Note: For offset in pages or directories use defined vars like:
     - DIRECTORY_OFFSET for directory offset
     - PAGE_CONTENT_SIZE for page offset
     
-    directory - pointer to directory
-    offset - offset in bytes
-    value - value that we want to find
+    Params:
+    - directory - pointer to directory
+    - offset - offset in bytes
+    - value - value that we want to find
     
     Return -1 - if not found
     Return index of value in page with end offset
     */
-    int TBM_find_content(table_t* table, int offset, uint8_t value);
+    int TBM_find_value(table_t* table, int offset, uint8_t value);
 
 #pragma endregion
 
@@ -229,8 +261,9 @@
     Note: Use only defined types of column.
     Note 2: If you want use any value (disable in-build check), use ANY type.
     
-    type - column type
-    name - column name (Should equals or smaller then column max size).
+    Params:
+    - type - column type
+    - name - column name (Should equals or smaller then column max size).
            If it large then max size, name will trunc for fit.
     
     Return pointer to column
@@ -240,7 +273,8 @@
     /*
     Realise column allocated memory
     
-    column - pointer to column
+    Params:
+    - column - pointer to column
     
     Return -1 if something goes wrong
     Return 1 if realise was success
@@ -273,8 +307,9 @@
     Link directory to table
     Note: Be sure that directory has same signature with table
     
-    table - pointer to table (Can be freed after function)
-    directory - pointer to directory (Can be freed after function)
+    Params:
+    - table - pointer to table (Can be freed after function)
+    - directory - pointer to directory (Can be freed after function)
     
     Return 0 - if something goes wrong
     Return 1 - if link was success
@@ -284,9 +319,10 @@
     /*
     Create new table
     
-    name - name of table (Can be freed after function)
-    columns - columns in table (Please avoid free operations)
-    col_count - columns count
+    Params:
+    - name - name of table (Can be freed after function)
+    - columns - columns in table (Please avoid free operations)
+    - col_count - columns count
     
     Return pointer to new table
     */
@@ -295,8 +331,9 @@
     /*
     Save table to the disk
     
-    table - pointer to table (Can be freed after function)
-    path - place where table will be saved (Can be freed after function)
+    Params:
+    - table - pointer to table (Can be freed after function)
+    - path - place where table will be saved (Can be freed after function)
     
     Return 0 - if something goes wrong
     Return 1 - if save was success
@@ -306,7 +343,8 @@
     /*
     Load table from .tb bin file
     
-    name - name of file (Can be freed after function)
+    Params:
+    - name - name of file (Can be freed after function)
     Note: Don't forget about full path. Be sure that all code coreectly use paths
     
     Return allocated table from disk 
@@ -316,7 +354,8 @@
     /*
     Release table
     
-    table - pointer to table
+    Params:
+    - table - pointer to table
     
     Return 0 - if something goes wrong
     Return 1 - if Release was success
