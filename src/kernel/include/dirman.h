@@ -93,7 +93,8 @@
     // Return 2 if all success and content was append to new page
     // Return 1 if all success and content was append to existed page
     // Return 0 if write succes, but content was trunc
-    // Return -1 if something goes wrong
+    // Return -1 if we reach page limit in directory (Create a new one)
+    // Return -2 if we can't create uniqe name for page
     int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght);
 
     // Insert content to directory. This function don't move page_end in first empty page symbol to new location

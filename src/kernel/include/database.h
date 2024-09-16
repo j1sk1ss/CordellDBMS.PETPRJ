@@ -3,7 +3,7 @@
  *  Main idea is to have main list of functions for handle user commands.
  *
  *  Also thanks to https://habr.com/ru/articles/803347/ for additional info about fflash and fsync,
- *  info about file based DBMS optimisation and ither usefull stuff. 
+ *  info about file based DBMS optimisation and other usefull stuff. 
  * 
  *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
  *  Credits: j1sk1ss
@@ -126,16 +126,117 @@
         */
         int DB_delete_row(char* table_name, int row, uint8_t access);
 
+        /*
+        Find data row function return global index in databse of provided row.
+        Note: Will return row, if we have perfect fit. That's means:
+        Will return:
+            Targer: hello (size 5)
+            Source: helloworld
+        Will skip:
+            Target: hello (size 6)
+            Source: helloworld
+
+        Note 2: For avoiding situations, where function return row with part of word,
+                add space to target data (Don't forget to encrease size).
+        Note 3: In difference with find data, this function will return index of row,
+                that't why result of this function can't be used as offset. For working with
+                rows, use rows functions.
+
+        Params:
+        - table_name - table name
+        - offset - global offset. For simple use, try:
+                   DIRECTORY_OFFSET for directory offset,
+                   PAGE_CONTENT_SIZE for page offset.
+        - data - data for seacrh
+        - data_size - data for search size 
+
+        Return -2 if something goes wrong
+        Return -1 if data nfound
+        Return row index (first entry) of target data 
+        */
+        int DB_find_data_row(char* table_name, int offset, uint8_t* data, size_t data_size);
+        
+        /*
+        Find value function return row index in databse of provided value.
+
+        Params:
+        - table_name - table name
+        - offset - global offset. For simple use, try:
+                   DIRECTORY_OFFSET for directory offset,
+                   PAGE_CONTENT_SIZE for page offset.
+        - value - value for seacrh
+
+        Return -2 if something goes wrong
+        Return -1 if data nfound
+        Return row index (first entry) of target value
+        */
+        int DB_find_value_row(char* table_name, int offset, uint8_t value); 
 
     #pragma endregion
 
     #pragma region [Data]
 
-        int DB_find_data(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size);
-        int DB_delete_data(database_t* database, char* table_name, int offset, size_t size);
-        int DB_find_value(database_t* database, char* table_name, int offset, uint8_t value);
-        int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size);
-        int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value);
+        /*
+        Find data function return global index in databse of provided data. (Will return first entry of data).
+        Note: Will return index, if we have perfect fit. That's means:
+        Will return:
+            Targer: hello (size 5)
+            Source: helloworld
+        Will skip:
+            Target: hello (size 6)
+            Source: helloworld
+
+        Note 2: For avoiding situations, where function return part of word, add space to target data (Don't forget to encrease size).
+        Note 3: Don't use CD and RD symbols in data. (Optionaly). If you want find row, use find row function.
+
+        Params:
+        - table_name - table name
+        - offset - global offset. For simple use, try:
+                   DIRECTORY_OFFSET for directory offset,
+                   PAGE_CONTENT_SIZE for page offset.
+        - data - data for seacrh
+        - data_size - data for search size 
+
+        Return -2 if something goes wrong
+        Return -1 if data nfound
+        Return global index (first entry) of target data 
+        */
+        int DB_find_data(char* table_name, int offset, uint8_t* data, size_t data_size);
+        
+        /*
+        Find value function return global index in databse of provided value. (Will return index of byte).
+
+        Params:
+        - table_name - table name
+        - offset - global offset. For simple use, try:
+                   DIRECTORY_OFFSET for directory offset,
+                   PAGE_CONTENT_SIZE for page offset.
+        - value - value for seacrh
+
+        Return -2 if something goes wrong
+        Return -1 if data nfound
+        Return global index (first entry) of target value
+        */
+        int DB_find_value(char* table_name, int offset, uint8_t value);
+
+        /*
+        Delete data function rewrite data in page with PAGE_EMPTY symbols.
+        Note: If size larger then page, and next page not exist, we trunc delete area.
+              If next page exists, we continue deleting (in difference with insert functions).
+
+        Params:
+        - table_name - name of table, where content should be deleted
+        - offset - global offset. For simple use, try:
+                   DIRECTORY_OFFSET for directory offset,
+                   PAGE_CONTENT_SIZE for page offset.
+        - size - data size for delete
+
+        Return -1 if something goes wrong
+        Return 1 if delete was success
+        Return 2 if during deleting we reach nexisted page
+        Return 3 if during deleting we reach nexisted directory
+         */
+        int DB_delete_data(char* table_name, int offset, size_t size);
 
     #pragma endregion
 
@@ -202,6 +303,17 @@
     Return pointer to database if all was success.
     */
     database_t* DB_load_database(char* name);
+
+    /*
+    Save database to disk
+
+    Params:
+    - database - pointer to database
+    - path - save path
+
+    Return -1 if something goes wrong
+    Return 1 if save was success
+    */
     int DB_save_database(database_t* database, char* path);
 
 #pragma endregion

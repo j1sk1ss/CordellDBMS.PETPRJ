@@ -70,7 +70,7 @@
                 sprintf(save_path, "%s.%s", new_page_name, PAGE_EXTENSION);
 
                 delay--;
-                if (delay <= 0) return -1;
+                if (delay <= 0) return -2;
             }
             else {
                 // File not found, no memory leak since 'file' == NULL

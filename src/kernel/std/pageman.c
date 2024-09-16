@@ -3,17 +3,19 @@
 
 int PGM_PDT_current = 0;
 /*
-Page destriptor table, is an a static array of pages indexes.
-Main idea in saving pages temporary in static table somewhere in memory.
-Max size of this table equals 1024 * 10 = 10Kb.
+Page destriptor table, is an a static array of pages indexes. Main idea in
+saving pages temporary in static table somewhere in memory. Max size of this 
+table equals 1024 * 10 = 10Kb.
 
-For working with table we have PAGE struct, that have index of table in PDT.
-
-If we access to pages with full PGM_PDT, we also unload old page and load new page.
+For working with table we have PAGE struct, that have index of table in PDT. If 
+we access to pages with full PGM_PDT, we also unload old page and load new page.
 (Stack)
 
-Main problem in parallel work. If we have threads, they can try to access this table at one time.
-If you use OMP parallel libs, or something like this, please, define NO_PDT flag (For avoiding ABA problem).
+Main problem in parallel work. If we have threads, they can try to access this
+table at one time. If you use OMP parallel libs, or something like this, please,
+define NO_PDT flag (For avoiding ABA problem).
+
+Why we need PGM? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
 page_t* PGM_PDT[PDT_SIZE] = { NULL };
 

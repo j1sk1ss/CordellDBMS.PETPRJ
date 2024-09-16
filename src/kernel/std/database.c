@@ -28,8 +28,9 @@
                 TBM_free_table(table);
                 return -3;
             }
-            // TODO
-            return 1;
+            // TODO:
+            // 1) Offset calcauletion from row index
+            return TBM_insert_content(table, 0, data, data_size);
         }
 
         int DB_delete_row(char* table_name, int row, uint8_t access) {
@@ -41,7 +42,17 @@
                 TBM_free_table(table);
                 return -3;
             }
-            // TODO
+            // TODO:
+            // 1) Offset calculation from row index
+            // 2) Size of row calculation
+            return TBM_delete_content(table, 0, 0);
+        }
+
+        int DB_find_data_row(char* table_name, int offset, uint8_t* data, size_t data_size) {
+            return 1;
+        }
+
+        int DB_find_value_row(char* table_name, int offset, uint8_t value) {
             return 1;
         }
 
@@ -49,23 +60,15 @@
 
     #pragma region [Data]
 
-        int DB_find_data(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size) {
+        int DB_find_data(char* table_name, int offset, uint8_t* data, size_t data_size) {
             return 1;
         }
 
-        int DB_find_value(database_t* database, char* table_name, int offset, uint8_t value) {
+        int DB_find_value(char* table_name, int offset, uint8_t value) {
             return 1;
         }
 
-        int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size) {
-            return 1;
-        }
-
-        int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value) {
-            return 1;
-        }
-
-        int DB_delete_data(database_t* database, char* table_name, int offset, size_t size) {
+        int DB_delete_data(char* table_name, int offset, size_t size) {
             return 1;
         }
 
