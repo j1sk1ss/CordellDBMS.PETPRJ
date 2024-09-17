@@ -1,6 +1,24 @@
 #include "../include/dirman.h"
 
 
+/*
+Directory destriptor table, is an a static array of directory indexes. Main idea in
+saving dirs temporary in static table somewhere in memory. Max size of this 
+table equals 1024 * 10 = 10Kb.
+
+For working with table we have directory struct, that have index of table in DDT. If 
+we access to dirs with full DRM_DDT, we also unload old dirs and load new dirs.
+(Stack)
+
+Main problem in parallel work. If we have threads, they can try to access this
+table at one time. If you use OMP parallel libs, or something like this, please,
+define NO_DDT flag (For avoiding deadlocks).
+
+Why we need DDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
+*/
+directory_t* DRM_DDT[DDT_SIZE] = { NULL };
+
+
 #pragma region [Page]
 
     int DRM_delete_content(directory_t* directory, int offset, size_t length) {
@@ -198,6 +216,14 @@
     }
 
     directory_t* DRM_load_directory(char* name) {
+        char file_path[256];
+        char file_name[25];
+        char file_ext[8];
+        get_file_path_parts(name, file_path, file_name, file_ext);
+
+        directory_t* ddt_directory = DRM_DDT_find_directory(file_name);
+        if (ddt_directory != NULL) return ddt_directory;
+
         // Open file page
         FILE* file = fopen(name, "rb");
         if (file == NULL) {
@@ -223,9 +249,10 @@
 
         directory->header = header;
 
-        // Close file page
+        // Close file directory
         fclose(file);
 
+        DRM_DDT_add_directory(directory);
         return directory;
     }
 
@@ -236,5 +263,104 @@
 
         return 1;
     }
+
+    #pragma region [DDT]
+
+        int DRM_DDT_add_directory(directory_t* directory) {
+            #ifndef NO_DDT
+                int current = 0;
+                while (DRM_DDT[current]->lock == 1 && DRM_DDT[current] != NULL) 
+                    if (current++ >= DDT_SIZE) current = 0;
+
+                if (DRM_lock_directory(DRM_DDT[current], 0) != -1) {
+                    DRM_DDT_flush(current);
+                    DRM_DDT[current] = directory;
+                }
+            #endif
+
+            return 1;
+        }
+
+        directory_t* DRM_DDT_find_directory(char* name) {
+            #ifndef NO_DDT
+                for (int i = 0; i < DDT_SIZE; i++) {
+                    if (DRM_DDT[i] == NULL) continue;
+                    if (strncmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
+                        return DRM_DDT[i];
+                    }
+                }
+            #endif
+
+            return NULL;
+        }
+
+        int DRM_DDT_sync() {
+            #ifndef NO_DDT
+                for (int i = 0; i < DDT_SIZE; i++) {
+                    if (DRM_DDT[i] == NULL) continue;
+                    char save_path[50];
+                    sprintf(save_path, "%s%s.%s", DIRECTORY_BASE_PATH, DRM_DDT[i]->header->name, DIRECTORY_EXTENSION);
+
+                    // TODO: Get thread ID
+                    if (DRM_lock_directory(DRM_DDT[i], 0) == 1) {
+                        DRM_DDT_flush(i);
+                        DRM_DDT[i] = DRM_load_directory(save_path);
+                    } else return -1;
+                }
+            #endif
+
+            return 1;
+        }
+
+        int DRM_DDT_flush(int index) {
+            #ifndef NO_DDT
+                if (DRM_DDT[index] == NULL) return -1;
+
+                char save_path[50];
+                sprintf(save_path, "%s%s.%s", DIRECTORY_BASE_PATH, DRM_DDT[index]->header->name, DIRECTORY_EXTENSION);
+
+                DRM_save_directory(DRM_DDT[index], save_path);
+                DRM_free_directory(DRM_DDT[index]);
+
+                DRM_DDT[index] = NULL;
+            #endif
+
+            return 1;
+        }
+
+    #pragma endregion
+
+    #pragma region [Lock]
+
+        int DRM_lock_directory(directory_t* directory, uint8_t owner) {
+            if (directory == NULL) return -2;
+
+            int delay = 99999;
+            while (directory->lock == LOCKED && (directory->lock_owner != owner || directory->lock_owner != -1)) {
+                if (--delay <= 0) return -1;
+            }
+
+            directory->lock = LOCKED;
+            directory->lock_owner = owner;
+
+            return 1;
+        }
+
+        int DRM_lock_test(directory_t* directory, uint8_t owner) {
+            if (directory->lock_owner != owner) return 0;
+            return directory->lock;
+        }
+
+        int DRM_release_directory(directory_t* directory, uint8_t owner) {
+            if (directory->lock == UNLOCKED) return -1;
+            if (directory->lock_owner != owner && directory->lock_owner != -1) return -2;
+
+            directory->lock = UNLOCKED;
+            directory->lock = -1;
+
+            return 1;
+        }
+
+    #pragma endregion
 
 #pragma endregion

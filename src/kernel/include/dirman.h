@@ -38,6 +38,8 @@
 // Important Note ! : This path is main for ALL directories
 #define DIRECTORY_BASE_PATH ""
 
+#define DDT_SIZE            10
+
 #define DIRECTORY_NAME_SIZE 8
 #define DIRECTORY_MAGIC     0xCC
 
@@ -69,6 +71,10 @@
     struct directory {
         // Directory header
         directory_header_t* header;
+
+        // Lock directory flag
+        uint8_t lock;
+        uint8_t lock_owner;
 
         // Page file names
         uint8_t names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
@@ -141,24 +147,24 @@
     - directory - pointer to directory.
     - offset - global offset. For simple use, try:
                 PAGE_CONTENT_SIZE for page offset.
-    - data - data for seacrh
-    - data_size - data for search size 
+    - data - data for seacrh.
+    - data_size - data for search size .
 
-    Return -2 if something goes wrong
-    Return -1 if data nfound
-    Return global index (first entry) of target data 
+    Return -2 if something goes wrong.
+    Return -1 if data nfound.
+    Return global index (first entry) of target data .
     */
     int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size);
 
     /*
-    Find value in assosiatet pages
+    Find value in assosiatet pages.
     
-    directory - pointer to directory
-    offset - offset in bytes
-    value - value that we want to find
+    directory - pointer to directory.
+    offset - offset in bytes.
+    value - value that we want to find.
     
-    Return -1 - if not found
-    Return index of value in page with offset
+    Return -1 - if not found.
+    Return index of value in page with offset.
     */
     int DRM_find_value(directory_t* directory, int offset, uint8_t value);
 
@@ -167,15 +173,15 @@
 #pragma region [Directory]
 
     /*
-    Save directory on the disk
-    Note: Be carefull with this function, it can rewrite existed content
-    Note 2: If you want update data on disk, just create same path with existed directory
+    Save directory on the disk.
+    Note: Be carefull with this function, it can rewrite existed content.
+    Note 2: If you want update data on disk, just create same path with existed directory.
     
-    directory - pointer to directory
-    path - path where save
+    directory - pointer to directory.
+    path - path where save.
     
-    Return 0 - if something goes wrong
-    Return 1 - if Release was success
+    Return 0 - if something goes wrong.
+    Return 1 - if Release was success.
     */
     int DRM_save_directory(directory_t* directory, char* path);
 
@@ -186,12 +192,12 @@
           For avoiuding additional IO file operations, use create_page function with same name,
           then just link allocated struct to directory.
     
-    directory - home directory
-    page - page for linking
+    directory - home directory.
+    page - page for linking.
     
-    Return -1 if we reach page limit per directory
-    If sighnature wrong, return 0
-    If all okey - return 1
+    Return -1 if we reach page limit per directory.
+    If sighnature wrong, return 0.
+    If all okey - return 1.
     */
     int DRM_link_page2dir(directory_t* directory, page_t* page);
 
@@ -200,44 +206,137 @@
     Note: If you want to delete page permanently, be sure that you unlink it from directory.
 
     Params:
-    - directory - directory pointer
-    - page_name - page name (Not path)
+    - directory - directory pointer.
+    - page_name - page name (Not path).
 
-    Return -1 if something goes wrong
-    Return 1 if unlink was success
+    Return -1 if something goes wrong.
+    Return 1 if unlink was success.
     */
     int DRM_unlink_page_from_directory(directory_t* directory, char* page_name);
 
     /*
-    Allocate memory and create new directory
+    Allocate memory and create new directory.
     
-    name - directory name
+    name - directory name.
     
-    Return directory pointer
+    Return directory pointer.
     */
     directory_t* DRM_create_directory(char* name);
 
     /*
-    Open file, load directory and page names, close file
-    Note: This function invoke create_directory function
+    Open file, load directory and page names, close file.
+    Note: This function invoke create_directory function.
     
-    name - file name (don`t forget path)
+    name - file name (don`t forget path).
     
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
-    Return directory pointer
+    Return directory pointer.
     */
     directory_t* DRM_load_directory(char* name);
 
     /*
-    Release directory
+    Release directory.
     
-    directory - pointer to directory
+    directory - pointer to directory.
     
-    Return 0 - if something goes wrong
-    Return 1 - if Release was success
+    Return 0 - if something goes wrong.
+    Return 1 - if Release was success.
     */
     int DRM_free_directory(directory_t* directory);
+
+#pragma region [DDT]
+
+        /*
+        Add directory to DDT table.
+        Note: It will unload old directory if we earn end of DDT.
+        Note 2: If we try to unload locked dir, we go to next, and try to unload next.
+                We can get deadlock.
+
+        Params:
+        - page - pointer to page (Be sure that you don't realise this page. We save link in DDT).
+
+        Return struct directory pointer
+        */
+        int DRM_DDT_add_directory(directory_t* directory);
+
+        /*
+        Find page in DDT by name
+
+        Params:
+        - name - name of page for find.
+                Note: not path to file. Name of page.
+                    Usuale names placed in directories.
+
+        Return directory struct or NULL if page not found.
+        */
+        directory_t* DRM_DDT_find_directory(char* name);
+
+        /*
+        Save and load directories from DDT.
+
+        Return -1 if something goes wrong.
+        Return 1 if sync success.
+        */
+        int DRM_DDT_sync();
+
+        /*
+        Hard cleanup of DDT. Really not recomment for use!
+        Note: It will just unload data from DDT to disk by provided index.
+        Note 2: Empty space will be marked by NULL.
+
+        Params:
+        - index - index of directory for flushing.
+
+        Return -1 if something goes wrong.
+        Return 1 if cleanup success.
+        */
+        int DRM_DDT_flush(int index);
+
+    #pragma endregion
+
+    #pragma region [Lock]
+
+        /*
+        Lock directory for working.
+        Note: Can cause deadlock, decause we infinity wait for directory unlock.
+
+        Params:
+        - directory - pointer to directory.
+        - owner - thread, that want lock this directory.
+
+        Return -2 if we try to lock NULL
+        Return -1 if we can`t lock directory (for some reason)
+        Return 1 if directory now locked.
+        */
+        int DRM_lock_directory(directory_t* directory, uint8_t owner);
+
+        /*
+        Check lock status of directory.
+
+        Params:
+        - directory - pointer to directory.
+        - owner - thread, that want test this directory.
+
+        Return lock status (LOCKED and UNLOCKED).
+        */
+        int DRM_lock_test(directory_t* directory, uint8_t owner);
+
+        /*
+        Realise directory for working.
+
+        Params:
+        - directory - pointer to directory.
+        - owner - thread, that want release this directory.
+
+        Return -2 if this directory has another owner
+        Return -1 if directory was unlocked. (Nothing changed)
+        Return 1 if directory now unlocked.
+        */
+        int DRM_release_directory(directory_t* directory, uint8_t owner);
+
+    #pragma endregion
+
 
 #pragma endregion
 

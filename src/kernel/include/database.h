@@ -46,6 +46,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 // HEADER (MAGIC | NAME) -> | TABLE_NAMES -> ... -> end |
 //=======================================================
 
+    // TODO: Remove cache database and use TDT
     struct database_header {
         // Database header magic
         uint8_t magic;
@@ -66,10 +67,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
         // Database linked tables
         uint8_t** table_names;
-
-        // Cached tables for fast access
-        // TODO: Size check cuz we can got situation, where table has 10^10 dir names or something like that
-        table_t* tables_cache[DATABASE_TABLE_CACHE_SIZE];
     } typedef database_t;
 
 

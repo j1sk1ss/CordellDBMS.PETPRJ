@@ -12,6 +12,9 @@
 #include <ctype.h>
 
 
+#define LOCKED    1
+#define UNLOCKED  0
+
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define SOFT_FREE(ptr) do { \

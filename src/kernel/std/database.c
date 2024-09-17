@@ -109,13 +109,6 @@
 #pragma region [Database]
 
     table_t* DB_get_table(database_t* database, char* table_name) {
-        // Try to get table from cache
-        for (int i = 0; i < DATABASE_TABLE_CACHE_SIZE; i++) {
-            if (database->tables_cache[i] == NULL) continue;
-            if (strncmp(database->tables_cache[i]->header->name, table_name, TABLE_NAME_SIZE) == 0) return database->tables_cache[i];
-        }
-
-        // Try to load page from disk
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
             if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
@@ -125,6 +118,7 @@
             }
         }
 
+        // If table not in database, we return NULL
         return NULL;
     }
 
@@ -132,14 +126,6 @@
         database->table_names = (uint8_t**)realloc(database->table_names, ++database->header->table_count * sizeof(uint8_t*));
         database->table_names[database->header->table_count] = (uint8_t*)malloc(TABLE_NAME_SIZE);
         memcpy(database->table_names[database->header->table_count], table->header->name, TABLE_NAME_SIZE);
-
-        int page_cache_index = 0;
-        for (int i = 0; i < DATABASE_TABLE_CACHE_SIZE; i++) {
-            if (database->tables_cache[i] == NULL) page_cache_index = i;
-        }
-
-        TBM_free_table(database->tables_cache[page_cache_index]);
-        database->tables_cache[page_cache_index] = table;
 
         return 1;
     }
@@ -187,9 +173,6 @@
         for (int i = 0; i < database->header->table_count; i++) 
             SOFT_FREE(database->table_names[i]);
 
-        for (int i = 0; i < DATABASE_TABLE_CACHE_SIZE; i++) 
-            TBM_free_table(database->tables_cache[i]);
-
         SOFT_FREE(database->table_names);
         SOFT_FREE(database->header);
         SOFT_FREE(database);
@@ -220,13 +203,6 @@
         database_t* database = (database_t*)malloc(sizeof(database_t));
         database->header = header;
         database->table_names = names;
-
-        for (int i = 0; i < DATABASE_TABLE_CACHE_SIZE; i++) database->tables_cache[i] = NULL;
-        for (int i = 0; i < MIN(DATABASE_TABLE_CACHE_SIZE, header->table_count); i++) {
-            char save_path[50];
-            sprintf(save_path, "%s%s.%s", TABLE_BASE_PATH, database->table_names[i], TABLE_EXTENSION);
-            database->tables_cache[i] = TBM_load_table(save_path);
-        }
 
         return database;
     }

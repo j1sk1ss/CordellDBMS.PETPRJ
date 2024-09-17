@@ -1,7 +1,6 @@
 #include "../include/pageman.h"
 
 
-int PGM_PDT_current = 0;
 /*
 Page destriptor table, is an a static array of pages indexes. Main idea in
 saving pages temporary in static table somewhere in memory. Max size of this 
@@ -13,9 +12,9 @@ we access to pages with full PGM_PDT, we also unload old page and load new page.
 
 Main problem in parallel work. If we have threads, they can try to access this
 table at one time. If you use OMP parallel libs, or something like this, please,
-define NO_PDT flag (For avoiding ABA problem).
+define NO_PDT flag (For avoiding deadlocks).
 
-Why we need PGM? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
+Why we need PDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
 page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
@@ -194,10 +193,14 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
         int PGM_PDT_add_page(page_t* page) {
             #ifndef NO_PDT
-                if (PGM_PDT_current++ >= PDT_SIZE) PGM_PDT_current = 0;
+                int current = 0;
+                while (PGM_PDT[current]->lock == 1 && PGM_PDT[current] != NULL) 
+                    if (current++ >= PDT_SIZE) current = 0;
 
-                PGM_PDT_flush(PGM_PDT_current);
-                PGM_PDT[PGM_PDT_current] = page;
+                if (PGM_lock_page(PGM_PDT[current], 0) != -1) {
+                    PGM_PDT_flush(current);
+                    PGM_PDT[current] = page;
+                }
             #endif
 
             return 1;
@@ -222,8 +225,12 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     if (PGM_PDT[i] == NULL) continue;
                     char save_path[50];
                     sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, PGM_PDT[i]->header->name, PAGE_EXTENSION);
-                    PGM_PDT_flush(i);
-                    PGM_PDT[i] = PGM_load_page(save_path);
+
+                    // TODO: get thread ID
+                    if (PGM_lock_page(PGM_PDT[i], 0) == 1) {
+                        PGM_PDT_flush(i);
+                        PGM_PDT[i] = PGM_load_page(save_path);
+                    } else return -1;
                 }
             #endif
 
@@ -242,6 +249,39 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
                 PGM_PDT[index] = NULL;
             #endif
+
+            return 1;
+        }
+
+    #pragma endregion
+
+    #pragma region [Lock]
+
+        int PGM_lock_page(page_t* page, uint8_t owner) {
+            if (page == NULL) return -2;
+
+            int delay = 99999;
+            while (page->lock == LOCKED && (page->lock_owner != owner || page->lock_owner != -1)) {
+                if (--delay <= 0) return -1;
+            }
+
+            page->lock = LOCKED;
+            page->lock_owner = owner;
+
+            return 1;
+        }
+
+        int PGM_lock_test(page_t* page, uint8_t owner) {
+            if (page->lock_owner != owner) return 0;
+            return page->lock;
+        }
+
+        int PGM_release_page(page_t* page, uint8_t owner) {
+            if (page->lock == UNLOCKED) return -1;
+            if (page->lock_owner != owner && page->lock_owner != -1) return -2;
+
+            page->lock = UNLOCKED;
+            page->lock = -1;
 
             return 1;
         }
