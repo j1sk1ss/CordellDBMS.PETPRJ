@@ -41,7 +41,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size) {
-        for (int i = offset; i <= PAGE_CONTENT_SIZE - data_size; i++) {
+        for (int i = offset; i <= PAGE_CONTENT_SIZE - (int)data_size; i++) {
             if (memcmp(&page->content[i], data, data_size) == 0) return i;
         }
 
@@ -155,7 +155,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         // Open file page
         FILE* file = fopen(name, "rb");
         if (file == NULL) {
-            return -1;
+            return NULL;
         }
 
         // Read header from file
@@ -166,7 +166,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         // Check page magic
         if (header->magic != PAGE_MAGIC) {
             free(header);
-            return -2;
+            return NULL;
         }
 
         // Allocate memory for page structure
@@ -210,7 +210,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             #ifndef NO_PDT
                 for (int i = 0; i < PDT_SIZE; i++) {
                     if (PGM_PDT[i] == NULL) continue;
-                    if (strncmp(PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0) {
+                    if (strncmp((char*)PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0) {
                         return PGM_PDT[i];
                     }
                 }

@@ -90,7 +90,7 @@ void get_file_path_parts(char *path, char *path_, char *base_, char *ext_) {
                 (path[1] == '\\'))
             )
         ) {
-            sDelim = calloc(5, sizeof(char));
+            sDelim = (char*)calloc(5, sizeof(char));
             /*  //   */if (path[0] == '\\') iDelim = '\\', strcpy(sDelim, "\\");
             /*  c:\\ */if (path[1] == ':' ) iDelim = '\\', strcpy(sDelim, "\\"); // also satisfies path[2] == '\\'
             /*  /    */if (path[0] == '/' ) iDelim = '/' , strcpy(sDelim, "/" );

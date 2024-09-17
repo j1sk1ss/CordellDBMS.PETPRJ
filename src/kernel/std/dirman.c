@@ -227,7 +227,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         // Open file page
         FILE* file = fopen(name, "rb");
         if (file == NULL) {
-            return -1;
+            return NULL;
         }
 
         // Read header from file
@@ -237,7 +237,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         // Check directory magic
         if (header->magic != DIRECTORY_MAGIC) {
             free(header);
-            return -2;
+            return NULL;
         }
 
         // First we allocate memory for directory struct
@@ -285,7 +285,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             #ifndef NO_DDT
                 for (int i = 0; i < DDT_SIZE; i++) {
                     if (DRM_DDT[i] == NULL) continue;
-                    if (strncmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
+                    if (strncmp((char*)DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
                         return DRM_DDT[i];
                     }
                 }

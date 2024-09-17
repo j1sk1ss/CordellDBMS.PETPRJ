@@ -31,6 +31,10 @@
     #define GET_WRITE_ACCESS(access_byte)   ((access_byte >> 3) & 0b111)
     #define GET_DELETE_ACCESS(access_byte)  (access_byte & 0b111)
 
+    #define CHECK_READ_ACCESS(uaccess, taccess) GET_READ_ACCESS(taccess) < GET_READ_ACCESS(uaccess) ? -1 : 0
+    #define CHECK_WRITE_ACCESS(uaccess, taccess) GET_WRITE_ACCESS(taccess) < GET_WRITE_ACCESS(uaccess) ? -1 : 0
+    #define CHECK_DELETE_ACCESS(uaccess, taccess) GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0
+
 #pragma endregion
 
 #define TABLE_MAGIC     0xAA
@@ -44,17 +48,20 @@
 #pragma region [Column]
 
     /*
+    DEPRECATED
     Main idea is create a simple presentation of info in binary data.
     With this delimiters we know, that every row has at start ROW_DELIMITER (it allows us use \n character).
     */
     #define COLUMN_DELIMITER    0xEE
     /* 
+    DEPRECATED
     For splitting data by columns, we reserve another byte value.
     In summary data has next structure:
     ... -> CD -> DATA_DATA_DATA -> CD -> DATA_DATA_DATA -> RD -> DATA_DATA_DATA -> CD -> ...
     Row delimiter equals column delimiter, but says, that this is a different column and different row
     */
     #define ROW_DELIMITER       0xEF
+    #define COLUMN_MAX_SIZE     0xFF
 
     #define COLUMN_MAGIC        0xEA
     #define COLUMN_NAME_SIZE    16
@@ -83,6 +90,9 @@
         // Column type byte
         // Column type indicates what type should user insert to this column
         uint8_t type;
+
+        // Column size
+        uint8_t size;
 
         // Column name with fixed size
         // Column name
@@ -268,7 +278,7 @@
     
     Return pointer to column
     */
-    table_column_t* TBM_create_column(uint8_t type, char* name);
+    table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name);
 
     /*
     Realise column allocated memory

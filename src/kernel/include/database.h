@@ -184,14 +184,16 @@ we use cache in pages (lowest level) and table cache at the highest level.
         - offset - global offset. For simple use, try:
                    DIRECTORY_OFFSET for directory offset,
                    PAGE_CONTENT_SIZE for page offset.
-        - data - data for seacrh
+        - data - data for search
         - data_size - data for search size 
+        - access - user access level
 
+        Return -3 if access denied
         Return -2 if something goes wrong
         Return -1 if data nfound
         Return row index (first entry) of target data 
         */
-        int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size);
+        int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size, uint8_t access);
         
         /*
         Find value function return row index in databse of provided value.
@@ -202,13 +204,15 @@ we use cache in pages (lowest level) and table cache at the highest level.
         - offset - global offset. For simple use, try:
                    DIRECTORY_OFFSET for directory offset,
                    PAGE_CONTENT_SIZE for page offset.
-        - value - value for seacrh
+        - value - value for search
+        - access - user access level
 
+        Return -3 if access denied
         Return -2 if something goes wrong
         Return -1 if data nfound
         Return row index (first entry) of target value
         */
-        int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value); 
+        int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value, uint8_t access); 
 
     #pragma endregion
 
@@ -233,14 +237,15 @@ we use cache in pages (lowest level) and table cache at the highest level.
         - offset - global offset. For simple use, try:
                    DIRECTORY_OFFSET for directory offset,
                    PAGE_CONTENT_SIZE for page offset.
-        - data - data for seacrh
+        - data - data for search
         - data_size - data for search size 
+        - access - user access level
 
         Return -2 if something goes wrong
         Return -1 if data nfound
         Return global index (first entry) of target data 
         */
-        int DB_find_data(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size);
+        int DB_find_data(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size, uint8_t access);
         
         /*
         Find value function return global index in databse of provided value. (Will return index of byte).
@@ -251,13 +256,14 @@ we use cache in pages (lowest level) and table cache at the highest level.
         - offset - global offset. For simple use, try:
                    DIRECTORY_OFFSET for directory offset,
                    PAGE_CONTENT_SIZE for page offset.
-        - value - value for seacrh
+        - value - value for search
+        - access - user access level
 
         Return -2 if something goes wrong
         Return -1 if data nfound
         Return global index (first entry) of target value
         */
-        int DB_find_value(database_t* database, char* table_name, int offset, uint8_t value);
+        int DB_find_value(database_t* database, char* table_name, int offset, uint8_t value, uint8_t access);
 
         /*
         Delete data function rewrite data in page with PAGE_EMPTY symbols.
@@ -271,13 +277,14 @@ we use cache in pages (lowest level) and table cache at the highest level.
                    DIRECTORY_OFFSET for directory offset,
                    PAGE_CONTENT_SIZE for page offset.
         - size - data size for delete
+        - access - user access level
 
         Return -1 if something goes wrong
         Return 1 if delete was success
         Return 2 if during deleting we reach nexisted page
         Return 3 if during deleting we reach nexisted directory
          */
-        int DB_delete_data(database_t* database, char* table_name, int offset, size_t size);
+        int DB_delete_data(database_t* database, char* table_name, int offset, size_t size, uint8_t access);
 
     #pragma endregion
 

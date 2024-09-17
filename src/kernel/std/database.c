@@ -8,37 +8,23 @@
         uint8_t* DB_get_row(database_t* database, char* table_name, int row, uint8_t access) {
             table_t* table = DB_get_table(database, table_name);
             if (table == NULL) return NULL;
-
-            uint8_t uwrite_access = GET_WRITE_ACCESS(access);
-            uint8_t twrite_access = GET_WRITE_ACCESS(table->header->access);
-            if (twrite_access < uwrite_access) {
+            if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
                 TBM_free_table(table);
-                return -3;
+                return NULL;
             }
 
-            int current_row = 0;
-            int current_global_offset = 0;
-            while (current_row++ != row) {
-                int result = TBM_find_value(table, current_global_offset, ROW_DELIMITER);
-                if (result == -1) break;
+            int row_size = 0;
+            for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
+            int global_offset = row * row_size;
 
-                current_global_offset = result;
-            }
-
-            int row_end = TBM_find_value(table, current_global_offset, ROW_DELIMITER);
-            int row_size = row_end - current_global_offset;
-
-            uint8_t* row_data = TBM_get_content(table, current_global_offset, row_size);
+            uint8_t* row_data = TBM_get_content(table, global_offset, row_size);
             return row_data;
         }
 
         int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t data_size, uint8_t access) {
             table_t* table = DB_get_table(database, table_name);
             if (table == NULL) return -1;
-
-            uint8_t uwrite_access = GET_WRITE_ACCESS(access);
-            uint8_t twrite_access = GET_WRITE_ACCESS(table->header->access);
-            if (twrite_access < uwrite_access) {
+            if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
                 TBM_free_table(table);
                 return -3;
             }
@@ -50,55 +36,102 @@
         int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data, size_t data_size, uint8_t access) {
             table_t* table = DB_get_table(database, table_name);
             if (table == NULL) return -1;
-
-            uint8_t uwrite_access = GET_WRITE_ACCESS(access);
-            uint8_t twrite_access = GET_WRITE_ACCESS(table->header->access);
-            if (twrite_access < uwrite_access) {
+            if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
                 TBM_free_table(table);
                 return -3;
             }
-            // TODO:
-            // 1) Offset calcauletion from row index
-            return TBM_insert_content(table, 0, data, data_size);
+
+            int row_size = 0;
+            for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
+            int global_offset = row * row_size;
+
+            if (TBM_check_signature(table, data) != 1) return -2;
+            return TBM_insert_content(table, global_offset, data, data_size);
         }
 
         int DB_delete_row(database_t* database, char* table_name, int row, uint8_t access) {
             table_t* table = DB_get_table(database, table_name);
             if (table == NULL) return -1;
-
-            uint8_t udelete_access = GET_DELETE_ACCESS(access);
-            uint8_t tdelete_access = GET_DELETE_ACCESS(table->header->access);
-            if (tdelete_access < udelete_access) {
+            if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) {
                 TBM_free_table(table);
                 return -3;
             }
-            // TODO:
-            // 1) Offset calculation from row index
-            // 2) Size of row calculation
-            return TBM_delete_content(table, 0, 0);
+
+            int row_size = 0;
+            for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
+            int global_offset = row * row_size;
+
+            return TBM_delete_content(table, global_offset, row_size);
         }
 
-        int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size) {
-            return 1; // TODO
+        int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size, uint8_t access) {
+            table_t* table = DB_get_table(database, table_name);
+            if (table == NULL) return -1;
+            if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
+                TBM_free_table(table);
+                return -3;
+            }
+
+            int row_size = 0;
+            for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
+
+            int global_offset = TBM_find_content(table, offset, data, data_size);
+            int row = global_offset / row_size;
+
+            return row;
         }
 
-        int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value) {
-            return 1; // TODO
+        int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value, uint8_t access) {
+            table_t* table = DB_get_table(database, table_name);
+            if (table == NULL) return -1;
+            if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
+                TBM_free_table(table);
+                return -3;
+            }
+
+            int row_size = 0;
+            for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
+
+            int global_offset = TBM_find_value(table, offset, value);
+            int row = global_offset / row_size;
+
+            return row;
         }
 
     #pragma endregion
 
     #pragma region [Data]
 
-        int DB_find_data(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size) {
+        int DB_find_data(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size, uint8_t access) {
+            table_t* table = DB_get_table(database, table_name);
+            if (table == NULL) return -1;
+            if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
+                TBM_free_table(table);
+                return -3;
+            }
+
             return 1; // TODO
         }
 
-        int DB_find_value(database_t* database, char* table_name, int offset, uint8_t value) {
+        int DB_find_value(database_t* database, char* table_name, int offset, uint8_t value, uint8_t access) {
+            table_t* table = DB_get_table(database, table_name);
+            if (table == NULL) return -1;
+            if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
+                TBM_free_table(table);
+                return -3;
+            }
+
             return 1; // TODO
         }
 
-        int DB_delete_data(database_t* database, char* table_name, int offset, size_t size) {
+        int DB_delete_data(database_t* database, char* table_name, int offset, size_t size, uint8_t access) {
+            table_t* table = DB_get_table(database, table_name);
+            if (table == NULL) return -1;
+            if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) {
+                TBM_free_table(table);
+                return -3;
+            }
+
             return 1; // TODO
         }
 
@@ -111,7 +144,7 @@
     table_t* DB_get_table(database_t* database, char* table_name) {
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
+            if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
                 char save_path[50];
                 sprintf(save_path, "%s%s.%s", TABLE_BASE_PATH, table_name, TABLE_EXTENSION);
                 return TBM_load_table(save_path);
@@ -136,12 +169,12 @@
                 free(database->table_names[i]);
 
                 // Shift remaining names down
-                for (size_t j = i; j < database->header->table_count - 1; ++j) {
+                for (int j = i; j < database->header->table_count - 1; ++j) {
                     database->table_names[j] = database->table_names[j + 1];
                 }
 
                 // Reallocate memory to shrink the array
-                uint8_t** new_table_names = realloc(database->table_names, (database->header->table_count - 1) * sizeof(uint8_t*));
+                uint8_t** new_table_names = (uint8_t**)realloc(database->table_names, (database->header->table_count - 1) * sizeof(uint8_t*));
                 if (new_table_names || (database->header->table_count - 1 == 0)) {
                     database->table_names = new_table_names;
                 }
@@ -159,7 +192,7 @@
     database_t* DB_create_database(char* name) {
         database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
         header->magic = DATABASE_MAGIC;
-        strncpy(header->name, name, DATABASE_NAME_SIZE);
+        strncpy((char*)header->name, name, DATABASE_NAME_SIZE);
         header->table_count = 0;
 
         database_t* database = (database_t*)malloc(sizeof(database_t));
@@ -183,7 +216,7 @@
     database_t* DB_load_database(char* name) {
         FILE* file = fopen(name, "rb");
         if (file == NULL) {
-            return -1;
+            return NULL;
         }
 
         database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
@@ -191,7 +224,7 @@
 
         if (header->magic != DATABASE_MAGIC) {
             free(header);
-            return -2;
+            return NULL;
         }
 
         uint8_t** names = (uint8_t**)malloc(header->table_count);

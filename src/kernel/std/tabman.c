@@ -31,12 +31,13 @@
 
 #pragma region [Column]
 
-    table_column_t* TBM_create_column(uint8_t type, char* name) {
+    table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name) {
         table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
 
         column->magic = COLUMN_MAGIC;
-        strncpy(column->name, name, COLUMN_NAME_SIZE);
+        strncpy((char*)column->name, name, COLUMN_NAME_SIZE);
         column->type = type;
+        column->size = size;
 
         return column;
     }
@@ -51,15 +52,11 @@
 #pragma region [Table]
 
     int TBM_check_signature(table_t* table, uint8_t* data) {
-        char* data_str = (char*)data;
-        char* current_token = data_str;
-        
         for (int i = 0; i < table->header->column_count; i++) {
-            if (current_token == NULL) {
-                return -1;
-            }
+            char value[COLUMN_MAX_SIZE];
+            memcpy(value, data, table->columns[i]->size);
+            data += table->columns[i]->size;
 
-            char* value = get_next_token(&current_token, COLUMN_DELIMITER);
             switch (table->columns[i]->type) {
                 case COLUMN_TYPE_STRING:
                     break;
