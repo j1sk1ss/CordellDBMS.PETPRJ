@@ -84,49 +84,51 @@
 #pragma region [Pages]
 
     /*
-    Rewrite all line by EMPTY symbols
+    Rewrite all line by EMPTY symbols.
     
-    directory - pointer to directory
-    offset - offset in directory
-    length - length of data to mark as delete
+    directory - pointer to directory.
+    offset - offset in directory.
+    length - length of data to mark as delete.
     
-    Return 1 - if write was success
-    Return -1 - if index not found in page
+    Return 1 - if write was success.
+    Return -1 - if index not found in page.
+    Return -2 - if we reach directory end during work.
     */
     int DRM_delete_content(directory_t* directory, int offset, size_t length);
 
     /*
-    Append content to directory. This function move page_end symbol to new location
-    Note: If it can't append to existed pages, it creates new one
+    Append content to directory. This function move page_end symbol to new location.
+    Note: If it can't append to existed pages, it creates new one.
     Note 2: This function not guarantees that content will be append to last page. 
-            Content will be placed at first empty space with fit size
+            Content will be placed at first empty space with fit size.
     
-    directory - pointer to directory
-    data - data for append
-    data_lenght - lenght of data
+    directory - pointer to directory.
+    data - data for append.
+    data_lenght - lenght of data.
     
-    Return 2 if all success and content was append to new page
-    Return 1 if all success and content was append to existed page
-    Return 0 if write succes, but content was trunc
-    Return -1 if we reach page limit in directory (Create a new one)
-    Return -2 if we can't create uniqe name for page
+    Return 2 if all success and content was append to new page.
+    Return 1 if all success and content was append to existed page.
+    Return 0 if write succes, but content was trunc.
+    Return -1 if we reach page limit in directory (Create a new one).
+    Return -2 if we can't create uniqe name for page.
     */
     int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght);
 
     /*
-    Insert content to directory. This function don't move page_end in first empty page symbol to new location
+    Insert content to directory. This function don't move page_end in first empty page symbol to new location.
     Note: This function don't give ability for creation new pages. If content too large - it will trunc.
-          To avoid this, use DRM_append_content function
-    Note 2: If directory don't have any pages - this function will fall and return -1
+          To avoid this, use DRM_append_content function.
+    Note 2: If directory don't have any pages - this function will fall and return -1.
     
-    directory - pointer to directory
-    offset - offset in bytes
-    data - data for append
-    data_lenght - lenght of data
+    directory - pointer to directory.
+    offset - offset in bytes.
+    data - data for append.
+    data_lenght - lenght of data.
     
-    Return 1 if all success
-    Return 2 if write succes, but content was trunc
-    Return -1 if something goes wrong
+    Return 1 if all success.
+    Return 2 if write succes, but content was trunc.
+    Return -1 if something goes wrong.
+    Return -2 if we reach directory end.
     */
     int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght);
 
@@ -141,7 +143,7 @@
         Source: helloworld
 
     Note 2: For avoiding situations, where function return part of word, add space to target data (Don't forget to encrease size).
-    Note 3: Don't use CD and RD symbols in data. (Optionaly). If you want find row, use find row function.
+    Note 3: Don't use CD and RD symbols in data. (Optionaly). If you want find row, use find row function. <DEPRECATED>
 
     Params:
     - directory - pointer to directory.

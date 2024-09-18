@@ -23,20 +23,25 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
     int PGM_append_content(page_t* page, uint8_t* data, size_t data_lenght) {
         int eof = PGM_find_value(page, PAGE_START, PAGE_END);
-        for (int i = eof, j = 0; i < (int)data_lenght + eof, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
-        page->content[eof + (int)data_lenght] = PAGE_END;
+        if (eof == -1) return -1;
+
+        int start_index = eof;
+        int end_index = MIN(PAGE_CONTENT_SIZE, eof + (int)data_lenght);
+        page->content[MIN(end_index + 1, PAGE_CONTENT_SIZE)] = PAGE_END;
+
+        for (int i = start_index, j = 0; i < end_index, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
         return 1;
     }
 
-    int PGM_insert_content(page_t* page, uint8_t offset, uint8_t* data, size_t data_lenght) {
-        for (int i = offset; i < MIN(PAGE_CONTENT_SIZE - offset, (int)data_lenght); i++) page->content[i] = data[i];
-        if (data_lenght + offset > PAGE_CONTENT_SIZE) return 2;
-
+    int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_lenght) {
+        int end_index = MIN(PAGE_CONTENT_SIZE - offset, (int)data_lenght + offset);
+        for (int i = offset, j = 0; i < end_index, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
         return 1;
     }
 
     int PGM_delete_content(page_t* page, int offset, size_t length) {
-        for (int i = offset; i < MIN(PAGE_CONTENT_SIZE - offset, (int)length); i++) page->content[i] = PAGE_EMPTY;
+        int end_index = MIN(PAGE_CONTENT_SIZE - offset, (int)length + offset);
+        for (int i = offset; i < end_index; i++) page->content[i] = PAGE_EMPTY;
         return 1;
     }
 
@@ -54,6 +59,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         int index = offset;
         while (index++) {
             if (page->content[index] == value) return index;
+            if (index >= PAGE_CONTENT_SIZE) return -1;
         }
 
         return -1;
@@ -108,14 +114,55 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
 
         header->magic = PAGE_MAGIC;
-        strncpy((char*)header->name, name, PAGE_NAME_SIZE);
+        memcpy(header->name, name, PAGE_NAME_SIZE);
 
         page->header = header;
-        memcpy((char*)page->content, (char*)buffer, data_size);
+        memcpy(page->content, buffer, data_size);
 
-        int data_end = MIN(PAGE_CONTENT_SIZE, strlen((char*)buffer));
-        page->content[data_end] = PAGE_END;
-        for (int i = data_end + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
+        if (data_size < PAGE_CONTENT_SIZE) {
+            page->content[data_size] = PAGE_END;
+            for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
+        }
+
+        return page;
+    }
+
+    page_t* PGM_create_empty_page() {
+        char page_name[8];
+        char save_path[50];
+
+        rand_str(page_name, 8);
+        sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
+
+        int delay = 1000;
+        while (1) {
+            FILE* file;
+            if ((file = fopen(save_path,"r")) != NULL) {
+                fclose(file);
+
+                rand_str(page_name, 8);
+                sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
+
+                delay--;
+                if (delay <= 0) return NULL;
+            }
+            else {
+                // File not found, no memory leak since 'file' == NULL
+                // fclose(file) would cause an error
+                break;
+            }
+        }
+
+        page_t* page = (page_t*)malloc(sizeof(page_t));
+        page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
+
+        header->magic = PAGE_MAGIC;
+        memcpy(header->name, page_name, PAGE_NAME_SIZE);
+
+        page->header = header;
+        
+        page->content[0] = PAGE_END;
+        for (int i = 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
 
         return page;
     }

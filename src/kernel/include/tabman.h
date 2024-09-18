@@ -48,13 +48,13 @@
 #pragma region [Column]
 
     /*
-    DEPRECATED
+    <DEPRECATED>
     Main idea is create a simple presentation of info in binary data.
     With this delimiters we know, that every row has at start ROW_DELIMITER (it allows us use \n character).
     */
     #define COLUMN_DELIMITER    0xEE
     /* 
-    DEPRECATED
+    <DEPRECATED>
     For splitting data by columns, we reserve another byte value.
     In summary data has next structure:
     ... -> CD -> DATA_DATA_DATA -> CD -> DATA_DATA_DATA -> RD -> DATA_DATA_DATA -> CD -> ...

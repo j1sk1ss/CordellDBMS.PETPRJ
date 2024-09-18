@@ -107,7 +107,7 @@
     Return 0 if write succes, but content was trunc
     Return -1 if something goes wrong
     */
-    int PGM_insert_content(page_t* page, uint8_t offset, uint8_t* data, size_t data_lenght);
+    int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_lenght);
 
     /*
     Rewrite all line by EMPTY symbols
@@ -207,6 +207,19 @@
          If buffer_size higher then default page-size, it will trunc
     */
     page_t* PGM_create_page(char* name, uint8_t* buffer, size_t data_size);
+
+    /*
+    Same function with create page, but here you can avoid name and buffer input.
+    Note: Page will have all EP content with EDP symblol at 0 index.
+    Note 2: Function generates random name with delay. It need for avoid situations,
+            where we can rewrite existed page
+    Note 3: In future prefere avoid random generation by using something like hash generator
+    Took from: https://stackoverflow.com/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c
+
+    Return pointer to allocated page.
+    Return NULL if we can`t create random name.
+    */
+    page_t* PGM_create_empty_page();
 
     /*
     Save page on disk

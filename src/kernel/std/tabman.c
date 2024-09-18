@@ -4,7 +4,63 @@
 #pragma region [Directory]
 
     uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
-        return NULL; // TODO
+        int global_page_offset = offset / PAGE_CONTENT_SIZE;
+        int directory_page_offset = 0;
+        
+        int current_page = 0;
+        directory_t* directory = NULL;
+
+        for (int i = 0; i < table->header->dir_count; i++) {
+            char directory_save_path[50];
+            sprintf(directory_save_path, "%s%s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+
+            directory = DRM_load_directory(directory_save_path);
+            if (current_page + directory->header->page_count < global_page_offset) {
+                current_page += directory->header->page_count;
+                DRM_free_directory(directory);
+                continue;
+            }
+            else {
+                directory_page_offset = global_page_offset - current_page;
+                break;
+            }
+        }
+
+        int size_in_pages = (int)size / PAGE_CONTENT_SIZE;
+        int current_index = offset % PAGE_CONTENT_SIZE;
+        int content2load_size = (int)size;
+
+        uint8_t* output_content = (uint8_t*)malloc(size);
+        uint8_t* output_content_pointer = output_content;
+        for (int i = 0; i < size_in_pages + 1; i++) {
+            if (directory_page_offset > directory->header->page_count) {
+                if (directory->header->page_count + 1 > PAGES_PER_DIRECTORY) {
+                    // TODO: Allocate new directory
+                }
+                else {
+                    // TODO: Allocate new page
+                }
+            }
+
+            char page_save_path[50];
+            sprintf(page_save_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[directory_page_offset++], PAGE_EXTENSION);
+
+            page_t* page = PGM_load_page(page_save_path);
+            uint8_t* page_content_pointer = page->content;
+
+            page_content_pointer += current_index;
+            int _content2load_size = MIN(PAGE_CONTENT_SIZE - current_index, size);
+
+            memcpy(output_content_pointer, page_content_pointer, content2load_size);
+
+            output_content_pointer += content2load_size;
+            content2load_size -= _content2load_size;
+
+            PGM_free_page(page);
+        }
+
+        DRM_free_directory(directory);
+        return output_content;
     }
 
     int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
