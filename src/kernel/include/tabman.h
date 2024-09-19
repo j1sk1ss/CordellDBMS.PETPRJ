@@ -149,7 +149,7 @@
 
     /*
     Get content return allocated copy of data by provided offset. If size larger than table, will return trunc data.
-    Note: This function don`t check signature, and can return any values, that;s why be sure that you get right size of content.
+    Note: This function don`t check signature, and can return any values, that's why be sure that you get right size of content.
 
     Params:
     - table - pointer to table

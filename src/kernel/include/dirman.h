@@ -84,6 +84,19 @@
 #pragma region [Pages]
 
     /*
+    Get content return allocated copy of data by provided offset. If size larger than directory, will return trunc data.
+    Note: This function don`t check signature, and can return any values, that's why be sure that you get right size of content.
+
+    Params:
+    - directory - pointer to directory
+    - offset - global offset in bytes
+    - size - size of content
+
+    Return point to allocated copy of data from directory
+    */
+    uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size);
+
+    /*
     Rewrite all line by EMPTY symbols.
     
     directory - pointer to directory.

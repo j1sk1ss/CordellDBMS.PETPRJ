@@ -22,12 +22,49 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
 #pragma region [Page]
 
+    uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
+        uint8_t* content = (uint8_t*)malloc(size);
+        uint8_t* content_pointer = content;
+
+        int page_offset     = offset / PAGE_CONTENT_SIZE;
+        int current_index   = offset % PAGE_CONTENT_SIZE;
+        int pages4work      = (int)size / PAGE_CONTENT_SIZE;
+        int current_page    = page_offset;
+        int size2get        = (int)size;
+
+        for (int i = 0; i < pages4work + 1 && size2get > 0; i++) {
+            if (current_page > directory->header->page_count) {
+                // To  many pages. We reach directory end.
+                return content;
+            } 
+
+            // We load current page
+            char page_path[DEFAULT_PATH_SIZE];
+            sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
+            page_t* page = PGM_load_page(page_path);
+
+            // We work with page
+            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2get);
+            memcpy(content_pointer, page->content, current_size);
+
+            PGM_free_page(page);
+
+            // We reload local index and update size2get
+            // Also we move content pointer to next location
+            current_index = 0;
+            size2get        -= current_size;
+            content_pointer += current_size;
+        }
+
+        return content;
+    }
+
     int DRM_delete_content(directory_t* directory, int offset, size_t length) {
         int page_offset     = offset / PAGE_CONTENT_SIZE;
         int current_index   = offset % PAGE_CONTENT_SIZE;
-        int pages4work      = length / PAGE_CONTENT_SIZE;
+        int pages4work      = (int)length / PAGE_CONTENT_SIZE;
         int current_page    = page_offset;
-        int size2delete     = length;
+        int size2delete     = (int)length;
 
         for (int i = 0; i < pages4work + 1 && size2delete > 0; i++) {
             if (current_page > directory->header->page_count) {

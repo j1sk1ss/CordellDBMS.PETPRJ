@@ -30,6 +30,7 @@
                 // Get offset in pages for local directory and save directory index
                 directory_page_offset = global_page_offset - current_page;
                 directory_index = i;
+                DRM_free_directory(directory);
                 break;
             }
 
@@ -38,39 +39,36 @@
         }
 
         // Data for DRM
-        int size_in_pages = (int)size / PAGE_CONTENT_SIZE;
-        int current_index = offset % PAGE_CONTENT_SIZE;
-        int content2load_size = (int)size;
+        int content2get_size = (int)size;
 
+        // Allocate data for output
         uint8_t* output_content = (uint8_t*)malloc(size);
         uint8_t* output_content_pointer = output_content;
-        for (int i = 0; i < size_in_pages + 1; i++) {
-            if (directory_page_offset > directory->header->page_count) {
-                if (directory->header->page_count + 1 > PAGES_PER_DIRECTORY) {
-                    // TODO: Allocate new directory
-                }
-                else {
-                    // TODO: Allocate new page
-                }
-            }
 
-            char page_save_path[DEFAULT_PATH_SIZE];
-            sprintf(page_save_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[directory_page_offset++], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(page_save_path);
+        // Iterate from all directories in table
+        for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
+            // Load directory to memory
+            char directory_save_path[DEFAULT_PATH_SIZE];
+            sprintf(directory_save_path, "%s%s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            directory = DRM_load_directory(directory_save_path);
 
-            uint8_t* page_content_pointer = page->content;
-            page_content_pointer += current_index;
-            int _content2load_size = MIN(PAGE_CONTENT_SIZE - current_index, size);
+            // Get data from directory
+            // After getting data, copy it to allocated output
+            int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE - content2get_size, content2get_size);
+            uint8_t* directory_content = DRM_get_content(directory, offset, current_size);
+            memcpy(output_content_pointer, directory_content, current_size);
 
-            memcpy(output_content_pointer, page_content_pointer, content2load_size);
+            // Realise data
+            free(directory_content);
+            DRM_free_directory(directory);
 
-            output_content_pointer += content2load_size;
-            content2load_size -= _content2load_size;
-
-            PGM_free_page(page);
+            // Set offset to 0, because we go to next directory
+            // Update size of getcontent
+            offset = 0;
+            content2get_size        -= current_size;
+            output_content_pointer  += current_size;
         }
 
-        DRM_free_directory(directory);
         return output_content;
     }
 
