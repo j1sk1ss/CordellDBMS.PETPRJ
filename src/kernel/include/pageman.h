@@ -79,16 +79,15 @@
 #pragma region [Content]
 
     /*
-    Append content to page. This function move page_end symbol to new location
+    Append content to page. This function move page_end symbol to new location.
     
     Params:
-    - page - pointer to page
-    - data - data for append
-    - data_lenght - lenght of data
+    - page - pointer to page.
+    - data - data for append.
+    - data_lenght - lenght of data.
     
-    Return 1 if all success
-    Return 0 if write succes, but content was trunc
-    Return -1 if something goes wrong
+    Return size of data, that can be stored in page.
+    Return -1 if something goes wrong.
     */
     int PGM_append_content(page_t* page, uint8_t* data, size_t data_lenght);
 
@@ -98,14 +97,11 @@
     Note: You should use this function carefull, because it don't warn if it rewrite special bytes.
     
     Params:
-    - page - pointer to page
-    - data - data for append
-    - data_lenght - lenght of data
+    - page - pointer to page.
+    - data - data for append.
+    - data_lenght - lenght of data.
     
-    Return 2 if data was trunc because it earn page end
-    Return 1 if all success
-    Return 0 if write succes, but content was trunc
-    Return -1 if something goes wrong
+    Return size of data, that can be stored in page.
     */
     int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_lenght);
 
@@ -245,7 +241,7 @@
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* name);
+    page_t* PGM_load_page(char* path);
 
     /*
     Release page

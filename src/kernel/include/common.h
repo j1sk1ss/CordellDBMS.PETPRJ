@@ -13,6 +13,8 @@
 #include <stdint.h>
 
 
+#define DEFAULT_PATH_SIZE 100
+
 #define LOCKED    1
 #define UNLOCKED  0
 

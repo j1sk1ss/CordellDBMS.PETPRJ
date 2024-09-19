@@ -4,28 +4,40 @@
 #pragma region [Directory]
 
     uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
-        int global_page_offset = offset / PAGE_CONTENT_SIZE;
-        int directory_page_offset = 0;
-        
-        int current_page = 0;
+        int global_page_offset      = offset / PAGE_CONTENT_SIZE;
+        int directory_index         = -1;
+        int directory_page_offset   = 0;
+        int current_page            = 0;
+
         directory_t* directory = NULL;
 
+        // Find directory that has first page of data (first page).
         for (int i = 0; i < table->header->dir_count; i++) {
-            char directory_save_path[50];
+            // Load directory from disk to memory
+            char directory_save_path[DEFAULT_PATH_SIZE];
             sprintf(directory_save_path, "%s%s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
-
             directory = DRM_load_directory(directory_save_path);
+
+            // Check:
+            // If current directory include page, that we want, we save this directory.
+            // Else we unload directory and go to the next dir. name.
             if (current_page + directory->header->page_count < global_page_offset) {
                 current_page += directory->header->page_count;
                 DRM_free_directory(directory);
                 continue;
             }
             else {
+                // Get offset in pages for local directory and save directory index
                 directory_page_offset = global_page_offset - current_page;
+                directory_index = i;
                 break;
             }
+
+            // Page not found. Offset to large.
+            return -2;
         }
 
+        // Data for DRM
         int size_in_pages = (int)size / PAGE_CONTENT_SIZE;
         int current_index = offset % PAGE_CONTENT_SIZE;
         int content2load_size = (int)size;
@@ -42,12 +54,11 @@
                 }
             }
 
-            char page_save_path[50];
+            char page_save_path[DEFAULT_PATH_SIZE];
             sprintf(page_save_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[directory_page_offset++], PAGE_EXTENSION);
-
             page_t* page = PGM_load_page(page_save_path);
-            uint8_t* page_content_pointer = page->content;
 
+            uint8_t* page_content_pointer = page->content;
             page_content_pointer += current_index;
             int _content2load_size = MIN(PAGE_CONTENT_SIZE - current_index, size);
 

@@ -1,5 +1,6 @@
 #include "../include/pageman.h"
 
+// TODO: Make get_content function
 
 /*
 Page destriptor table, is an a static array of pages indexes. Main idea in
@@ -30,13 +31,13 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         page->content[MIN(end_index + 1, PAGE_CONTENT_SIZE)] = PAGE_END;
 
         for (int i = start_index, j = 0; i < end_index, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
-        return 1;
+        return (int)data_lenght - (end_index - start_index);
     }
 
     int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_lenght) {
         int end_index = MIN(PAGE_CONTENT_SIZE - offset, (int)data_lenght + offset);
         for (int i = offset, j = 0; i < end_index, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
-        return 1;
+        return (int)data_lenght - (end_index - offset);
     }
 
     int PGM_delete_content(page_t* page, int offset, size_t length) {
@@ -47,7 +48,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
     int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size) {
         for (int i = offset; i <= PAGE_CONTENT_SIZE - (int)data_size; i++) {
-            if (memcmp(&page->content[i], data, data_size) == 0) return i;
+            if (memcmp(&page->content[i], data, data_size) == 0) 
+                return i;
         }
 
         return -1;
@@ -128,10 +130,10 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     page_t* PGM_create_empty_page() {
-        char page_name[8];
-        char save_path[50];
+        char page_name[PAGE_NAME_SIZE];
+        char save_path[DEFAULT_PATH_SIZE];
 
-        rand_str(page_name, 8);
+        rand_str(page_name, PAGE_NAME_SIZE);
         sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
 
         int delay = 1000;
@@ -140,7 +142,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             if ((file = fopen(save_path,"r")) != NULL) {
                 fclose(file);
 
-                rand_str(page_name, 8);
+                rand_str(page_name, PAGE_NAME_SIZE);
                 sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
 
                 delay--;
@@ -153,21 +155,12 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             }
         }
 
-        page_t* page = (page_t*)malloc(sizeof(page_t));
-        page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
-
-        header->magic = PAGE_MAGIC;
-        memcpy(header->name, page_name, PAGE_NAME_SIZE);
-
-        page->header = header;
-        
-        page->content[0] = PAGE_END;
-        for (int i = 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
-
-        return page;
+        return PGM_create_page(page_name, NULL, 0);
     }
 
     int PGM_save_page(page_t* page, char* path) {
+        // TODO: Maybe avoid saving if we have emplty places in PDT?
+
         // Open or create file
         FILE* file = fopen(path, "wb");
         if (file == NULL) {
@@ -190,17 +183,17 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         return 1;
     }
 
-    page_t* PGM_load_page(char* name) {
+    page_t* PGM_load_page(char* path) {
         char file_path[256];
         char file_name[25];
         char file_ext[8];
-        get_file_path_parts(name, file_path, file_name, file_ext);
+        get_file_path_parts(path, file_path, file_name, file_ext);
 
         page_t* pdt_page = PGM_PDT_find_page(file_name);
         if (pdt_page != NULL) return pdt_page;
 
         // Open file page
-        FILE* file = fopen(name, "rb");
+        FILE* file = fopen(path, "rb");
         if (file == NULL) {
             return NULL;
         }
@@ -222,7 +215,11 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         page->header = header;
 
         // Close file page
-        fclose(file);
+        #ifndef _WIN32
+            fsync(fileno(file));
+        #else
+            fflush(file);
+        #endif
 
         PGM_PDT_add_page(page);
         return page;
@@ -244,6 +241,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 while (PGM_PDT[current]->lock == 1 && PGM_PDT[current] != NULL) 
                     if (current++ >= PDT_SIZE) current = 0;
 
+                // TODO: get thread ID
                 if (PGM_lock_page(PGM_PDT[current], 0) != -1) {
                     PGM_PDT_flush(current);
                     PGM_PDT[current] = page;
@@ -270,7 +268,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             #ifndef NO_PDT
                 for (int i = 0; i < PDT_SIZE; i++) {
                     if (PGM_PDT[i] == NULL) continue;
-                    char save_path[50];
+                    char save_path[DEFAULT_PATH_SIZE];
                     sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, PGM_PDT[i]->header->name, PAGE_EXTENSION);
 
                     // TODO: get thread ID
@@ -288,7 +286,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             #ifndef NO_PDT
                 if (PGM_PDT[index] == NULL) return -1;
 
-                char save_path[50];
+                char save_path[DEFAULT_PATH_SIZE];
                 sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, PGM_PDT[index]->header->name, PAGE_EXTENSION);
 
                 PGM_save_page(PGM_PDT[index], save_path);

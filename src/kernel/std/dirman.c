@@ -1,5 +1,6 @@
 #include "../include/dirman.h"
 
+// TODO: Make get_content function
 
 /*
 Directory destriptor table, is an a static array of directory indexes. Main idea in
@@ -22,23 +23,20 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 #pragma region [Page]
 
     int DRM_delete_content(directory_t* directory, int offset, size_t length) {
-        if (directory->header->page_count < (offset / PAGE_CONTENT_SIZE) + 1) return -1;
+        int page_offset     = offset / PAGE_CONTENT_SIZE;
+        int current_index   = offset % PAGE_CONTENT_SIZE;
+        int pages4work      = length / PAGE_CONTENT_SIZE;
+        int current_page    = page_offset;
+        int size2delete     = length;
 
-        int page_offset = offset / PAGE_CONTENT_SIZE;
-        int current_index = offset % PAGE_CONTENT_SIZE;
-
-        int size2delete = length;
-        int pages4work = length / PAGE_CONTENT_SIZE;
-
-        int current_page = page_offset;
-        for (int i = 0; i < pages4work + 1; i++) {
+        for (int i = 0; i < pages4work + 1 && size2delete > 0; i++) {
             if (current_page > directory->header->page_count) {
                 // To  many pages. We reach directory end.
                 return -2;
             } 
 
             // We load current page
-            char page_path[50];
+            char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
@@ -59,9 +57,10 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght) {
         // First we try to find fit empty place somewhere in linked pages
         // We skip this part if data_lenght larger then PAGE_CONTENT_SIZE
+        // TODO: We can have situation, when we have many full empty pages, but content larger then one page.
         if (data_lenght < PAGE_CONTENT_SIZE) {
             for (int i = 0; i < directory->header->page_count; i++) {
-                char page_path[50];
+                char page_path[DEFAULT_PATH_SIZE];
                 sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
 
                 page_t* page = PGM_load_page(page_path);
@@ -71,11 +70,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     continue;
                 }
 
-                char save_path[50];
-                sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
-
-                PGM_append_content(page, data, data_lenght);
-                PGM_save_page(page, save_path);
+                PGM_insert_content(page, index, data, data_lenght);
+                PGM_save_page(page, page_path);
                 PGM_free_page(page);
 
                 return 1;
@@ -88,21 +84,21 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             return -1;
         }
 
-        int pages4work = data_lenght / PAGE_CONTENT_SIZE;
-        int size2delete = data_lenght;
+        int pages4work  = data_lenght / PAGE_CONTENT_SIZE;
+        int size2append = data_lenght;
         uint8_t* data_pointer = data;
 
         // Allocate pages for input data
-        for (int i = 0; i < pages4work + 1; i++) {
-            int current_size = MIN(PAGE_CONTENT_SIZE, size2delete); 
+        for (int i = 0; i < pages4work + 1 && size2append > 0; i++) {
+            int current_size = MIN(PAGE_CONTENT_SIZE, size2append); 
 
             // We allocate memory for page structure with all needed data
             page_t* new_page = PGM_create_empty_page();
             if (new_page == NULL) return -2;
 
-            memcpy(new_page->content, data, current_size);
+            memcpy(new_page->content, data_pointer, current_size);
 
-            char save_path[50];
+            char save_path[DEFAULT_PATH_SIZE];
             sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, new_page->header->name, PAGE_EXTENSION);
             PGM_save_page(new_page, save_path);
 
@@ -110,7 +106,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             DRM_link_page2dir(directory, new_page);
             PGM_free_page(new_page);
 
-            size2delete -= current_size;
+            size2append -= current_size;
             data_pointer += current_size;
         }
 
@@ -118,35 +114,31 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght) {
-        if (directory->header->page_count < (offset / PAGE_CONTENT_SIZE) + 1) return -1;
-
-        int page_offset = offset / PAGE_CONTENT_SIZE;
-        int current_index = offset % PAGE_CONTENT_SIZE;
-
-        int size2insert = data_lenght;
-        int pages4work = data_lenght / PAGE_CONTENT_SIZE;
+        int pages4work      = data_lenght / PAGE_CONTENT_SIZE;
+        int page_offset     = offset / PAGE_CONTENT_SIZE;
+        int current_index   = offset % PAGE_CONTENT_SIZE;
+        int current_page    = page_offset;
+        int size2insert     = data_lenght;
 
         uint8_t* data_pointer = data;
-        int current_page = page_offset;
-
-        for (int i = 0; i < pages4work + 1; i++) {
+        for (int i = 0; i < pages4work + 1 && size2insert > 0; i++) {
+            // If we reach pages count in current directory, we return error code
+            // We return error instead creationg a new directory, because this is not our abstraction level
             if (current_page > directory->header->page_count) {
                 // To  many pages. We reach directory end.
                 return -2;
             } 
 
-            // We load current page
-            char page_path[50];
+            // We load current page to memory
+            char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
-            // We work with page
+            // We insert current part of content with local offset 
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2insert);
-            int result = PGM_insert_content(page, current_index, data_pointer, current_size);
+            PGM_insert_content(page, current_index, data_pointer, current_size);
             PGM_save_page(page, page_path);
             PGM_free_page(page);
-
-            if (result == -1) return -1;
 
             // We reload local index and update size2delete
             current_index = 0;
@@ -160,61 +152,69 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size) {
         if (directory->header->page_count < (offset / PAGE_CONTENT_SIZE) + 1) return -1;
 
-        int page_offset = offset / PAGE_CONTENT_SIZE;
-        int current_index = offset % PAGE_CONTENT_SIZE;
-        int pages4search = directory->header->page_count - page_offset;
+        int page_offset         = offset / PAGE_CONTENT_SIZE;
+        int current_index       = offset % PAGE_CONTENT_SIZE;
+        int size4seach          = (int)data_size;
+        int pages4search        = directory->header->page_count - page_offset;
+        int target_global_index = -1;
+        int current_page        = page_offset;
 
         uint8_t* data_pointer = data;
-        int size4seach = (int)data_size;
-        int target_global_index = -1;
-
-        for (int i = 0; i < pages4search + 1; i++) {
-            // We load current page
-            char page_path[50];
-            sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[page_offset + i], PAGE_EXTENSION);
+        for (int i = 0; i < pages4search + 1 && size4seach > 0; i++) {
+            // If we reach pages count in current directory, we return error code.
+            // We return error instead creationg a new directory, because this is not our abstraction level.
+            if (current_page > directory->header->page_count) {
+                // To  many pages. We reach directory end.
+                return -2;
+            } 
+            
+            // We load current page to memory
+            char page_path[DEFAULT_PATH_SIZE];
+            sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[current_page], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
-            // We search part of data in this page
+            // We search part of data in this page, save index and unload page.
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size4seach);
             int result = PGM_find_content(page, current_index, data_pointer, current_size);
             PGM_free_page(page);
 
-            // If TGI is -1, we know that we start seacrhing from start
+            // If TGI is -1, we know that we start seacrhing from start.
+            // Save current TGI of find part of data.
             if (target_global_index == -1) {
-                target_global_index = result + (page_offset + i) * PAGE_CONTENT_SIZE;
+                target_global_index = result + current_page * PAGE_CONTENT_SIZE;
             }
 
             if (result == -1) {
                 // We don`t find any entry of data part.
-                // This indicates, that we can`t find any data.
-                // Restore global index
-                size4seach = (int)data_size;
-                data_pointer = data;
+                // This indicates, that we don`t find any data.
+                // Restore size4search and datapointer, we go to start 
+                size4seach          = (int)data_size;
+                data_pointer        = data;
                 target_global_index = -1;
             } else {
                 // Move pointer to next position
-                size4seach -= current_size;
-                data_pointer += current_size;
+                size4seach      -= current_size;
+                data_pointer    += current_size;
             }
 
             // Set local index to 0. We don`t need offset now.
             current_index = 0;
+            current_page++;
         }
 
         return target_global_index;
     }
 
     int DRM_find_value(directory_t* directory, int offset, uint8_t value) {
-        if (directory->header->page_count < (offset / PAGE_CONTENT_SIZE) + 1) return -1;
-
-        int page_offset = offset / PAGE_CONTENT_SIZE;
-        int current_index = offset % PAGE_CONTENT_SIZE;
-        int pages4search = directory->header->page_count - page_offset;
+        int page_offset     = offset / PAGE_CONTENT_SIZE;
+        int current_index   = offset % PAGE_CONTENT_SIZE;
+        int pages4search    = directory->header->page_count - page_offset;
+        int current_page    = page_offset;
 
         for (int i = 0; i < pages4search + 1; i++) {
             // Load current page
-            char page_path[50];
-            sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[page_offset + i], PAGE_EXTENSION);
+            char page_path[DEFAULT_PATH_SIZE];
+            sprintf(page_path, "%s%s.%s", PAGE_BASE_PATH, directory->names[current_page], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
             // Try to find value in content of current page
@@ -222,9 +222,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             PGM_free_page(page);
             
             // If we find content, return TGI
-            if (result != -1) {
-                return result + (page_offset + i) * PAGE_CONTENT_SIZE; 
-            }
+            if (result != -1) return result + current_page * PAGE_CONTENT_SIZE; 
+            current_page++;
         }
 
         return -1;
