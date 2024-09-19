@@ -23,22 +23,31 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
 #pragma region [Content]
 
-    int PGM_append_content(page_t* page, uint8_t* data, size_t data_lenght) {
+    int PGM_append_content(page_t* page, uint8_t* data, size_t data_length) {
         int eof = PGM_find_value(page, PAGE_START, PAGE_END);
         if (eof == -1) return -1;
 
         int start_index = eof;
-        int end_index = MIN(PAGE_CONTENT_SIZE, eof + (int)data_lenght);
-        page->content[MIN(end_index + 1, PAGE_CONTENT_SIZE)] = PAGE_END;
+        int end_index = MIN(PAGE_CONTENT_SIZE, eof + (int)data_length);
 
-        for (int i = start_index, j = 0; i < end_index, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
-        return (int)data_lenght - (end_index - start_index);
+        for (int i = start_index, j = 0; i < end_index && j < (int)data_length; i++, j++) {
+            page->content[i] = data[j];
+        }
+
+        if (end_index < PAGE_CONTENT_SIZE) {
+            page->content[end_index] = PAGE_END;
+        }
+
+        return (int)data_length - (end_index - start_index);
     }
 
-    int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_lenght) {
-        int end_index = MIN(PAGE_CONTENT_SIZE - offset, (int)data_lenght + offset);
-        for (int i = offset, j = 0; i < end_index, j < (int)data_lenght; i++, j++) page->content[i] = data[j];
-        return (int)data_lenght - (end_index - offset);
+    int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_length) {
+        int end_index = MIN(PAGE_CONTENT_SIZE - offset, (int)data_length + offset);
+        for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) {
+            page->content[i] = data[j];
+        }
+
+        return (int)data_length - (end_index - offset);
     }
 
     int PGM_delete_content(page_t* page, int offset, size_t length) {
@@ -85,8 +94,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
     int PGM_get_fit_free_space(page_t* page, int offset, int size) {
         int index = 0;
-        while (page->content[index++] != PAGE_EMPTY);
-
+        while (page->content[index] != PAGE_EMPTY) { index++; }
         if (offset == -1) return index;
 
         int is_reading = 0;
@@ -185,10 +193,14 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     page_t* PGM_load_page(char* path) {
-        char file_path[256];
-        char file_name[25];
+        char temp_path[DEFAULT_PATH_SIZE];
+        stpncpy(temp_path, path, DEFAULT_PATH_SIZE);
+
+        char file_path[DEFAULT_PATH_SIZE];
+        char file_name[PAGE_NAME_SIZE];
         char file_ext[8];
-        get_file_path_parts(path, file_path, file_name, file_ext);
+        
+        get_file_path_parts(temp_path, file_path, file_name, file_ext);
 
         page_t* pdt_page = PGM_PDT_find_page(file_name);
         if (pdt_page != NULL) return pdt_page;
@@ -239,9 +251,17 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         int PGM_PDT_add_page(page_t* page) {
             #ifndef NO_PDT
                 int current = 0;
-                while (PGM_PDT[current]->lock == 1 && PGM_PDT[current] != NULL) 
-                    if (current++ >= PDT_SIZE) current = 0;
+                for (int i = 0; i < PDT_SIZE; i++) {
+                    if (PGM_PDT[i] == NULL) {
+                        current = i;
+                        break;
+                    }
 
+                    if (PGM_PDT[i]->lock == LOCKED) continue;
+                    current = i;
+                    break;
+                }
+                
                 // TODO: get thread ID
                 if (PGM_lock_page(PGM_PDT[current], 0) != -1) {
                     PGM_PDT_flush(current);

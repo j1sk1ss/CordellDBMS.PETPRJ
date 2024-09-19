@@ -266,7 +266,7 @@ Credits: j1sk1ss
     Return -1 if file nfound. Check path.
     Return directory pointer.
     */
-    directory_t* DRM_load_directory(char* name);
+    directory_t* DRM_load_directory(char* path);
 
     /*
     Release directory.

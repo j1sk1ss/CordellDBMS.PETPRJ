@@ -75,7 +75,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
                 PGM_insert_content(page, index, data, data_lenght);
                 PGM_save_page(page, page_path);
-                PGM_free_page(page);
 
                 return 1;
             }
@@ -344,17 +343,21 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         return 1;
     }
 
-    directory_t* DRM_load_directory(char* name) {
-        char file_path[256];
-        char file_name[25];
+    directory_t* DRM_load_directory(char* path) {
+        char temp_path[DEFAULT_PATH_SIZE];
+        stpncpy(temp_path, path, DEFAULT_PATH_SIZE);
+
+        char file_path[DEFAULT_PATH_SIZE];
+        char file_name[DIRECTORY_NAME_SIZE];
         char file_ext[8];
-        get_file_path_parts(name, file_path, file_name, file_ext);
+
+        get_file_path_parts(temp_path, file_path, file_name, file_ext);
 
         directory_t* ddt_directory = DRM_DDT_find_directory(file_name);
         if (ddt_directory != NULL) return ddt_directory;
 
         // Open file page
-        FILE* file = fopen(name, "rb");
+        FILE* file = fopen(path, "rb");
         if (file == NULL) {
             return NULL;
         }
@@ -398,9 +401,17 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         int DRM_DDT_add_directory(directory_t* directory) {
             #ifndef NO_DDT
                 int current = 0;
-                while (DRM_DDT[current]->lock == 1 && DRM_DDT[current] != NULL) 
-                    if (current++ >= DDT_SIZE) current = 0;
+                for (int i = 0; i < DDT_SIZE; i++) {
+                    if (DRM_DDT[i] == NULL) {
+                        current = i;
+                        break;
+                    }
 
+                    if (DRM_DDT[i]->lock == LOCKED) continue;
+                    current = i;
+                    break;
+                }
+                
                 if (DRM_lock_directory(DRM_DDT[current], 0) != -1) {
                     DRM_DDT_flush(current);
                     DRM_DDT[current] = directory;
@@ -410,8 +421,11 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             return 1;
         }
 
+        // TODO: Not work correctly
+        // char* name = "" always
         directory_t* DRM_DDT_find_directory(char* name) {
             #ifndef NO_DDT
+                if (name == NULL) return NULL;
                 for (int i = 0; i < DDT_SIZE; i++) {
                     if (DRM_DDT[i] == NULL) continue;
                     if (strncmp((char*)DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {

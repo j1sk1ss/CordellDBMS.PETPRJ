@@ -94,9 +94,9 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
             /*  //   */ if (path[0] == '\\') iDelim = '\\', strcpy(sDelim, "\\");
             /*  c:\\ */ if (path[1] == ':' ) iDelim = '\\', strcpy(sDelim, "\\"); // also satisfies path[2] == '\\'
             /*  /    */ if (path[0] == '/' ) iDelim = '/' , strcpy(sDelim, "/" );
-            /* ./    */ if ((path[0] == '.')&&(path[1] == '/')) iDelim = '/' , strcpy(sDelim, "/" );
-            /* .\\   */ if ((path[0] == '.')&&(path[1] == '\\')) iDelim = '\\' , strcpy(sDelim, "\\" );
-            /*  \\\\ */ if ((path[0] == '\\')&&(path[1] == '\\')) iDelim = '\\', strcpy(sDelim, "\\");
+            /* ./    */ if ((path[0] == '.') && (path[1] == '/')) iDelim = '/' , strcpy(sDelim, "/" );
+            /* .\\   */ if ((path[0] == '.') && (path[1] == '\\')) iDelim = '\\' , strcpy(sDelim, "\\" );
+            /*  \\\\ */ if ((path[0] == '\\') && (path[1] == '\\')) iDelim = '\\', strcpy(sDelim, "\\");
             if (path[0] == '.') {
                 rel = 1;
                 path[0] = '*';
@@ -104,7 +104,7 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
 
             if (!strstr(path, ".")) {                       
                 lenFullPath = strlen(path);
-                if (path[lenFullPath-1] != iDelim) {
+                if (path[lenFullPath - 1] != iDelim) {
                     strcat(path, sDelim);
                     path_[0] = 0;
                     base_[0] = 0;

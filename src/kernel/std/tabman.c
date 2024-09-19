@@ -3,10 +3,10 @@
 
 #pragma region [Directory]
 
+    // TODO: Not work correctly
     uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
         int global_page_offset      = offset / PAGE_CONTENT_SIZE;
         int directory_index         = -1;
-        int directory_page_offset   = 0;
         int current_page            = 0;
 
         directory_t* directory = NULL;
@@ -28,14 +28,13 @@
             }
             else {
                 // Get offset in pages for local directory and save directory index
-                directory_page_offset = global_page_offset - current_page;
                 directory_index = i;
                 DRM_free_directory(directory);
                 break;
             }
 
             // Page not found. Offset to large.
-            return -2;
+            return NULL;
         }
 
         // Data for DRM
@@ -75,17 +74,16 @@
     int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
         uint8_t* data_pointer = data;
         int size4append = (int)data_size;
-
+        
         // Iterate existed directories. Maybe we can store data here?
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory to memory
             char directory_save_path[DEFAULT_PATH_SIZE];
             sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
             directory_t* directory = DRM_load_directory(directory_save_path);
+            if (directory == NULL) return -1;
 
             int result = DRM_append_content(directory, data_pointer, size4append);
-            DRM_free_directory(directory);
-
             if (result == -2) return -2;
             else if (result == 0 || result == 1 || result == 2) {
                 return 1;
@@ -100,7 +98,7 @@
 
             break;
         }
-
+        
         // Create new directories while we don`t store all provided data.
         while (size4append > 0) {
             // If we reach table limit, return error code.
@@ -175,11 +173,12 @@
 #pragma region [Table]
 
     int TBM_check_signature(table_t* table, uint8_t* data) {
+        uint8_t* data_pointer = data;
         for (int i = 0; i < table->header->column_count; i++) {
-            char value[COLUMN_MAX_SIZE];
-            memcpy(value, data, table->columns[i]->size);
-            data += table->columns[i]->size;
-
+            char value[COLUMN_MAX_SIZE] = { '\0' };
+            memcpy(value, data_pointer, table->columns[i]->size);
+            data_pointer += table->columns[i]->size;
+            
             switch (table->columns[i]->type) {
                 case COLUMN_TYPE_STRING:
                     break;
@@ -267,7 +266,7 @@
         }
         
         table_t* table = (table_t*)malloc(sizeof(table_t));
-        table->columns = (table_column_t**)malloc(header->column_count);
+        table->columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
         for (int i = 0; i < header->column_count; i++) {
             table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
             fread(column, sizeof(table_column_t), SEEK_CUR, file);

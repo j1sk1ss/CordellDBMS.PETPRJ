@@ -3,7 +3,7 @@
 
 void handler(int sig) {
     #ifndef _WIN32
-    void *array[10];
+    void* array[10];
     size_t size;
 
     size = backtrace(array, 10);

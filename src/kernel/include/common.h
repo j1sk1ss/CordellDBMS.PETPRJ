@@ -74,6 +74,9 @@ will return path_ as   "C:\\dir1\\dir2\\dir3"
 Will return base_ as   "file"
 Will return ext_ as    "exe"
 
+Important Note: path, that you provided into function, will be broken. It
+happens, because in function used strtok.
+
 Took from: https://stackoverflow.com/questions/24975928/extract-the-file-name-and-its-extension-in-c
 */
 void get_file_path_parts(char* path, char* path_, char* base_, char* ext_);

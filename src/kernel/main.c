@@ -11,6 +11,8 @@
 #include "include/traceback.h"
 
 
+#define DATABASE_APPEND_TEST
+
 
 int main() {
     TB_enable();
@@ -143,7 +145,7 @@ int main() {
 #ifdef DATABASE_APPEND_TEST
 
     database_t* database = DB_create_database("db1");
-    table_column_t** columns = (table_column_t**)calloc(4, sizeof(table_column_t*));
+    table_column_t** columns = (table_column_t**)calloc(3, sizeof(table_column_t*));
 
     table_column_t* column1 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col1");
     table_column_t* column2 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col2");
@@ -153,7 +155,7 @@ int main() {
     columns[1] = column2;
     columns[2] = column3; 
 
-    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(7, 7, 7));
+    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(7, 3, 7));
     DB_link_table2database(database, table);
     DB_save_database(database, "db.db");
 
@@ -162,6 +164,13 @@ int main() {
 
     int result = DB_append_row(database, "table1", "hello guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("Result %i\n", result);
+
+    result = DB_append_row(database, "table1", "hello guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Result %i\n", result);
+
+    uint8_t* data = DB_get_row(database, "table1", 1, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("[%s]\n", data);
+    free(data);
 
 #endif
 
