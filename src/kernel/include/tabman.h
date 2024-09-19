@@ -1,10 +1,14 @@
 /*
-  Table operator is a simple functions to work with OS filesystem.
-  Main idea that we have files with sizes near 1 KB for pages, dirs and tables.
-  Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
+Table operator is a simple functions to work with OS filesystem.
+Main idea that we have files with sizes near 1 KB for pages, dirs and tables.
+Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
 
-  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
-  Credits: j1sk1ss
+Tabman abstraction level responsible for working with directories. It send requests and earns data from lower 
+abstraction level. Also tabman don`t check data signature. This is work of database level.
+Note: Tabman don`t work directly with pages. It can work only with directories.
+
+CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+Credits: j1sk1ss
 */
 
 #ifndef FILE_MANAGER_
@@ -37,13 +41,15 @@
 
 #pragma endregion
 
-#define TABLE_MAGIC     0xAA
-#define TABLE_NAME_SIZE 8
+#define TABLE_MAGIC             0xAA
+#define TABLE_NAME_SIZE         8
 
-#define TABLE_EXTENSION "tb"
+#define DIRECTORIES_PER_TABLE    0xFF
+
+#define TABLE_EXTENSION         "tb"
 // Set here default path for save. 
 // Important Note ! : This path is main for ALL tables
-#define TABLE_BASE_PATH ""
+#define TABLE_BASE_PATH         ""
 
 #pragma region [Column]
 
@@ -141,7 +147,7 @@
         table_column_t** columns;
 
         // Table directories
-        uint8_t** dir_names;
+        uint8_t dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
     } typedef table_t;
 
 
@@ -333,10 +339,11 @@
     - name - name of table (Can be freed after function)
     - columns - columns in table (Please avoid free operations)
     - col_count - columns count
+    - access - access of table
     
     Return pointer to new table
     */
-    table_t* TBM_create_table(char* name, table_column_t** columns, int col_count);
+    table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access);
 
     /*
     Save table to the disk

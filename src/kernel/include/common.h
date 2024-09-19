@@ -32,7 +32,7 @@ Took from: https://stackoverflow.com/questions/15767691/whats-the-c-library-func
 dest - pointer to place, where mamory for string allocated
 length - length of string that will be generated bu function
 */
-void rand_str(char *dest, size_t length);
+void rand_str(char* dest, size_t length);
 
 /*
 Check if provided string is integer
@@ -76,6 +76,6 @@ Will return ext_ as    "exe"
 
 Took from: https://stackoverflow.com/questions/24975928/extract-the-file-name-and-its-extension-in-c
 */
-void get_file_path_parts(char *path, char *path_, char *base_, char *ext_);
+void get_file_path_parts(char* path, char* path_, char* base_, char* ext_);
 
 #endif

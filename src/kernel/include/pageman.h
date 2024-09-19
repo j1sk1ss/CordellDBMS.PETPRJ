@@ -1,13 +1,17 @@
 /*
- *  Pages - first abstraction level, that responsible for working with files
- *  Pageman - list of functions for working with pages and low-level content presentation in files:
- *  We can:
- *      - Create new pages
- *      - Free pages
- *      - Append / delete / find content in files
- * 
- *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
- *  Credits: j1sk1ss
+Pages - first abstraction level, that responsible for working with files
+Pageman - list of functions for working with pages and low-level content presentation in files:
+We can:
+    - Create new pages
+    - Free pages
+    - Append / delete / find content in files
+
+Pageman abstraction level responsible for working with data. Read, save and insert data directly
+to content in pages. Also pageman don`t check data signature. This is work of database level. Also pageman
+can`t create new pages during handling requests from higher abstraction levels.
+
+CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+Credits: j1sk1ss
  */
 
 #ifndef PAGEMAN_H_

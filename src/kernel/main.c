@@ -7,10 +7,9 @@
 #include "include/tabman.h"
 #include "include/dirman.h"
 #include "include/pageman.h"
+#include "include/database.h"
 #include "include/traceback.h"
 
-
-#define DIR_APPEND_TEST
 
 
 int main() {
@@ -140,5 +139,32 @@ int main() {
     printf("Correct data: %i\n", TBM_check_signature(table, correct_data));
 
 #endif
+
+#ifdef DATABASE_APPEND_TEST
+
+    database_t* database = DB_create_database("db1");
+    table_column_t** columns = (table_column_t**)calloc(4, sizeof(table_column_t*));
+
+    table_column_t* column1 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col1");
+    table_column_t* column2 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col2");
+    table_column_t* column3 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col3");
+
+    columns[0] = column1;
+    columns[1] = column2;
+    columns[2] = column3; 
+
+    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(7, 7, 7));
+    DB_link_table2database(database, table);
+    DB_save_database(database, "db.db");
+
+    TBM_save_table(table, "table1.tb");
+    TBM_free_table(table);
+
+    int result = DB_append_row(database, "table1", "hello guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Result %i\n", result);
+
+#endif
+
+    printf("End of code\n");
     return 1;
 }

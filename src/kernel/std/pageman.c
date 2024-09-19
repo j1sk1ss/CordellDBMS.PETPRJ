@@ -1,6 +1,7 @@
 #include "../include/pageman.h"
 
-// TODO: Make get_content function
+// TODO: Maybe we can`t avoid saving full page to disk? 
+//       We can fill EP and EDP symbols when we load page into RAM.
 
 /*
 Page destriptor table, is an a static array of pages indexes. Main idea in
@@ -134,7 +135,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         char save_path[DEFAULT_PATH_SIZE];
 
         rand_str(page_name, PAGE_NAME_SIZE);
-        sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
+        sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
 
         int delay = 1000;
         while (1) {
@@ -143,7 +144,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 fclose(file);
 
                 rand_str(page_name, PAGE_NAME_SIZE);
-                sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
+                sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
 
                 delay--;
                 if (delay <= 0) return NULL;
@@ -269,7 +270,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 for (int i = 0; i < PDT_SIZE; i++) {
                     if (PGM_PDT[i] == NULL) continue;
                     char save_path[DEFAULT_PATH_SIZE];
-                    sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, PGM_PDT[i]->header->name, PAGE_EXTENSION);
+                    sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, PGM_PDT[i]->header->name, PAGE_EXTENSION);
 
                     // TODO: get thread ID
                     if (PGM_lock_page(PGM_PDT[i], 0) == 1) {
@@ -287,7 +288,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (PGM_PDT[index] == NULL) return -1;
 
                 char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%s.%s", PAGE_BASE_PATH, PGM_PDT[index]->header->name, PAGE_EXTENSION);
+                sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, PGM_PDT[index]->header->name, PAGE_EXTENSION);
 
                 PGM_save_page(PGM_PDT[index], save_path);
                 PGM_free_page(PGM_PDT[index]);

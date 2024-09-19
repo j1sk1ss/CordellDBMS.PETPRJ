@@ -5,18 +5,22 @@
 //      2) Directory Descriptor Table DDT (Same situation as in page case)
 
 /*
- *  Directory is the next abstraction level, that work directly with pages.
- *  Dirman - list of functions for working with directories and pages:
- *  We can:
- *      - Create new directory
- *      - Link pages to directory
- *      - Unlink pages from directory (TODO)
- *      - Free directory
- *      - Append / delete / find content in assosiated pages
- *
- *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
- *  Credits: j1sk1ss
- */
+Directory is the next abstraction level, that work directly with pages.
+Dirman - list of functions for working with directories and pages:
+We can:
+    - Create new directory
+    - Link pages to directory
+    - Unlink pages from directory (TODO)
+    - Free directory
+    - Append / delete / find content in assosiated pages
+
+Dirnam abstraction level responsible for working with pages. It send requests and earns data from lower 
+abstraction level. Also dirman don`t check data signature. This is work of database level. Also dirman
+can`t create new directories during handling requests from higher abstraction levels.
+
+CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+Credits: j1sk1ss
+*/
 
 #ifndef DIRMAN_H_
 #define DIRMAN_H_
@@ -43,7 +47,7 @@
 #define DIRECTORY_NAME_SIZE 8
 #define DIRECTORY_MAGIC     0xCC
 
-#define PAGES_PER_DIRECTORY 255
+#define PAGES_PER_DIRECTORY 0xFF
 #define DIRECTORY_OFFSET    PAGES_PER_DIRECTORY * PAGE_CONTENT_SIZE
 
 
@@ -122,8 +126,8 @@
     Return 2 if all success and content was append to new page.
     Return 1 if all success and content was append to existed page.
     Return 0 if write succes, but content was trunc.
-    Return -1 if we reach page limit in directory (Create a new one).
     Return -2 if we can't create uniqe name for page.
+    Return size, that can`t fit to this directory, if we reach page limit in directory.
     */
     int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght);
 
@@ -195,8 +199,9 @@
     directory - pointer to directory.
     path - path where save.
     
-    Return 0 - if something goes wrong.
-    Return 1 - if Release was success.
+    Return -2 - if something goes wrong.
+    Return -1 - if we can`t create file.
+    Return 1 if file create success.
     */
     int DRM_save_directory(directory_t* directory, char* path);
 
@@ -237,6 +242,19 @@
     Return directory pointer.
     */
     directory_t* DRM_create_directory(char* name);
+
+    /*
+    Same function with create directory, but here you can avoid name input.
+    Note: Directory will have no pages.
+    Note 2: Function generates random name with delay. It need for avoid situations,
+            where we can rewrite existed directory.
+    Note 3: In future prefere avoid random generation by using something like hash generator
+    Took from: https://stackoverflow.com/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c
+
+    Return pointer to allocated directory.
+    Return NULL if we can`t create random name.
+    */
+    directory_t* DRM_create_empty_directory();
 
     /*
     Open file, load directory and page names, close file.

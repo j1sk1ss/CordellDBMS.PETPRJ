@@ -15,7 +15,7 @@
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory from disk to memory
             char directory_save_path[DEFAULT_PATH_SIZE];
-            sprintf(directory_save_path, "%s%s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
             directory = DRM_load_directory(directory_save_path);
 
             // Check:
@@ -49,7 +49,7 @@
         for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
             // Load directory to memory
             char directory_save_path[DEFAULT_PATH_SIZE];
-            sprintf(directory_save_path, "%s%s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
             directory = DRM_load_directory(directory_save_path);
 
             // Get data from directory
@@ -73,7 +73,65 @@
     }
 
     int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
-        return 1; // TODO
+        uint8_t* data_pointer = data;
+        int size4append = (int)data_size;
+
+        // Iterate existed directories. Maybe we can store data here?
+        for (int i = 0; i < table->header->dir_count; i++) {
+            // Load directory to memory
+            char directory_save_path[DEFAULT_PATH_SIZE];
+            sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            directory_t* directory = DRM_load_directory(directory_save_path);
+
+            int result = DRM_append_content(directory, data_pointer, size4append);
+            DRM_free_directory(directory);
+
+            if (result == -2) return -2;
+            else if (result == 0 || result == 1 || result == 2) {
+                return 1;
+            }
+
+            // Move append data pointer.
+            // And create new directories. Why new instead iterating?
+            // It will break end structure of data and create defragmentation.
+            int loaded_data = size4append - result;
+            data_pointer += loaded_data;
+            size4append = result;
+
+            break;
+        }
+
+        // Create new directories while we don`t store all provided data.
+        while (size4append > 0) {
+            // If we reach table limit, return error code.
+            if (table->header->dir_count + 1 > DIRECTORIES_PER_TABLE) return -1;
+
+            // Create new empty directory and append data.
+            // If we overfill directory by data, save size of data,
+            // that we should save.
+            directory_t* new_directory = DRM_create_empty_directory();
+            if (new_directory == NULL) return -1;
+
+            size4append = DRM_append_content(new_directory, data_pointer, size4append);
+            TBM_link_dir2table(table, new_directory);
+            
+            // Save directory to disk
+            char save_path[DEFAULT_PATH_SIZE];
+
+            // TODO:
+            // sprintf(save_path, "%s%s.%s", DIRECTORY_BASE_PATH, new_directory->header->name, DIRECTORY_EXTENSION);
+            // Directory name don`t have \0 symbol at the end. In summary nothing bad, but in future
+            // we can take many problems with it.
+            sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, new_directory->header->name, DIRECTORY_EXTENSION);
+            int save_result = DRM_save_directory(new_directory, save_path);
+
+            // Realise directory
+            DRM_free_directory(new_directory);
+
+            if (save_result != 1) return -1;
+        }
+
+        return 1;
     }
 
     int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_size) {
@@ -142,15 +200,17 @@
     }
 
     int TBM_link_dir2table(table_t* table, directory_t* directory) {
-        table->dir_names = (uint8_t**)realloc(table->dir_names, ++table->header->dir_count);
-        table->dir_names[table->header->dir_count] = (uint8_t*)malloc(DIRECTORY_NAME_SIZE);
-        memcpy(table->dir_names[table->header->dir_count], directory->header->name, DIRECTORY_NAME_SIZE);
+        if (table->header->dir_count + 1 >= DIRECTORIES_PER_TABLE) 
+            return -1;
+
+        memcpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
         return 1;
     }
 
-    table_t* TBM_create_table(char* name, table_column_t** columns, int col_count) {
+    table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access) {
         table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
 
+        header->access = access;
         header->magic = TABLE_MAGIC;
         header->dir_count = 0;
         header->column_count = col_count;
@@ -214,11 +274,8 @@
             table->columns[i] = column;
         }
 
-        table->dir_names = (uint8_t**)malloc(header->dir_count);
         for (int i = 0; i < header->dir_count; i++) {
-            uint8_t* name = (uint8_t*)malloc(DIRECTORY_NAME_SIZE);
-            fread(name, DIRECTORY_NAME_SIZE, SEEK_CUR, file);
-            table->dir_names[i] = name;
+            fread(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
         }
 
         fclose(file);
@@ -228,13 +285,9 @@
 
     int TBM_free_table(table_t* table) {
         if (table == NULL) return -1;
-        for (int i = 0; i < table->header->dir_count; i++) 
-            SOFT_FREE(table->dir_names[i]);
-
         for (int i = 0; i < table->header->column_count; i++) 
             TBM_free_column(table->columns[i]);
 
-        SOFT_FREE(table->dir_names);
         SOFT_FREE(table->columns);
         SOFT_FREE(table);
 

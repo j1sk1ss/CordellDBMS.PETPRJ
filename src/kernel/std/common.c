@@ -58,7 +58,7 @@ char* get_next_token(char** input, char delimiter) {
     return token;
 }
 
-void get_file_path_parts(char *path, char *path_, char *base_, char *ext_) {
+void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
     char* base;
     char* ext;
 
