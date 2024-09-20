@@ -270,6 +270,10 @@ Credits: j1sk1ss
 
     /*
     Release directory.
+    Imoortant Note!: that usualy directory, if we use load_directory function, 
+    saved in DDT, that's means, that you should avoid free_directory with dirs,
+    that was created by load_directory.
+    Note 1: Use this function with dirs, that was created by create_directory function.
     
     directory - pointer to directory.
     

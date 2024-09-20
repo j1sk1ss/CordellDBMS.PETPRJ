@@ -41,15 +41,16 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
+            uint8_t* page_content_pointer = page->content;
+            page_content_pointer += current_index;
+
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2get);
-            memcpy(content_pointer, page->content, current_size);
-
-            PGM_free_page(page);
+            memcpy(content_pointer, page_content_pointer, current_size);
 
             // We reload local index and update size2get
             // Also we move content pointer to next location
-            current_index = 0;
+            current_index   = 0;
             size2get        -= current_size;
             content_pointer += current_size;
         }
@@ -69,7 +70,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 page_t* page = PGM_load_page(page_path);
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
                 if (index == -2 || index == -1) {
-                    PGM_free_page(page);
                     continue;
                 }
 
@@ -140,7 +140,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2insert);
             PGM_insert_content(page, current_index, data_pointer, current_size);
             PGM_save_page(page, page_path);
-            PGM_free_page(page);
 
             // We reload local index and update size2delete
             current_index = 0;
@@ -173,7 +172,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2delete);
             PGM_delete_content(page, current_index, current_size);
             PGM_save_page(page, page_path);
-            PGM_free_page(page);
 
             // We reload local index and update size2delete
             current_index = 0;
@@ -210,7 +208,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             // We search part of data in this page, save index and unload page.
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size4seach);
             int result = PGM_find_content(page, current_index, data_pointer, current_size);
-            PGM_free_page(page);
 
             // If TGI is -1, we know that we start seacrhing from start.
             // Save current TGI of find part of data.
@@ -253,7 +250,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
             // Try to find value in content of current page
             int result = PGM_find_value(page, current_index, value);
-            PGM_free_page(page);
             
             // If we find content, return TGI
             if (result != -1) return result + current_page * PAGE_CONTENT_SIZE; 
@@ -421,14 +417,12 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             return 1;
         }
 
-        // TODO: Not work correctly
-        // char* name = "" always
         directory_t* DRM_DDT_find_directory(char* name) {
             #ifndef NO_DDT
                 if (name == NULL) return NULL;
                 for (int i = 0; i < DDT_SIZE; i++) {
                     if (DRM_DDT[i] == NULL) continue;
-                    if (strncmp((char*)DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
+                    if (strncmp((char*)DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) { // Here
                         return DRM_DDT[i];
                     }
                 }
@@ -458,7 +452,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         int DRM_DDT_flush(int index) {
             #ifndef NO_DDT
                 if (DRM_DDT[index] == NULL) return -1;
-
+                
                 char save_path[50];
                 sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, DRM_DDT[index]->header->name, DIRECTORY_EXTENSION);
 

@@ -3,7 +3,6 @@
 
 #pragma region [Directory]
 
-    // TODO: Not work correctly
     uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
         int global_page_offset      = offset / PAGE_CONTENT_SIZE;
         int directory_index         = -1;
@@ -23,13 +22,11 @@
             // Else we unload directory and go to the next dir. name.
             if (current_page + directory->header->page_count < global_page_offset) {
                 current_page += directory->header->page_count;
-                DRM_free_directory(directory);
                 continue;
             }
             else {
                 // Get offset in pages for local directory and save directory index
                 directory_index = i;
-                DRM_free_directory(directory);
                 break;
             }
 
@@ -53,13 +50,12 @@
 
             // Get data from directory
             // After getting data, copy it to allocated output
-            int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE - content2get_size, content2get_size);
+            int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
             uint8_t* directory_content = DRM_get_content(directory, offset, current_size);
             memcpy(output_content_pointer, directory_content, current_size);
 
             // Realise data
             free(directory_content);
-            DRM_free_directory(directory);
 
             // Set offset to 0, because we go to next directory
             // Update size of getcontent
@@ -179,7 +175,8 @@
             memcpy(value, data_pointer, table->columns[i]->size);
             data_pointer += table->columns[i]->size;
             
-            switch (table->columns[i]->type) {
+            uint8_t data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
+            switch (data_type) {
                 case COLUMN_TYPE_STRING:
                     break;
                 case COLUMN_TYPE_INT:

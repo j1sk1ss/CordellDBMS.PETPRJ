@@ -72,14 +72,30 @@ Credits: j1sk1ss
     #define COLUMN_MAGIC        0xEA
     #define COLUMN_NAME_SIZE    16
 
+    // Column auto increment bits TODO
+    #define COLUMN_NO_AUTO_INC       0x00
+    #define COLUMN_AUTO_INCREMENT    0x01
+
+    // Column primary status bits
+    #define COLUMN_NOT_PRIMARY       0x00
+    #define COLUMN_PRIMARY           0x01
     // Any type say that user can insert any value that he want
-    #define COLUMN_TYPE_ANY          0xFF
+    #define COLUMN_TYPE_ANY          0x00
     // Int type throw error, if user insert something, that not int
-    #define COLUMN_TYPE_INT          0x00
+    #define COLUMN_TYPE_INT          0x01
     // Float type throw error, if user insert something, that not float
-    #define COLUMN_TYPE_FLOAT        0x01
+    #define COLUMN_TYPE_FLOAT        0x02
     // String type throw error, if user insert something, that not char*
-    #define COLUMN_TYPE_STRING       0x02
+    #define COLUMN_TYPE_STRING       0x03
+
+    // Macros for getting column data
+    #define GET_COLUMN_DATA_TYPE(type)      ((type >> 2) & 0b11)
+    #define GET_COLUMN_PRIMARY(type)        ((type >> 4) & 0b11)
+    #define GET_COLUMN_TYPE(type)           (type & 0b11)
+
+    // Generate column type byte
+    #define CREATE_COLUMN_TYPE_BYTE(is_primary, column_data_type, column_type) \
+        (((is_primary & 0b11) << 4) | ((column_data_type & 0b11) << 2) | (column_type & 0b11))
 
 #pragma endregion
 

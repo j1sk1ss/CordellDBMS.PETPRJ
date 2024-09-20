@@ -249,7 +249,11 @@ Credits: j1sk1ss
 
     /*
     Release page
-    
+    Imoortant Note!: Usualy page, if we use load_page function, 
+    saved in PDT, that's means, that you should avoid free_page with pages,
+    that was created by load_page.
+    Note 1: Use this function with pages, that was created by create_page function.
+
     Params:
     - page - pointer to page
     

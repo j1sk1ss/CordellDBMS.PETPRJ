@@ -147,9 +147,23 @@ int main() {
     database_t* database = DB_create_database("db1");
     table_column_t** columns = (table_column_t**)calloc(3, sizeof(table_column_t*));
 
-    table_column_t* column1 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col1");
-    table_column_t* column2 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col2");
-    table_column_t* column3 = TBM_create_column(COLUMN_TYPE_ANY, 10, "col3");
+    table_column_t* column1 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_PRIMARY,
+        COLUMN_TYPE_ANY,
+        COLUMN_NO_AUTO_INC
+    ), 10, "col1");
+
+    table_column_t* column2 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_NOT_PRIMARY,
+        COLUMN_TYPE_STRING,
+        COLUMN_AUTO_INCREMENT
+    ), 10, "col2");
+
+    table_column_t* column3 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_NOT_PRIMARY,
+        COLUMN_TYPE_ANY,
+        COLUMN_NO_AUTO_INC
+    ), 10, "col3");
 
     columns[0] = column1;
     columns[1] = column2;
@@ -165,10 +179,14 @@ int main() {
     int result = DB_append_row(database, "table1", "hello guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("Result %i\n", result);
 
-    result = DB_append_row(database, "table1", "hello guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    result = DB_append_row(database, "table1", "hello LOLLOLLOLU  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("Result %i\n", result);
 
-    uint8_t* data = DB_get_row(database, "table1", 1, CREATE_ACCESS_BYTE(0, 0, 0));
+    uint8_t* data = DB_get_row(database, "table1", 0, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("[%s]\n", data);
+    free(data);
+
+    data = DB_get_row(database, "table1", 1, CREATE_ACCESS_BYTE(0, 0, 0));
     printf("[%s]\n", data);
     free(data);
 
