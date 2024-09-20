@@ -341,7 +341,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
     directory_t* DRM_load_directory(char* path) {
         char temp_path[DEFAULT_PATH_SIZE];
-        stpncpy(temp_path, path, DEFAULT_PATH_SIZE);
+        strncpy(temp_path, path, DEFAULT_PATH_SIZE);
 
         char file_path[DEFAULT_PATH_SIZE];
         char file_name[DIRECTORY_NAME_SIZE];

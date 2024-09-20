@@ -194,7 +194,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
     page_t* PGM_load_page(char* path) {
         char temp_path[DEFAULT_PATH_SIZE];
-        stpncpy(temp_path, path, DEFAULT_PATH_SIZE);
+        strncpy(temp_path, path, DEFAULT_PATH_SIZE);
 
         char file_path[DEFAULT_PATH_SIZE];
         char file_name[PAGE_NAME_SIZE];

@@ -148,6 +148,38 @@
 
 #pragma region [Column]
 
+    int TBM_link_column2column(table_t* master, char* master_column_name, table_column_t* slave_column) {
+        return 1; // TODO
+    }
+
+    int TBM_unlink_column2column(table_t* master, char* master_column_name, table_column_t* slave_column) {
+        return 1; // TODO
+    }
+
+    int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_index) {
+        if (by_index != -1) {
+            if (by_index > table->header->column_count) return -1;
+            if (table->columns[by_index]->size != column->size) return -2;
+
+            SOFT_FREE(table->columns[by_index]);
+            table->columns[by_index] = column;
+
+            return 1;
+        }
+
+        for (int i = 0; i < table->header->column_count; i++) {
+            if (strcmp(table->columns[i]->name, column->name) == 0) {
+                if (table->columns[i]->size != column->size) return -2;
+
+                SOFT_FREE(table->columns[i]);
+                table->columns[i] = column;
+                return 1;
+            }
+        }
+
+        return -1;
+    }
+
     table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name) {
         table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
 
@@ -157,11 +189,6 @@
         column->size = size;
 
         return column;
-    }
-
-    int TBM_free_column(table_column_t* column) {
-        SOFT_FREE(column);
-        return 1;
     }
 
 #pragma endregion
@@ -203,19 +230,26 @@
         return 1;
     }
 
+    // TODO: TBM_unlink_dir2table
+
     table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access) {
         table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
 
-        header->access = access;
-        header->magic = TABLE_MAGIC;
-        header->dir_count = 0;
-        header->column_count = col_count;
+        header->access  = access;
+        header->magic   = TABLE_MAGIC;
         strncpy((char*)header->name, name, TABLE_NAME_SIZE);
+
+        header->dir_count           = 0;
+        header->column_link_count   = 0;
+        header->column_count        = col_count;
 
         table_t* table = (table_t*)malloc(sizeof(table_t));
 
-        table->header = header;
+        table->header  = header;
         table->columns = columns;
+
+        table->columns      = NULL;
+        table->column_links = NULL;
 
         return table;
     }
@@ -230,14 +264,12 @@
         // Write header
         fwrite(table->header, sizeof(table_header_t), SEEK_CUR, file);
 
-        // Write columns
-        for (int i = 0; i < table->header->column_count; i++) 
-            fwrite(table->columns[i], sizeof(table_column_t), SEEK_CUR, file);
+        // Write table data to open file
+        for (int i = 0; i < table->header->column_count; i++) fwrite(table->columns[i], sizeof(table_column_t), SEEK_CUR, file);
+        for (int i = 0; i < table->header->column_link_count; i++) fwrite(table->column_links[i], sizeof(table_column_link_t), SEEK_CUR, file);
+        for (int i = 0; i < table->header->dir_count; i++) fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
 
-        for (int i = 0; i < table->header->dir_count; i++) 
-            fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
-
-        // Close file
+        // Close file and clear buffers
         #ifndef _WIN32
             fsync(fileno(file));
         #else
@@ -255,6 +287,9 @@
             return NULL;
         }
 
+        // Read header of table from file.
+        // Note: If magic is wrong, we can say, that this file isn`t table.
+        //       We just return error code.
         table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
         fread(header, sizeof(table_header_t), SEEK_CUR, file);
         if (header->magic != TABLE_MAGIC) {
@@ -262,17 +297,24 @@
             return NULL;
         }
         
+        // Read columns from file.
         table_t* table = (table_t*)malloc(sizeof(table_t));
         table->columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
         for (int i = 0; i < header->column_count; i++) {
-            table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
-            fread(column, sizeof(table_column_t), SEEK_CUR, file);
-            table->columns[i] = column;
+            table->columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
+            fread(table->columns[i], sizeof(table_column_t), SEEK_CUR, file);
         }
 
-        for (int i = 0; i < header->dir_count; i++) {
-            fread(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
+        // Read column links from file.
+        table->column_links = (table_column_link_t**)malloc(header->column_link_count * sizeof(table_column_link_t*));
+        for (int i = 0; i < header->column_link_count; i++) {
+            table->column_links[i] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
+            fread(table->column_links[i], sizeof(table_column_link_t), SEEK_CUR, file);
         }
+
+        // Read directory names from file, that linked to this directory.
+        for (int i = 0; i < header->dir_count; i++) 
+            fread(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
 
         fclose(file);
         table->header = header;
@@ -282,8 +324,12 @@
     int TBM_free_table(table_t* table) {
         if (table == NULL) return -1;
         for (int i = 0; i < table->header->column_count; i++) 
-            TBM_free_column(table->columns[i]);
+            SOFT_FREE(table->columns[i]);
 
+        for (int i = 0; i < table->header->column_link_count; i++)
+            SOFT_FREE(table->column_links[i]);
+
+        SOFT_FREE(table->column_links);
         SOFT_FREE(table->columns);
         SOFT_FREE(table);
 

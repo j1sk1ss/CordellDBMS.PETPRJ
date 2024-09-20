@@ -101,16 +101,36 @@ Credits: j1sk1ss
 
 
 // We have *.tb bin file, where at start placed header
-//==========================================================================================================================
-// HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) | DIR_NAMES -> dyn. -> end |
-//==========================================================================================================================
+//========================================================================================================================================
+// HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) -> | LINKS -> | DIR_NAMES -> dyn. -> end |
+//========================================================================================================================================
+
+    struct table_column_link {
+        // Source table name
+        uint8_t master_table_name[TABLE_NAME_SIZE];
+
+        // Source name of column in source table
+        uint8_t master_column_name[COLUMN_NAME_SIZE];
+
+        // Target column name
+        uint8_t slave_column_name[COLUMN_NAME_SIZE];
+    } typedef table_column_link_t;
 
     struct table_column {
         // Column magic byte
         uint8_t magic;
 
-        // Column type byte
-        // Column type indicates what type should user insert to this column
+        /*
+        Column type indicates what type should user insert to this column.
+        Main idea, that we save type, data type and primary status in one byte. 
+        In summary we have next byte:
+        0x00|PP|DD|TT|
+
+        Where:
+        PP - Primary bits.
+        DD - Data type bits.
+        TT - Column type bits.
+        */
         uint8_t type;
 
         // Column size
@@ -147,6 +167,10 @@ Credits: j1sk1ss
         // How much columns in this table
         uint8_t column_count;
 
+        // Column link count
+        // How much links in this table
+        uint8_t column_link_count;
+
         // Dir count in this table
         // How much directories in this table
         uint8_t dir_count;
@@ -161,6 +185,9 @@ Credits: j1sk1ss
 
         // Column names
         table_column_t** columns;
+
+        // Column links
+        table_column_link_t** column_links;
 
         // Table directories
         uint8_t dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
@@ -289,6 +316,53 @@ Credits: j1sk1ss
 #pragma region [Column]
 
     /*
+    Link column to foreing key. In summary we link provided column to column from master table.
+    Note: This function don`t check column. It means, that you can easily link this column to master table.
+    Note 1: This function also don`t check signature. If you try link string column to existed int column,
+            you don`t see any warns.
+    Note 2: You can link slave column to not existed column in master. It can cause, because function don`t
+            check columns in master table. That`s why be sure in master column name.
+
+    Params:
+    - master - Master table pointer.
+    - master_column_name - Foreing key in master table.
+    - slave_column - Pointer to slave column.
+
+    Return -1 if something goes wrong.
+    Return 1 if link was success.
+    */
+    int TBM_link_column2column(table_t* master, char* master_column_name, table_column_t* slave_column);
+
+    /*
+    Delete link from slave column.
+
+    Params:
+    - master - Master table pointer.
+    - master_column_name - Foreing key in master table.
+    - slave_column - Pointer to slave column.
+
+    Return -1 if something goes wrong.
+    Return 1 if unlink was success.
+    */
+    int TBM_unlink_column2column(table_t* master, char* master_column_name, table_column_t* slave_column);
+
+    /*
+    Update column in provided table. 
+    Note: Provided column should have same size and same name with column, that we want to replace.
+          If you want to change name of column, provide index of column to by_index variable.
+    Note 1: If you don`t want to change table by index, pass -1 to by_index variable.
+
+    Params:
+    - table - Pointer to table, where we want update column.
+    - column - Column for update.
+
+    Return -2 if provided column has different size.
+    Return -1 if we don`t find column with same name.
+    Return 1 if update was success.
+    */
+    int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_index);
+
+    /*
     Create column and allocate memory for.
     Note: Use only defined types of column.
     Note 2: If you want use any value (disable in-build check), use ANY type.
@@ -301,17 +375,6 @@ Credits: j1sk1ss
     Return pointer to column
     */
     table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name);
-
-    /*
-    Realise column allocated memory
-    
-    Params:
-    - column - pointer to column
-    
-    Return -1 if something goes wrong
-    Return 1 if realise was success
-    */
-    int TBM_free_column(table_column_t* column);
 
 #pragma endregion
 
