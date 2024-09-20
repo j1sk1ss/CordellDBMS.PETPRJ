@@ -4,8 +4,8 @@ Main idea that we have files with sizes near 1 KB for pages, dirs and tables.
 Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
 
 Tabman abstraction level responsible for working with directories. It send requests and earns data from lower 
-abstraction level. Also tabman don`t check data signature. This is work of database level.
-Note: Tabman don`t work directly with pages. It can work only with directories.
+abstraction level. Also tabman don't check data signature. This is work of database level.
+Note: Tabman don't work directly with pages. It can work only with directories.
 
 CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
 Credits: j1sk1ss
@@ -198,7 +198,7 @@ Credits: j1sk1ss
 
     /*
     Get content return allocated copy of data by provided offset. If size larger than table, will return trunc data.
-    Note: This function don`t check signature, and can return any values, that's why be sure that you get right size of content.
+    Note: This function don't check signature, and can return any values, that's why be sure that you get right size of content.
 
     Params:
     - table - pointer to table
@@ -317,21 +317,22 @@ Credits: j1sk1ss
 
     /*
     Link column to foreing key. In summary we link provided column to column from master table.
-    Note: This function don`t check column. It means, that you can easily link this column to master table.
-    Note 1: This function also don`t check signature. If you try link string column to existed int column,
-            you don`t see any warns.
-    Note 2: You can link slave column to not existed column in master. It can cause, because function don`t
-            check columns in master table. That`s why be sure in master column name.
+    Note: This function don't check column. It means, that you can easily link this column to master table.
+    Note 1: This function also don't check signature. If you try link string column to existed int column,
+            you don't see any warns.
+    Note 2: You can link slave column to not existed column in master. It can cause, because function don't
+            check columns in master table. That's why be sure in master column name.
 
     Params:
     - master - Master table pointer.
     - master_column_name - Foreing key in master table.
-    - slave_column - Pointer to slave column.
+    - slave - Slave table, where will be saves link data.
+    - slave_column_name - Slave column name in slave table.
 
     Return -1 if something goes wrong.
     Return 1 if link was success.
     */
-    int TBM_link_column2column(table_t* master, char* master_column_name, table_column_t* slave_column);
+    int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name);
 
     /*
     Delete link from slave column.
@@ -350,14 +351,14 @@ Credits: j1sk1ss
     Update column in provided table. 
     Note: Provided column should have same size and same name with column, that we want to replace.
           If you want to change name of column, provide index of column to by_index variable.
-    Note 1: If you don`t want to change table by index, pass -1 to by_index variable.
+    Note 1: If you don't want to change table by index, pass -1 to by_index variable.
 
     Params:
     - table - Pointer to table, where we want update column.
     - column - Column for update.
 
     Return -2 if provided column has different size.
-    Return -1 if we don`t find column with same name.
+    Return -1 if we don't find column with same name.
     Return 1 if update was success.
     */
     int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_index);

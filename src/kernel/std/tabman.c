@@ -148,8 +148,27 @@
 
 #pragma region [Column]
 
-    int TBM_link_column2column(table_t* master, char* master_column_name, table_column_t* slave_column) {
-        return 1; // TODO
+    int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name) {
+        slave->column_links = (table_column_link_t**)realloc(slave->column_links, (slave->header->column_link_count + 1) * sizeof(table_column_link_t*));
+        slave->column_links[slave->header->column_link_count] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
+
+        strncpy(
+            slave->column_links[slave->header->column_link_count]->master_column_name,
+            master_column_name, COLUMN_NAME_SIZE
+        );
+
+        strncpy(
+            slave->column_links[slave->header->column_link_count]->master_table_name,
+            master->header->name, TABLE_NAME_SIZE
+        );
+
+        strncpy(
+            slave->column_links[slave->header->column_link_count]->slave_column_name,
+            slave_column_name, COLUMN_NAME_SIZE
+        );
+
+        slave->header->column_link_count++;
+        return 1;
     }
 
     int TBM_unlink_column2column(table_t* master, char* master_column_name, table_column_t* slave_column) {
@@ -240,15 +259,14 @@
         strncpy((char*)header->name, name, TABLE_NAME_SIZE);
 
         header->dir_count           = 0;
-        header->column_link_count   = 0;
         header->column_count        = col_count;
+        header->column_link_count   = 0;
 
         table_t* table = (table_t*)malloc(sizeof(table_t));
 
         table->header  = header;
         table->columns = columns;
-
-        table->columns      = NULL;
+        
         table->column_links = NULL;
 
         return table;
