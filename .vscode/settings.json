@@ -36,6 +36,21 @@
         "cstring": "c",
         "traceback.h": "c",
         "tabman.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "__locale": "c",
+        "__functional_base": "c",
+        "__node_handle": "c",
+        "atomic": "c",
+        "__memory": "c",
+        "functional": "c",
+        "iterator": "c",
+        "memory": "c",
+        "optional": "c",
+        "system_error": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "array": "c",
+        "utility": "c",
+        "variant": "c"
     }
 }

@@ -116,6 +116,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght) {
+        if (directory->header->page_count == 0) return -1;
+
         int pages4work      = data_lenght / PAGE_CONTENT_SIZE;
         int page_offset     = offset / PAGE_CONTENT_SIZE;
         int current_index   = offset % PAGE_CONTENT_SIZE;
@@ -128,7 +130,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             // We return error instead creationg a new directory, because this is not our abstraction level
             if (current_page > directory->header->page_count) {
                 // To  many pages. We reach directory end.
-                return -2;
+                // Return size, that we can't insert.
+                return size2insert;
             } 
 
             // We load current page to memory
@@ -147,6 +150,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             data_pointer += current_size;
         }
 
+        if (size2insert > 0) return 2;
         return 1;
     }
 
@@ -159,8 +163,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
         for (int i = 0; i < pages4work + 1 && size2delete > 0; i++) {
             if (current_page > directory->header->page_count) {
-                // To  many pages. We reach directory end.
-                return -2;
+                // Too  many pages. We reach directory end.
+                return size2delete;
             } 
 
             // We load current page
@@ -239,21 +243,16 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     int DRM_find_value(directory_t* directory, int offset, uint8_t value) {
         int page_offset     = offset / PAGE_CONTENT_SIZE;
         int current_index   = offset % PAGE_CONTENT_SIZE;
-        int pages4search    = directory->header->page_count - page_offset;
-        int current_page    = page_offset;
 
-        for (int i = 0; i < pages4search + 1; i++) {
+        for (int i = page_offset; i < directory->header->page_count + 1; i++) {
             // Load current page
             char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page], PAGE_EXTENSION);
+            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
             // Try to find value in content of current page
             int result = PGM_find_value(page, current_index, value);
-            
-            // If we find content, return TGI
-            if (result != -1) return result + current_page * PAGE_CONTENT_SIZE; 
-            current_page++;
+            if (result != -1) return result + i * PAGE_CONTENT_SIZE;
         }
 
         return -1;
@@ -435,7 +434,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             #ifndef NO_DDT
                 for (int i = 0; i < DDT_SIZE; i++) {
                     if (DRM_DDT[i] == NULL) continue;
-                    char save_path[50];
+                    char save_path[DEFAULT_PATH_SIZE];
                     sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, DRM_DDT[i]->header->name, DIRECTORY_EXTENSION);
 
                     // TODO: Get thread ID
@@ -453,7 +452,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             #ifndef NO_DDT
                 if (DRM_DDT[index] == NULL) return -1;
                 
-                char save_path[50];
+                char save_path[DEFAULT_PATH_SIZE];
                 sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, DRM_DDT[index]->header->name, DIRECTORY_EXTENSION);
 
                 DRM_save_directory(DRM_DDT[index], save_path);

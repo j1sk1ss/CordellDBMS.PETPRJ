@@ -70,6 +70,7 @@
     int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
         uint8_t* data_pointer = data;
         int size4append = (int)data_size;
+        int size_in_pages = size4append / PAGE_CONTENT_SIZE;
         
         // Iterate existed directories. Maybe we can store data here?
         for (int i = 0; i < table->header->dir_count; i++) {
@@ -78,6 +79,7 @@
             sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
             directory_t* directory = DRM_load_directory(directory_save_path);
             if (directory == NULL) return -1;
+            if (directory->header->page_count + size4append > PAGES_PER_DIRECTORY) continue; 
 
             int result = DRM_append_content(directory, data_pointer, size4append);
             if (result == -2) return -2;
@@ -91,8 +93,6 @@
             int loaded_data = size4append - result;
             data_pointer += loaded_data;
             size4append = result;
-
-            break;
         }
         
         // Create new directories while we don`t store all provided data.
@@ -129,19 +129,128 @@
     }
 
     int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_size) {
-        return 1; // TODO
+        if (table->header->dir_count == 0) return -3;
+
+        uint8_t* data_pointer = data;
+        int size4insert = (int)data_size;
+        
+        // Iterate existed directories. Maybe we can insert data here?
+        for (int i = 0; i < table->header->dir_count; i++) {
+            // Load directory to memory
+            char directory_save_path[DEFAULT_PATH_SIZE];
+            sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            directory_t* directory = DRM_load_directory(directory_save_path);
+            if (directory == NULL) return -1;
+
+            int result = DRM_insert_content(directory, offset, data_pointer, size4insert);
+            if (result == -1) return -1;
+            else if (result == 1 || result == 2) {
+                return result;
+            }
+
+            // Move append data pointer.
+            int loaded_data = size4insert - result;
+            data_pointer += loaded_data;
+            size4insert = result;
+        }
+        
+        // If we reach end, return error code. 
+        // Check docs why we return error, instead dir creation.
+        return -2;
     }
 
     int TBM_delete_content(table_t* table, int offset, size_t size) {
-        return 1; // TODO
+        if (table->header->dir_count == 0) return -3;
+        int size4delete = (int)size;
+        
+        // Iterate existed directories. Maybe we can insert data here?
+        for (int i = 0; i < table->header->dir_count; i++) {
+            // Load directory to memory
+            char directory_save_path[DEFAULT_PATH_SIZE];
+            sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            directory_t* directory = DRM_load_directory(directory_save_path);
+            if (directory == NULL) return -1;
+
+            size4delete = DRM_delete_content(directory, offset, size4delete);
+            if (size4delete == -1) return -1;
+            else if (size4delete == 1 || size4delete == 2) {
+                return size4delete;
+            }
+        }
+        
+        // If we reach end, return error code.
+        return -2;
     }
 
     int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size) {
-        return 1; // TODO
+        int directory_offset    = 0;
+        int size4seach          = (int)data_size;
+        int target_global_index = -1;
+
+        uint8_t* data_pointer = data;
+        for (int i = 0; i < table->header->dir_count && size4seach > 0; i++) {            
+            // We load current page to memory
+            char save_path[DEFAULT_PATH_SIZE];
+            sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            directory_t* directory = DRM_load_directory(save_path);
+            if (directory == NULL) return -2;
+
+            directory_offset = i;
+
+            // We search part of data in this page, save index and unload page.
+            int result = DRM_find_content(directory, offset, data_pointer, size4seach);
+
+            // If TGI is -1, we know that we start seacrhing from start.
+            // Save current TGI of find part of data.
+            if (target_global_index == -1) {
+                target_global_index = result;
+            }
+
+            if (result == -1) {
+                // We don`t find any entry of data part.
+                // This indicates, that we don`t find any data.
+                // Restore size4search and datapointer, we go to start 
+                size4seach          = (int)data_size;
+                data_pointer        = data;
+                target_global_index = -1;
+            } else {
+                // Move pointer to next position
+                size4seach      -= directory->header->page_count * PAGE_CONTENT_SIZE - result;
+                data_pointer    += directory->header->page_count * PAGE_CONTENT_SIZE - result;
+            }
+        }
+
+        if (target_global_index == -1) return -1;
+
+        int global_directory_offset = 0;
+        for (int i = 0; i < MAX(directory_offset - 1, 0); i++) {
+            char save_path[DEFAULT_PATH_SIZE];
+            sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            directory_t* directory = DRM_load_directory(save_path);
+            if (directory == NULL) return -2;
+
+            global_directory_offset += directory->header->page_count * PAGE_CONTENT_SIZE;
+        }
+
+        return global_directory_offset + target_global_index;
     }
 
     int TBM_find_value(table_t* table, int offset, uint8_t value) {
-        return 1; // TODO
+        if (table->header->dir_count == 0) return -3;
+        for (int i = 0; i < table->header->dir_count; i++) {
+            // Load directory to memory
+            char directory_save_path[DEFAULT_PATH_SIZE];
+            sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+            directory_t* directory = DRM_load_directory(directory_save_path);
+            if (directory == NULL) return -1;
+
+            int result = DRM_find_value(directory, offset, value);
+            if (result != -1) return result;
+
+            offset = 0;
+        }
+
+        return -1;
     }
 
 #pragma endregion
@@ -171,7 +280,7 @@
         return 1;
     }
 
-    int TBM_unlink_column2column(table_t* master, char* master_column_name, table_column_t* slave_column) {
+    int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_column_t* slave_column) {
         return 1; // TODO
     }
 

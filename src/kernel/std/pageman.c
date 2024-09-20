@@ -69,9 +69,10 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         if (offset >= PAGE_CONTENT_SIZE) return -2;
         
         int index = offset;
-        while (index++) {
+        while (1) {
             if (page->content[index] == value) return index;
             if (index >= PAGE_CONTENT_SIZE) return -1;
+            index++;
         }
 
         return -1;

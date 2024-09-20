@@ -109,7 +109,7 @@ Credits: j1sk1ss
     
     Return 1 - if write was success.
     Return -1 - if index not found in page.
-    Return -2 - if we reach directory end during work.
+    Return size, that can't be deleted, if we reach directory end during work.
     */
     int DRM_delete_content(directory_t* directory, int offset, size_t length);
 
@@ -145,7 +145,7 @@ Credits: j1sk1ss
     Return 1 if all success.
     Return 2 if write succes, but content was trunc.
     Return -1 if something goes wrong.
-    Return -2 if we reach directory end.
+    Return data size, that can't be stored in existed pages if we reach directory end.
     */
     int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght);
 

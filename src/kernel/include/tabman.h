@@ -213,7 +213,7 @@ Credits: j1sk1ss
     Insert data row to content pages in directories. Main difference with append_content is hard part.
     This maeans, that we don't care about signature and other stuff. One thing that can cause fail, directory end.
     Note: If table don't have any directories, it will return error code (-3)
-    Note 2: If during append process, we reach page limit in directory, we return error code (-2)
+    Note 2: If during insert process, we reach page limit in directory, we return error code (-2)
 
     ! In summary, this function shouldn't be used in ususal tasks. It may broke whole table at one time. !
     
@@ -250,20 +250,21 @@ Credits: j1sk1ss
     /*
     Delete content in table. All steps below:
     TABLE -> DIRECTORY -> PAGE
-    This is a highest abstraction level delete function, that can delete content in many directories at one function call
-    Note: If you will try to delete content from not existed pages or directories, this function will return -1
+    This is a highest abstraction level delete function, that can delete content in many directories at one function call.
+    Note: If you will try to delete content from not existed pages or directories, this function will return -1.
     Note 2: For offset in pages or directories use defined vars like:
-    - DIRECTORY_OFFSET for directory offset
-    - PAGE_CONTENT_SIZE for page offset
+    - DIRECTORY_OFFSET for directory offset.
+    - PAGE_CONTENT_SIZE for page offset.
     
     Params:
-    - table - pointer to table
-    - offset - offset in bytes
-    - size - size of deleted content
+    - table - pointer to table.
+    - offset - offset in bytes.
+    - size - size of deleted content.
     
-    Return -2 if something goes wrong
-    Return -1 if you try to delete more, then already have
-    Return 0 if delete was success
+    Return -3 if table don't have directories.
+    Return -2 if something goes wrong.
+    Return -1 if you try to delete more, then already have.
+    Return 0 if delete was success.
     */
     int TBM_delete_content(table_t* table, int offset, size_t size);
 
@@ -306,6 +307,7 @@ Credits: j1sk1ss
     - offset - offset in bytes
     - value - value that we want to find
     
+    Return -3 if table don't have linked directories.
     Return -1 - if not found
     Return index of value in page with end offset
     */
@@ -345,7 +347,7 @@ Credits: j1sk1ss
     Return -1 if something goes wrong.
     Return 1 if unlink was success.
     */
-    int TBM_unlink_column2column(table_t* master, char* master_column_name, table_column_t* slave_column);
+    int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_column_t* slave_column);
 
     /*
     Update column in provided table. 
