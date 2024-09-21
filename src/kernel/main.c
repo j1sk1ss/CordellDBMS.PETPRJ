@@ -11,6 +11,8 @@
 #include "include/traceback.h"
 
 
+#define DATABASE_DELETE_ROW_TEST
+
 int main() {
     TB_enable();
 
@@ -210,16 +212,83 @@ int main() {
     TBM_save_table(table, "table1.tb");
     TBM_free_table(table);
 
-    int result = DB_append_row(database, "table1", "he11o guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    int result = DB_append_row(database, "table1", "he11o 11111LOLLU  102000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("Append result %i\n", result);
 
-    result = DB_append_row(database, "table1", "hello LOLLOLLOLU  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    result = DB_append_row(database, "table1", "LOLlo \n\t\r1OLLOLU  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("Append result %i\n", result);
 
-    int result1 = DB_find_data_row(database, "table1", 0, "LOLLOLLOLU", 10, CREATE_ACCESS_BYTE(0, 0, 0));
-    int result2 = DB_find_value_row(database, "table1", 0, 'g', CREATE_ACCESS_BYTE(0, 0, 0));
+    int result1 = DB_find_data_row(database, "table1", "col1", 0, "LOL", 3, CREATE_ACCESS_BYTE(0, 0, 0));
+    int result2 = DB_find_value_row(database, "table1", "col3", 0, '1', CREATE_ACCESS_BYTE(0, 0, 0));
 
-    printf("Found rows of data: %i == 1 | %i == 0\n", result1, result2);
+    printf("Found rows of data: %i == 1 | %i == 1\n", result1, result2);
+
+    uint8_t* lol_data = DB_get_row(database, "table1", result1, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Data from %i row: [%s]", result1, lol_data);
+    free(lol_data);
+
+#endif
+
+#ifdef DATABASE_DELETE_ROW_TEST // Success
+
+    database_t* database = DB_create_database("db1");
+    table_column_t** columns = (table_column_t**)calloc(3, sizeof(table_column_t*));
+    table_column_t** columns1 = (table_column_t**)calloc(3, sizeof(table_column_t*));
+
+    table_column_t* column1 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_PRIMARY,
+        COLUMN_TYPE_ANY,
+        COLUMN_NO_AUTO_INC
+    ), 10, "col1");
+
+    table_column_t* column2 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_NOT_PRIMARY,
+        COLUMN_TYPE_STRING,
+        COLUMN_AUTO_INCREMENT
+    ), 10, "col2");
+
+    table_column_t* column3 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_NOT_PRIMARY,
+        COLUMN_TYPE_ANY,
+        COLUMN_NO_AUTO_INC
+    ), 10, "col3");
+
+    columns[0] = column1;
+    columns[1] = column2;
+    columns[2] = column3;
+
+    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(7, 3, 7));
+    DB_link_table2database(database, table);
+    DB_save_database(database, "db.db");
+
+    TBM_save_table(table, "table1.tb");
+    TBM_free_table(table);
+
+    int result = DB_append_row(database, "table1", "he11o 11111LOLLU  102000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Append result %i\n", result);
+
+    result = DB_append_row(database, "table1", "LOLlo \n\t\r1OLLOLU  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Append result %i\n", result);
+
+    int result1 = DB_find_data_row(database, "table1", "col1", 0, "LOL", 3, CREATE_ACCESS_BYTE(0, 0, 0));
+    int result2 = DB_find_value_row(database, "table1", "col3", 0, '1', CREATE_ACCESS_BYTE(0, 0, 0));
+
+    printf("Found rows of data: %i == 1 | %i == 1\n", result1, result2);
+
+    uint8_t* lol_data = DB_get_row(database, "table1", result1, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Data from %i row: [%s]", result1, lol_data);
+    free(lol_data);
+
+    DB_delete_row(database, "table1", 0, CREATE_ACCESS_BYTE(0, 0, 0));
+    lol_data = DB_get_row(database, "table1", 0, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Data from deleted row: [%s]", lol_data);
+    free(lol_data);
+
+    result1 = DB_find_data_row(database, "table1", "col1", 0, "LOL", 3, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Try to find deleted row: %i == -1\n", result1);
+
+    result = DB_append_row(database, "table1", "222222222221OLLOLU  1010000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Append result %i\n", result);
 
 #endif
 

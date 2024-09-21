@@ -7,7 +7,6 @@
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return NULL;
         if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-            TBM_free_table(table);
             return NULL;
         }
 
@@ -23,7 +22,6 @@
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
         if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-            TBM_free_table(table);
             return -3;
         }
 
@@ -35,7 +33,6 @@
         char save_path[DEFAULT_PATH_SIZE];
         sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, table_name, TABLE_EXTENSION);
         TBM_save_table(table, save_path);
-        TBM_free_table(table);
 
         return append_result;
     }
@@ -44,7 +41,6 @@
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
         if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-            TBM_free_table(table);
             return -3;
         }
 
@@ -60,7 +56,6 @@
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
         if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) {
-            TBM_free_table(table);
             return -3;
         }
 
@@ -71,38 +66,80 @@
         return TBM_delete_content(table, global_offset, row_size);
     }
 
-    int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size, uint8_t access) {
+    int DB_find_data_row(
+        database_t* database, char* table_name, 
+        char* column, int offset, uint8_t* data, 
+        size_t data_size, uint8_t access
+    ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
         if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
-            TBM_free_table(table);
             return -3;
         }
 
         int row_size = 0;
-        for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
+        int column_offset = -1;
+        int column_size = -1;
+        for (int i = 0; i < table->header->column_count; i++) {
+            if (column != NULL) {
+                if (strcmp((char*)table->columns[i]->name, column) == 0) {
+                    column_offset = row_size;
+                    column_size = table->columns[i]->size;
+                }
+            }
 
-        int global_offset = TBM_find_content(table, offset, data, data_size);
-        int row = global_offset / row_size;
+            row_size += table->columns[i]->size;
+        }
 
-        return row;
+        while (1) {
+            int global_offset = TBM_find_content(table, offset, data, data_size);
+            if (global_offset == -1 || global_offset == -2) return -1;
+
+            int row = global_offset / row_size;
+            int position_in_row = global_offset % row_size;
+            if (column_offset == -1 && column_size == -1) return row;
+            
+            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
+            else offset = global_offset + data_size;
+        }
     }
 
-    int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value, uint8_t access) {
+    int DB_find_value_row(
+        database_t* database, char* table_name, 
+        char* column, int offset, uint8_t value, 
+        uint8_t access
+    ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
         if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
-            TBM_free_table(table);
             return -3;
         }
 
         int row_size = 0;
-        for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
+        int column_offset = -1;
+        int column_size = -1;
+        for (int i = 0; i < table->header->column_count; i++) {
+            if (column != NULL) {
+                if (strcmp((char*)table->columns[i]->name, column) == 0) {
+                    column_offset = row_size;
+                    column_size = table->columns[i]->size;
+                }
+            }
 
-        int global_offset = TBM_find_value(table, offset, value);
-        int row = global_offset / row_size;
+            row_size += table->columns[i]->size;
+        }
 
-        return row;
+        while (1) {
+            int global_offset = TBM_find_value(table, offset, value);
+            if (global_offset == -1) return -1;
+
+            int row = global_offset / row_size;
+            int position_in_row = global_offset % row_size;
+            if (column_offset == -1 && column_size == -1) return row;
+            
+            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
+            else offset = global_offset + 1;
+        }
     }
 
 #pragma endregion

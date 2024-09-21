@@ -186,6 +186,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Params:
     - database - pointer to database. (If NULL, we don`t use database table cache)
     - table_name - table name
+    - column - column name. Provide NULL, if you don't need specified column.
     - offset - global offset. For simple use, try:
                 DIRECTORY_OFFSET for directory offset,
                 PAGE_CONTENT_SIZE for page offset.
@@ -198,7 +199,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if data nfound
     Return row index (first entry) of target data 
     */
-    int DB_find_data_row(database_t* database, char* table_name, int offset, uint8_t* data, size_t data_size, uint8_t access);
+    int DB_find_data_row(
+        database_t* database, char* table_name, 
+        char* column, int offset, uint8_t* data, 
+        size_t data_size, uint8_t access
+    );
     
     /*
     Find value function return row index in databse of provided value.
@@ -206,6 +211,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Params:
     - database - pointer to database. (If NULL, we don`t use database table cache)
     - table_name - table name
+    - column - column name. Provide NULL, if you don't need specified column.
     - offset - global offset. For simple use, try:
                 DIRECTORY_OFFSET for directory offset,
                 PAGE_CONTENT_SIZE for page offset.
@@ -217,7 +223,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if data nfound
     Return row index (first entry) of target value
     */
-    int DB_find_value_row(database_t* database, char* table_name, int offset, uint8_t value, uint8_t access); 
+    int DB_find_value_row(
+        database_t* database, char* table_name, 
+        char* column, int offset, uint8_t value, 
+        uint8_t access
+    ); 
 
 #pragma endregion
 

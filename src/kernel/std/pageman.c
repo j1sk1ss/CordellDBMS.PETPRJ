@@ -14,7 +14,7 @@ we access to pages with full PGM_PDT, we also unload old page and load new page.
 
 Main problem in parallel work. If we have threads, they can try to access this
 table at one time. If you use OMP parallel libs, or something like this, please,
-define NO_PDT flag (For avoiding deadlocks).
+define NO_PDT flag (For avoiding deadlocks), or use locks to pages.
 
 Why we need PDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
@@ -57,6 +57,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size) {
+        if (offset >= PAGE_CONTENT_SIZE) return -2;
         for (int i = offset; i <= PAGE_CONTENT_SIZE - (int)data_size; i++) {
             if (memcmp(&page->content[i], data, data_size) == 0) 
                 return i;
@@ -209,6 +210,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         // Open file page
         FILE* file = fopen(path, "rb");
         if (file == NULL) {
+            printf("Page not found! Path: [%s]\n", path);
             return NULL;
         }
 
@@ -265,7 +267,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 
                 // TODO: get thread ID
                 if (PGM_lock_page(PGM_PDT[current], 0) != -1) {
-                    PGM_PDT_flush(current);
+                    PGM_PDT_flush_index(current);
                     PGM_PDT[current] = page;
                 }
             #endif
@@ -295,7 +297,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
                     // TODO: get thread ID
                     if (PGM_lock_page(PGM_PDT[i], 0) == 1) {
-                        PGM_PDT_flush(i);
+                        PGM_PDT_flush_index(i);
                         PGM_PDT[i] = PGM_load_page(save_path);
                     } else return -1;
                 }
@@ -304,7 +306,27 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             return 1;
         }
 
-        int PGM_PDT_flush(int index) {
+        int PGM_PDT_flush_page(page_t* page) {
+            #ifndef NO_PDT
+                if (page == NULL) return -1;
+
+                int index = -1;
+                for (int i = 0; i < PDT_SIZE; i++) {
+                    if (PGM_PDT[i] == NULL) continue;
+                    if (page == PGM_PDT[i]) {
+                        index = i;
+                        break;
+                    }
+                }
+                
+                if (index != -1) PGM_PDT_flush_index(index);
+                else PGM_free_page(page);
+            #endif
+
+            return 1;
+        }
+
+        int PGM_PDT_flush_index(int index) {
             #ifndef NO_PDT
                 if (PGM_PDT[index] == NULL) return -1;
 
@@ -325,30 +347,39 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     #pragma region [Lock]
 
         int PGM_lock_page(page_t* page, uint8_t owner) {
-            if (page == NULL) return -2;
+            #ifndef NO_PDT
+                if (page == NULL) return -2;
 
-            int delay = 99999;
-            while (page->lock == LOCKED && (page->lock_owner != owner || page->lock_owner != -1)) {
-                if (--delay <= 0) return -1;
-            }
+                int delay = 99999;
+                while (page->lock == LOCKED && (page->lock_owner != owner || page->lock_owner != -1)) {
+                    if (--delay <= 0) return -1;
+                }
 
-            page->lock = LOCKED;
-            page->lock_owner = owner;
+                page->lock = LOCKED;
+                page->lock_owner = owner;
+            #endif
 
             return 1;
         }
 
         int PGM_lock_test(page_t* page, uint8_t owner) {
-            if (page->lock_owner != owner) return 0;
-            return page->lock;
+            #ifndef NO_PDT
+                if (page->lock_owner != owner) return 0;
+                return page->lock;
+            #endif
+
+            return UNLOCKED;
         }
 
         int PGM_release_page(page_t* page, uint8_t owner) {
-            if (page->lock == UNLOCKED) return -1;
-            if (page->lock_owner != owner && page->lock_owner != -1) return -2;
+            #ifndef NO_PDT
+                if (page == NULL) return -3;
+                if (page->lock == UNLOCKED) return -1;
+                if (page->lock_owner != owner && page->lock_owner != -1) return -2;
 
-            page->lock = UNLOCKED;
-            page->lock = -1;
+                page->lock = UNLOCKED;
+                page->lock = -1;
+            #endif
 
             return 1;
         }

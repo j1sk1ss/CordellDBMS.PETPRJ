@@ -25,6 +25,8 @@ Credits: j1sk1ss
 #include "dirman.h"
 
 
+#define TDT_SIZE 10
+
 #pragma region [Access]
 
     #define CREATE_ACCESS_BYTE(read_access, write_access, delete_access) \
@@ -189,6 +191,10 @@ Credits: j1sk1ss
         // Column links
         table_column_link_t** column_links;
 
+        // Lock table flag
+        uint8_t lock;
+        uint8_t lock_owner;
+
         // Table directories
         uint8_t dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
     } typedef table_t;
@@ -342,12 +348,14 @@ Credits: j1sk1ss
     Params:
     - master - Master table pointer.
     - master_column_name - Foreing key in master table.
-    - slave_column - Pointer to slave column.
+    - slave - Slave table, where will be deleted link data.
+    - slave_column_name - Slave column name in slave table.
 
     Return -1 if something goes wrong.
+    Return 0 if column name not found.
     Return 1 if unlink was success.
     */
-    int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_column_t* slave_column);
+    int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name);
 
     /*
     Update column in provided table. 
@@ -415,6 +423,20 @@ Credits: j1sk1ss
     int TBM_link_dir2table(table_t* table, directory_t* directory);
 
     /*
+    Unlink directory from table. This function just remove directory name from table structure.
+    Note: If you want to delete directory permanently, be sure that you unlink it from table.
+
+    Params:
+    - table - table pointer.
+    - dir_name - directory name (Not path).
+
+    Return -1 if something goes wrong.
+    Return 0 if directory not found.
+    Return 1 if unlink was success.
+    */
+    int TBM_unlink_dir_from_table(table_t* table, const char* dir_name);
+
+    /*
     Create new table
     
     Params:
@@ -443,15 +465,22 @@ Credits: j1sk1ss
     Load table from .tb bin file
     
     Params:
-    - name - name of file (Can be freed after function)
+    - path - path of file (Can be freed after function)
     Note: Don't forget about full path. Be sure that all code coreectly use paths
     
     Return allocated table from disk 
     */
-    table_t* TBM_load_table(char* name);
+    table_t* TBM_load_table(char* path);
 
     /*
-    Release table
+    Release table.
+    Imoortant Note!: Usualy table, if we use load_table function, 
+    saved in TDT, that means, that you should avoid free_table with tables,
+    that was created by load_table.
+    Note 1: Use this function with tables, that was created by create_table function.
+    Note 2: If you anyway want to free table, prefere using flush_table insted free_table.
+            Difference in part, where flush_table first try to find provided table in TDT, then
+            set it to NULL pointer, and free, instead simple free in free_table case.
     
     Params:
     - table - pointer to table
@@ -460,6 +489,113 @@ Credits: j1sk1ss
     Return 1 - if Release was success
     */
     int TBM_free_table(table_t* table);
+
+    #pragma region [TDT]
+
+        /*
+        Add table to TDT table.
+        Note: It will unload old table if we earn end of TDT.
+        Note 1: If we try to unload locked table, we go to next, and try to unload next.
+                Also this means, that we can get deadlock.
+
+        Params:
+        - table - pointer to table (Be sure that you don't realise this table. We save link in TDT).
+
+        Return struct table pointer
+        */
+        int TBM_TDT_add_table(table_t* table);
+
+        /*
+        Find table in TDT by name
+
+        Params:
+        - name - name of table for find.
+                Note: not path to file. Name of table.
+                      Usuale names placed in databases.
+
+        Return directory struct or NULL if table not found.
+        */
+        table_t* TBM_TDT_find_table(char* name);
+
+        /*
+        Save and load tables from TDT.
+
+        Return -1 if something goes wrong.
+        Return 1 if sync success.
+        */
+        int TBM_TDT_sync();
+
+        /*
+        Hard cleanup of TDT. Really not recomment for use!
+        Note: It will just unload data from TDT to disk by provided index.
+        Note 2: Empty space will be marked by NULL.
+
+        Params:
+        - index - index of table for flushing.
+
+        Return -1 if something goes wrong.
+        Return 1 if cleanup success.
+        */
+        int TBM_TDT_flush_index(int index);
+
+        /*
+        Hard cleanup of TDT. Really not recomment for use!
+        Note: It will just unload data from TDT to disk by provided index.
+        Note 2: Empty space will be marked by NULL.
+
+        Params:
+        - table - pointer to table for flush.
+
+        Return -1 if something goes wrong.
+        Return 1 if cleanup success.
+        */
+        int TBM_TDT_flush_table(table_t* table);
+
+    #pragma endregion
+
+    #pragma region [Lock]
+
+        /*
+        Lock table for working.
+        Note: Can cause deadlock, because we infinity wait for table unlock. <deprecated>
+        Note 1: If we earn delay of lock try, we return -1;
+
+        Params:
+        - table - pointer to table.
+        - owner - thread, that want lock this table.
+
+        Return -2 if we try to lock NULL
+        Return -1 if we can`t lock table (for some reason)
+        Return 1 if table now locked.
+        */
+        int TBM_lock_table(table_t* table, uint8_t owner);
+
+        /*
+        Check lock status of table.
+
+        Params:
+        - table - pointer to table.
+        - owner - thread, that want test this table.
+
+        Return lock status (LOCKED and UNLOCKED).
+        */
+        int TBM_lock_test(table_t* table, uint8_t owner);
+
+        /*
+        Realise table for working.
+
+        Params:
+        - table - pointer to table.
+        - owner - thread, that want release this table.
+
+        Return -3 if table is NULL.
+        Return -2 if this table has another owner.
+        Return -1 if table was unlocked. (Nothing changed)
+        Return 1 if table now unlocked.
+        */
+        int TBM_release_table(table_t* table, uint8_t owner);
+
+    #pragma endregion
 
 #pragma endregion
 

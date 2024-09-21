@@ -11,7 +11,7 @@ we access to dirs with full DRM_DDT, we also unload old dirs and load new dirs.
 
 Main problem in parallel work. If we have threads, they can try to access this
 table at one time. If you use OMP parallel libs, or something like this, please,
-define NO_DDT flag (For avoiding deadlocks).
+define NO_DDT flag (For avoiding deadlocks), or use locks to directories.
 
 Why we need DDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
@@ -41,18 +41,33 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
+            // We check, that we don't return Page Empty, because
+            // PE symbols != Content symbols.
             uint8_t* page_content_pointer = page->content;
-            page_content_pointer += current_index;
+            while (page->content[current_index] == PAGE_EMPTY) {
+                if (++current_index >= PAGE_CONTENT_SIZE) {
+                    page_content_pointer = NULL;
+                    break;
+                } 
+            }
 
-            // We work with page
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2get);
-            memcpy(content_pointer, page_content_pointer, current_size);
+            // Also we don't check full content body. I mean, that
+            // if situation CS ... CS, CS, PE, PE occur, we don't care,
+            // because this is not our fault. This is problem of higher
+            // abstraction levels.
+            if (page_content_pointer != NULL) {
+                page_content_pointer += current_index;
 
-            // We reload local index and update size2get
-            // Also we move content pointer to next location
-            current_index   = 0;
-            size2get        -= current_size;
-            content_pointer += current_size;
+                // We work with page
+                int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2get);
+                memcpy(content_pointer, page_content_pointer, current_size);
+
+                // We reload local index and update size2get
+                // Also we move content pointer to next location
+                current_index   = 0;
+                size2get        -= current_size;
+                content_pointer += current_size;
+            }
         }
 
         return content;
@@ -171,15 +186,29 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
+            if (PGM_lock_page(page, 0) != 1) return -1;
 
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2delete);
             PGM_delete_content(page, current_index, current_size);
-            PGM_save_page(page, page_path);
+
+            // If page, after delete operation, full empty, we delete page.
+            // Also we realise page pointer in RAM.
+            if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
+                DRM_unlink_page_from_directory(directory, (char*)page->header->name);
+                PGM_PDT_flush_page(page);
+                remove(page_path);
+                current_page--;
+            }
+            // In other hand, if page not empty after this operation,
+            // we just update it on the disk.
+            else PGM_save_page(page, page_path);
 
             // We reload local index and update size2delete
             current_index = 0;
             size2delete -= current_size;
+
+            PGM_release_page(page, 0);
         }
 
         return 1;
@@ -192,22 +221,24 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         int current_index       = offset % PAGE_CONTENT_SIZE;
         int size4seach          = (int)data_size;
         int pages4search        = directory->header->page_count - page_offset;
-        int target_global_index = -1;
         int current_page        = page_offset;
+        int target_global_index = -1;
 
         uint8_t* data_pointer = data;
         for (int i = 0; i < pages4search + 1 && size4seach > 0; i++) {
             // If we reach pages count in current directory, we return error code.
             // We return error instead creationg a new directory, because this is not our abstraction level.
-            if (current_page > directory->header->page_count) {
+            if (current_page >= directory->header->page_count) {
                 // To  many pages. We reach directory end.
-                return -2;
+                // That mean, we don't find any entry of target data.
+                return -1;
             } 
             
             // We load current page to memory
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
+            if (page == NULL) return -2;
 
             // We search part of data in this page, save index and unload page.
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size4seach);
@@ -244,7 +275,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         int page_offset     = offset / PAGE_CONTENT_SIZE;
         int current_index   = offset % PAGE_CONTENT_SIZE;
 
-        for (int i = page_offset; i < directory->header->page_count + 1; i++) {
+        for (int i = page_offset; i < directory->header->page_count; i++) {
             // Load current page
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
@@ -311,7 +342,18 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
-        return 1; // TODO
+        for (int i = 0; i < directory->header->page_count; i++) {
+            if (memcmp(directory->names[i], page_name, PAGE_NAME_SIZE) == 0) {
+                for (int j = i; j < directory->header->page_count - 1; j++) {
+                    memcpy(directory->names[j], directory->names[j + 1], PAGE_NAME_SIZE);
+                }
+
+                directory->header->page_count--;
+                return 1;
+            }
+        }
+
+        return 0;
     }
 
     int DRM_save_directory(directory_t* directory, char* path) {
@@ -351,9 +393,10 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         directory_t* ddt_directory = DRM_DDT_find_directory(file_name);
         if (ddt_directory != NULL) return ddt_directory;
 
-        // Open file page
+        // Open file directory
         FILE* file = fopen(path, "rb");
         if (file == NULL) {
+            printf("Directory not found! Path: [%s]\n", path);
             return NULL;
         }
 
@@ -408,7 +451,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 }
                 
                 if (DRM_lock_directory(DRM_DDT[current], 0) != -1) {
-                    DRM_DDT_flush(current);
+                    DRM_DDT_flush_index(current);
                     DRM_DDT[current] = directory;
                 }
             #endif
@@ -439,7 +482,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
                     // TODO: Get thread ID
                     if (DRM_lock_directory(DRM_DDT[i], 0) == 1) {
-                        DRM_DDT_flush(i);
+                        DRM_DDT_flush_index(i);
                         DRM_DDT[i] = DRM_load_directory(save_path);
                     } else return -1;
                 }
@@ -448,7 +491,27 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             return 1;
         }
 
-        int DRM_DDT_flush(int index) {
+        int DRM_DDT_flush_directory(directory_t* directory) {
+            #ifndef NO_DDT
+                if (directory == NULL) return -1;
+
+                int index = -1;
+                for (int i = 0; i < DDT_SIZE; i++) {
+                    if (DRM_DDT[i] == NULL) continue;
+                    if (directory == DRM_DDT[i]) {
+                        index = i;
+                        break;
+                    }
+                }
+                
+                if (index != -1) DRM_DDT_flush_index(index);
+                else DRM_free_directory(directory);
+            #endif
+
+            return 1;
+        }
+
+        int DRM_DDT_flush_index(int index) {
             #ifndef NO_DDT
                 if (DRM_DDT[index] == NULL) return -1;
                 
@@ -469,30 +532,38 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     #pragma region [Lock]
 
         int DRM_lock_directory(directory_t* directory, uint8_t owner) {
-            if (directory == NULL) return -2;
+            #ifndef NO_DDT
+                if (directory == NULL) return -2;
 
-            int delay = 99999;
-            while (directory->lock == LOCKED && (directory->lock_owner != owner || directory->lock_owner != -1)) {
-                if (--delay <= 0) return -1;
-            }
+                int delay = 99999;
+                while (directory->lock == LOCKED && (directory->lock_owner != owner || directory->lock_owner != -1)) {
+                    if (--delay <= 0) return -1;
+                }
 
-            directory->lock = LOCKED;
-            directory->lock_owner = owner;
+                directory->lock = LOCKED;
+                directory->lock_owner = owner;
+            #endif
 
             return 1;
         }
 
         int DRM_lock_test(directory_t* directory, uint8_t owner) {
-            if (directory->lock_owner != owner) return 0;
-            return directory->lock;
+            #ifndef NO_DDT
+                if (directory->lock_owner != owner) return 0;
+                return directory->lock;
+            #endif
+
+            return UNLOCKED;
         }
 
         int DRM_release_directory(directory_t* directory, uint8_t owner) {
-            if (directory->lock == UNLOCKED) return -1;
-            if (directory->lock_owner != owner && directory->lock_owner != -1) return -2;
+            #ifndef NO_DDT
+                if (directory->lock == UNLOCKED) return -1;
+                if (directory->lock_owner != owner && directory->lock_owner != -1) return -2;
 
-            directory->lock = UNLOCKED;
-            directory->lock = -1;
+                directory->lock = UNLOCKED;
+                directory->lock = -1;
+            #endif
 
             return 1;
         }

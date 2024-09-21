@@ -306,7 +306,20 @@ Credits: j1sk1ss
         Return -1 if something goes wrong.
         Return 1 if cleanup success.
         */
-        int PGM_PDT_flush(int index);
+        int PGM_PDT_flush_index(int index);
+
+        /*
+        Hard cleanup of PDT. Really not recomment for use!
+        Note: It will just unload data from PDT to disk by provided index.
+        Note 2: Empty space will be marked by NULL.
+
+        Params:
+        - page - pointer to page for flushing
+
+        Return -1 if something goes wrong.
+        Return 1 if cleanup success.
+        */
+        int PGM_PDT_flush_page(page_t* page);
 
     #pragma endregion
 
@@ -344,6 +357,7 @@ Credits: j1sk1ss
         - page - pointer to page.
         - owner - thread, that want release this page.
 
+        Return -3 if page is NULL.
         Return -2 if this directory has another owner
         Return -1 if page was unlocked. (Nothing changed)
         Return 1 if page now unlocked.

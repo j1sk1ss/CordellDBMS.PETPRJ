@@ -230,6 +230,7 @@ Credits: j1sk1ss
     - page_name - page name (Not path).
 
     Return -1 if something goes wrong.
+    Return 0 if page not found.
     Return 1 if unlink was success.
     */
     int DRM_unlink_page_from_directory(directory_t* directory, char* page_name);
@@ -274,6 +275,9 @@ Credits: j1sk1ss
     saved in DDT, that's means, that you should avoid free_directory with dirs,
     that was created by load_directory.
     Note 1: Use this function with dirs, that was created by create_directory function.
+    Note 2: If tou anyway want to free directory, prefere using flush_directory insted free_directory.
+            Difference in part, where flush_directory first try to find provided directory in DDT, then
+            NULL pointer, and free, instead simple free in free_directory case.
     
     directory - pointer to directory.
     
@@ -291,21 +295,21 @@ Credits: j1sk1ss
                 We can get deadlock.
 
         Params:
-        - page - pointer to page (Be sure that you don't realise this page. We save link in DDT).
+        - directory - pointer to directory (Be sure that you don't realise this directory. We save link in DDT).
 
         Return struct directory pointer
         */
         int DRM_DDT_add_directory(directory_t* directory);
 
         /*
-        Find page in DDT by name
+        Find directory in DDT by name
 
         Params:
-        - name - name of page for find.
-                Note: not path to file. Name of page.
-                    Usuale names placed in directories.
+        - name - name of directory for find.
+                Note: not path to file. Name of directory.
+                      Usuale names placed in directories.
 
-        Return directory struct or NULL if page not found.
+        Return directory struct or NULL if directory not found.
         */
         directory_t* DRM_DDT_find_directory(char* name);
 
@@ -328,7 +332,20 @@ Credits: j1sk1ss
         Return -1 if something goes wrong.
         Return 1 if cleanup success.
         */
-        int DRM_DDT_flush(int index);
+        int DRM_DDT_flush_index(int index);
+
+        /*
+        Hard cleanup of DDT. Really not recomment for use!
+        Note: It will just unload data from DDT to disk by provided index.
+        Note 2: Empty space will be marked by NULL.
+
+        Params:
+        - directory - pointer to directory for flushing.
+
+        Return -1 if something goes wrong.
+        Return 1 if cleanup success.
+        */
+        int DRM_DDT_flush_directory(directory_t* directory);
 
     #pragma endregion
 
@@ -336,7 +353,7 @@ Credits: j1sk1ss
 
         /*
         Lock directory for working.
-        Note: Can cause deadlock, decause we infinity wait for directory unlock.
+        Note: Can cause deadlock, because we infinity wait for directory unlock.
 
         Params:
         - directory - pointer to directory.
@@ -366,7 +383,8 @@ Credits: j1sk1ss
         - directory - pointer to directory.
         - owner - thread, that want release this directory.
 
-        Return -2 if this directory has another owner
+        Return -3 if directory is NULL.
+        Return -2 if this directory has another owner.
         Return -1 if directory was unlocked. (Nothing changed)
         Return 1 if directory now unlocked.
         */
