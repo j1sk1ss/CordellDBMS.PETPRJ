@@ -12,6 +12,13 @@
 #include <ctype.h>
 #include <stdint.h>
 
+#ifndef _OPENMP
+  #define omp_get_thread_num() 0
+  #define omp_set_num_threads(num)
+#else
+  #include <omp.h>
+#endif
+
 
 #define DEFAULT_PATH_SIZE 100
 

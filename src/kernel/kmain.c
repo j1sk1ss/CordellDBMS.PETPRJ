@@ -11,13 +11,15 @@
  * - We have few fixed enviroment variable (paths for saving databases, 
  * tables, directories and pages), that can`t be changed by default user.
  * 
+ * building without OMP: gcc -Wall .\kmain.c .\std\* -Wunknown-pragmas -fpermissive -o cdbms.exe
+ * buildinc with OMP: gcc -Wall .\kmain.c .\std\* -fopenmp -fpermissive -o cdbms.exe
 */
 
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <omp.h>
 
+#include "include/common.h"
 #include "include/traceback.h"
 #include "include/database.h"
 

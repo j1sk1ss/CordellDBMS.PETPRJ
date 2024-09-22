@@ -23,12 +23,12 @@ Credits: j1sk1ss
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <omp.h>
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
+#include "common.h"
 #include "pageman.h"
 
 

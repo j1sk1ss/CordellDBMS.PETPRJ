@@ -17,12 +17,12 @@ Credits: j1sk1ss
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <omp.h>
 
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
+#include "common.h"
 #include "dirman.h"
 
 
