@@ -17,6 +17,7 @@ Credits: j1sk1ss
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <omp.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -29,6 +30,8 @@ Credits: j1sk1ss
 
 #pragma region [Access]
 
+    // Create access byte for new tables and for users. For input, this
+    // function take values from 0 to 7.
     #define CREATE_ACCESS_BYTE(read_access, write_access, delete_access) \
         (((read_access & 0b111) << 6) | ((write_access & 0b111) << 3) | (delete_access & 0b111))
 
@@ -37,8 +40,26 @@ Credits: j1sk1ss
     #define GET_WRITE_ACCESS(access_byte)   ((access_byte >> 3) & 0b111)
     #define GET_DELETE_ACCESS(access_byte)  (access_byte & 0b111)
 
+    /*
+    Macros for checking read access level. Will return -1 if access denied.
+    Note: This function usualy used in lower abstraction levels.
+    uaccess - user access level.
+    taccess - table access level.
+    */
     #define CHECK_READ_ACCESS(uaccess, taccess) GET_READ_ACCESS(taccess) < GET_READ_ACCESS(uaccess) ? -1 : 0
+    /*
+    Macros for checking write access level. Will return -1 if access denied.
+    Note: This function usualy used in lower abstraction levels.
+    uaccess - user access level.
+    taccess - table access level.
+    */
     #define CHECK_WRITE_ACCESS(uaccess, taccess) GET_WRITE_ACCESS(taccess) < GET_WRITE_ACCESS(uaccess) ? -1 : 0
+    /*
+    Macros for checking delete access level. Will return -1 if access denied.
+    Note: This function usualy used in lower abstraction levels.
+    uaccess - user access level.
+    taccess - table access level.
+    */
     #define CHECK_DELETE_ACCESS(uaccess, taccess) GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0
 
 #pragma endregion
@@ -90,14 +111,53 @@ Credits: j1sk1ss
     // String type throw error, if user insert something, that not char*
     #define COLUMN_TYPE_STRING       0x03
 
-    // Macros for getting column data
-    #define GET_COLUMN_DATA_TYPE(type)      ((type >> 2) & 0b11)
+    // Macros for getting column primary status. (Unique value at every row).
     #define GET_COLUMN_PRIMARY(type)        ((type >> 4) & 0b11)
+    // Macros for getting column data type. What data type is set in this column.
+    #define GET_COLUMN_DATA_TYPE(type)      ((type >> 2) & 0b11)
+    // Macros for getting column type. Can it autoincrement or something like that.
     #define GET_COLUMN_TYPE(type)           (type & 0b11)
 
     // Generate column type byte
     #define CREATE_COLUMN_TYPE_BYTE(is_primary, column_data_type, column_type) \
         (((is_primary & 0b11) << 4) | ((column_data_type & 0b11) << 2) | (column_type & 0b11))
+
+    #pragma region [Column link]
+
+        // Link type, when we delete all rows in linked columns.
+        #define LINK_CASCADE_DELETE  0x01
+        // Link type, when we update all rows in linked columns.
+        // This mean, that we update only linked column data (we take it from provided data).
+        #define LINK_CASCADE_UPDATE  0x01
+        // Link type, when we add data to linked columns with dummy data.
+        // Note: Useless flag, but you can use it in tour special cases.
+        #define LINK_CASCADE_APPEND  0x01
+        // Link type, where we return from find row function index of all rows, that was found. <WIP>
+        #define LINK_CASCADE_FIND    0x01
+        // Do nothing flag.
+        #define LINK_NOTHING         0x00
+
+        // Macros for getting column link cf status.
+        #define GET_CF_LINK_FLAG(type) ((type >> 6) & 0b11)
+        // Macros for getting column link ca status.
+        #define GET_CA_LINK_FLAG(type) ((type >> 4) & 0b11)
+        // Macros for getting column link cu status.
+        #define GET_CU_LINK_FLAG(type) ((type >> 2) & 0b11)
+        // Macros for getting column link cd status.
+        #define GET_CD_LINK_FLAG(type) (type & 0b11)
+
+        /*
+        Create link type for link. Input flags for link specification.
+        Note: If you have less flags, then 4, use NOTHING flag.
+        cf - Cascade find flag or NOTHING
+        ca - Cascade append flag or NOTHING
+        cu - Cascade uppend flag or NOTHING
+        cd - Cascade delete flag or NOTHING
+        */
+        #define CREATE_LINK_TYPE_BYTE(cf, ca, cu, cd) \
+             (((cf & 0b11) << 6) | ((ca & 0b11) << 4) | ((cu & 0b11) << 2) | (cd & 0b11))
+
+    #pragma endregion
 
 #pragma endregion
 
@@ -108,14 +168,17 @@ Credits: j1sk1ss
 //========================================================================================================================================
 
     struct table_column_link {
-        // Source table name
-        uint8_t master_table_name[TABLE_NAME_SIZE];
-
         // Source name of column in source table
         uint8_t master_column_name[COLUMN_NAME_SIZE];
 
+        // Source table name
+        uint8_t slave_table_name[TABLE_NAME_SIZE];
+
         // Target column name
         uint8_t slave_column_name[COLUMN_NAME_SIZE];
+
+        // Link type
+        uint8_t type;
     } typedef table_column_link_t;
 
     struct table_column {
@@ -336,11 +399,12 @@ Credits: j1sk1ss
     - master_column_name - Foreing key in master table.
     - slave - Slave table, where will be saves link data.
     - slave_column_name - Slave column name in slave table.
+    - type - Link type. Check link docs.
 
     Return -1 if something goes wrong.
     Return 1 if link was success.
     */
-    int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name);
+    int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name, uint8_t type);
 
     /*
     Delete link from slave column.
@@ -456,6 +520,11 @@ Credits: j1sk1ss
     - table - pointer to table (Can be freed after function)
     - path - place where table will be saved (Can be freed after function)
     
+    Return -5 if dir names write corrupt.
+    Return -4 if column links write corrupt.
+    Return -3 if column names write corrupt.
+    Return -2 if header write corrupt.
+    Return -1 if file can't be open.
     Return 0 - if something goes wrong
     Return 1 - if save was success
     */

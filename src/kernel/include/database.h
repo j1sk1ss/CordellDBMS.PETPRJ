@@ -110,17 +110,18 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - data_size - size of row (No limits)
     - access - user access level
 
-    Return -3 if access denied
+    Return -4 if table not found in database.
+    Return -3 if access denied.
     Return -2 if signature is wrong: {
-        Return -4 if column type unknown. Check table, that you provide into function.
-        Return -3 if signature is wrong. You provide value for FLOAT column, but value is not float.
-        Return -2 if signature is wrong. You provide value for INT column, but value is not integer.
-        Return -1 if provided data too small. Maybe you forgot additional CD?
+        Return -14 if column type unknown. Check table, that you provide into function.
+        Return -13 if signature is wrong. You provide value for FLOAT column, but value is not float.
+        Return -12 if signature is wrong. You provide value for INT column, but value is not integer.
+        Return -11 if provided data too small. Maybe you forgot additional CD?
     }
-    Return -1 if something goes wrong
-    Return 0 if row append was success
-    Return 1 if row append cause directory creation
-    Return 2 if row append cause page creation
+    Return -1 if something goes wrong.
+    Return 0 if row append was success.
+    Return 1 if row append cause directory creation.
+    Return 2 if row append cause page creation.
     */
     int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t data_size, uint8_t access);
 
@@ -150,6 +151,29 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if row insert cause page creation
     */
     int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data, size_t data_size, uint8_t access);
+
+    /*
+    Update row function, in difference with insert, can update only one value by specified column name.
+    Note: If you want get same functionality like in insert row, provide NULL to column_name. NULL pointer
+          in column_name will indicate, that user want update whole row by index.
+
+    Params:
+    - database - Pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - Current table name.
+    - row - Row index in table (Use find_data_row for getting index).
+    - column_name - Column name.
+    - data - Data for insert (row for append).
+    - data_size - Size of row (No limits).
+    - access - User access level.
+
+    Return -1 if something goes wrong.
+    Return 1 if update was success.
+    */
+    int DB_update_row(
+        database_t* database, char* table_name, 
+        int row, char* column_name, uint8_t* data, 
+        size_t data_size, uint8_t access
+    );
 
     /*
     Delete row function iterate all database by RW symbol and delite entire row by rewriting him with PE symbol.
@@ -300,13 +324,13 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Load database from disk by provided path to *.db file.
     
     Params:
-    - name - path to *.db file
+    - path - path to *.db file
 
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
     Return pointer to database if all was success.
     */
-    database_t* DB_load_database(char* name);
+    database_t* DB_load_database(char* path);
 
     /*
     Save database to disk
@@ -315,6 +339,8 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - database - pointer to database
     - path - save path
 
+    Return -3 if table names write corrupt.
+    Return -2 if header write corrupt.
     Return -1 if something goes wrong
     Return 1 if save was success
     */

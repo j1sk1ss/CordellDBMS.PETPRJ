@@ -80,13 +80,9 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_get_free_space(page_t* page, int offset) {
-        // We skip any data that not empty
-        int index = 0;
-        while (page->content[index++] != PAGE_EMPTY);
-        
         // We count empty symbols
         int count = 0;
-        for (int i = MAX(offset, index); i < PAGE_CONTENT_SIZE; i++) {
+        for (int i = offset; i < PAGE_CONTENT_SIZE; i++) {
             if (page->content[i] == PAGE_EMPTY) count++;
             else if (offset != -1) break;
         }
@@ -120,7 +116,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
 #pragma endregion
 
-#pragma region [Page]
+#pragma region [Page file]
 
     page_t* PGM_create_page(char* name, uint8_t* buffer, size_t data_size) {
         page_t* page = (page_t*)malloc(sizeof(page_t));
@@ -170,28 +166,30 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_save_page(page_t* page, char* path) {
-        // TODO: Maybe avoid saving if we have emplty places in PDT?
+        int status = 1;
+        #pragma omp critical (page_save)
+        {
+            // Open or create file
+            FILE* file = fopen(path, "wb");
+            if (file == NULL) {
+                status = -1;
+            } else {
+                // Write data to disk
+                if (fwrite(page->header, sizeof(page_header_t), SEEK_CUR, file) != 1) status = -2;
+                if (fwrite(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file) != 1) status = -3;
 
-        // Open or create file
-        FILE* file = fopen(path, "wb");
-        if (file == NULL) {
-            return -1;
+                // Close file
+                #ifndef _WIN32
+                    fsync(fileno(file));
+                #else
+                    fflush(file);
+                #endif
+                
+                fclose(file);
+            }
         }
-        
-        // Write data to disk
-        fwrite(page->header, sizeof(page_header_t), SEEK_CUR, file);
-        fwrite(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file);
 
-        // Close file
-        #ifndef _WIN32
-            fsync(fileno(file));
-        #else
-            fflush(file);
-        #endif
-        
-        fclose(file);
-
-        return 1;
+        return status;
     }
 
     page_t* PGM_load_page(char* path) {
@@ -204,41 +202,46 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         
         get_file_path_parts(temp_path, file_path, file_name, file_ext);
 
-        page_t* pdt_page = PGM_PDT_find_page(file_name);
-        if (pdt_page != NULL) return pdt_page;
+        page_t* loaded_page = PGM_PDT_find_page(file_name);
+        if (loaded_page != NULL) return loaded_page;
 
-        // Open file page
-        FILE* file = fopen(path, "rb");
-        if (file == NULL) {
-            printf("Page not found! Path: [%s]\n", path);
-            return NULL;
+        #pragma omp critical (page_load)
+        {
+            // Open file page
+            FILE* file = fopen(path, "rb");
+            if (file == NULL) {
+                printf("Page not found! Path: [%s]\n", path);
+                loaded_page = NULL;
+            } else {
+                // Read header from file
+                uint8_t* header_data = (uint8_t*)malloc(sizeof(page_header_t));
+                fread(header_data, sizeof(page_header_t), SEEK_CUR, file);
+                page_header_t* header = (page_header_t*)header_data;
+
+                // Check page magic
+                if (header->magic != PAGE_MAGIC) {
+                    free(header);
+                    loaded_page = NULL;
+                } else {
+                    // Allocate memory for page structure
+                    page_t* page = (page_t*)malloc(sizeof(page_t));
+                    fread(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file);
+                    page->header = header;
+
+                    // Close file page
+                    #ifndef _WIN32
+                        fsync(fileno(file));
+                    #else
+                        fflush(file);
+                    #endif
+
+                    PGM_PDT_add_page(page);
+                    loaded_page = page;
+                }
+            }
         }
 
-        // Read header from file
-        uint8_t* header_data = (uint8_t*)malloc(sizeof(page_header_t));
-        fread(header_data, sizeof(page_header_t), SEEK_CUR, file);
-        page_header_t* header = (page_header_t*)header_data;
-
-        // Check page magic
-        if (header->magic != PAGE_MAGIC) {
-            free(header);
-            return NULL;
-        }
-
-        // Allocate memory for page structure
-        page_t* page = (page_t*)malloc(sizeof(page_t));
-        fread(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file);
-        page->header = header;
-
-        // Close file page
-        #ifndef _WIN32
-            fsync(fileno(file));
-        #else
-            fflush(file);
-        #endif
-
-        PGM_PDT_add_page(page);
-        return page;
+        return loaded_page;
     }
 
     int PGM_free_page(page_t* page) {
@@ -266,7 +269,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 }
                 
                 // TODO: get thread ID
-                if (PGM_lock_page(PGM_PDT[current], 0) != -1) {
+                if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
                     PGM_PDT_flush_index(current);
                     PGM_PDT[current] = page;
                 }
@@ -295,8 +298,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     char save_path[DEFAULT_PATH_SIZE];
                     sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, PGM_PDT[i]->header->name, PAGE_EXTENSION);
 
-                    // TODO: get thread ID
-                    if (PGM_lock_page(PGM_PDT[i], 0) == 1) {
+                    if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
                         PGM_PDT_flush_index(i);
                         PGM_PDT[i] = PGM_load_page(save_path);
                     } else return -1;

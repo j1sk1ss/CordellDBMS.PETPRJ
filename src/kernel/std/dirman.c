@@ -18,7 +18,7 @@ Why we need DDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fo
 directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
 
-#pragma region [Page]
+#pragma region [Page files]
 
     uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
         uint8_t* content = (uint8_t*)malloc(size);
@@ -186,7 +186,15 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
-            if (PGM_lock_page(page, 0) != 1) return -1;
+            if (PGM_lock_page(page, omp_get_thread_num()) != 1) return -1;
+
+            // We check, that we don't return Page Empty, because
+            // PE symbols != Content symbols.
+            while (page->content[current_index] == PAGE_EMPTY) {
+                if (++current_index >= PAGE_CONTENT_SIZE) {
+                    return -1;
+                } 
+            }
 
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2delete);
@@ -208,7 +216,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             current_index = 0;
             size2delete -= current_size;
 
-            PGM_release_page(page, 0);
+            PGM_release_page(page, omp_get_thread_num());
         }
 
         return 1;
@@ -272,26 +280,37 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_find_value(directory_t* directory, int offset, uint8_t value) {
-        int page_offset     = offset / PAGE_CONTENT_SIZE;
-        int current_index   = offset % PAGE_CONTENT_SIZE;
+        int page_offset   = offset / PAGE_CONTENT_SIZE;
+        int current_index = offset % PAGE_CONTENT_SIZE;
+        int result = -1; // Shared result across threads
 
+        #pragma omp parallel for shared(result)
         for (int i = page_offset; i < directory->header->page_count; i++) {
+            if (result != -1) continue; // Skip search if result is already found
+
             // Load current page
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
-            // Try to find value in content of current page
-            int result = PGM_find_value(page, current_index, value);
-            if (result != -1) return result + i * PAGE_CONTENT_SIZE;
+            // Find the value in the page content
+            int local_result = PGM_find_value(page, i == page_offset ? current_index : 0, value);
+            if (local_result != -1) {
+                #pragma omp critical (local_result2global)  // Ensure only one thread updates the result
+                {
+                    if (result == -1) {
+                        result = local_result + i * PAGE_CONTENT_SIZE;
+                    }
+                }
+            }
         }
 
-        return -1;
+        return result;
     }
 
 #pragma endregion
 
-#pragma region [Directory]
+#pragma region [Directory file]
 
     directory_t* DRM_create_directory(char* name) {
         directory_t* dir = (directory_t*)malloc(sizeof(directory_t));
@@ -357,27 +376,34 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_save_directory(directory_t* directory, char* path) {
-        // Open or create file new file
-        FILE* file = fopen(path, "wb");
-        if (file == NULL) {
-            return -1;
+        int status = 1;
+        #pragma omp critical (directory_save)
+        {
+            FILE* file = fopen(path, "wb");
+            if (file == NULL) {
+                status = -1;
+            } else {
+                if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1) 
+                    status = -1;
+
+                for (int i = 0; i < directory->header->page_count; i++) {
+                    if (fwrite(directory->names[i], PAGE_NAME_SIZE, 1, file) != 1) {
+                        status = -1;
+                        break;
+                    }
+                }
+
+                #ifndef _WIN32
+                    fsync(fileno(file));  // Unix-based systems
+                #else
+                    fflush(file);         // Windows-based systems
+                #endif
+
+                fclose(file);
+            }
         }
 
-        // Write directory data to file
-        fwrite(directory->header, sizeof(directory_header_t), SEEK_CUR, file);
-        for (int i = 0; i < directory->header->page_count; i++) 
-            fwrite(directory->names[i], PAGE_NAME_SIZE, SEEK_CUR, file);
-
-        // Close file and reset buffers
-        #ifndef _WIN32
-            fsync(fileno(file));
-        #else
-            fflush(file);
-        #endif
-
-        fclose(file);
-
-        return 1;
+        return status;
     }
 
     directory_t* DRM_load_directory(char* path) {
@@ -390,41 +416,47 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
         get_file_path_parts(temp_path, file_path, file_name, file_ext);
 
-        directory_t* ddt_directory = DRM_DDT_find_directory(file_name);
-        if (ddt_directory != NULL) return ddt_directory;
+        directory_t* loaded_directory = DRM_DDT_find_directory(file_name);
+        if (loaded_directory != NULL) return loaded_directory;
 
-        // Open file directory
-        FILE* file = fopen(path, "rb");
-        if (file == NULL) {
-            printf("Directory not found! Path: [%s]\n", path);
-            return NULL;
+        #pragma omp critical (directory_load)
+        {
+            // Open file directory
+            FILE* file = fopen(path, "rb");
+            if (file == NULL) {
+                printf("Directory not found! Path: [%s]\n", path);
+                loaded_directory = NULL;
+            } else {
+                // Read header from file
+                directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
+                fread(header, sizeof(directory_header_t), SEEK_CUR, file);
+
+                // Check directory magic
+                if (header->magic != DIRECTORY_MAGIC) {
+                    free(header);
+                    loaded_directory = NULL;
+                } else {
+                    // First we allocate memory for directory struct
+                    // Then we read page names
+                    directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
+                    for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
+                        fread(directory->names[i], PAGE_NAME_SIZE, SEEK_CUR, file);
+                    }
+
+                    directory->header = header;
+
+                    // Close file directory
+                    fclose(file);
+
+                    DRM_DDT_add_directory(directory);
+                    loaded_directory = directory;
+                }
+            }
         }
 
-        // Read header from file
-        directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
-        fread(header, sizeof(directory_header_t), SEEK_CUR, file);
-
-        // Check directory magic
-        if (header->magic != DIRECTORY_MAGIC) {
-            free(header);
-            return NULL;
-        }
-
-        // First we allocate memory for directory struct
-        // Then we read page names
-        directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-        for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
-            fread(directory->names[i], PAGE_NAME_SIZE, SEEK_CUR, file);
-        }
-
-        directory->header = header;
-
-        // Close file directory
-        fclose(file);
-
-        DRM_DDT_add_directory(directory);
-        return directory;
+        return loaded_directory;
     }
+    
 
     int DRM_free_directory(directory_t* directory) {
         if (directory == NULL) return -1;
@@ -450,7 +482,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     break;
                 }
                 
-                if (DRM_lock_directory(DRM_DDT[current], 0) != -1) {
+                if (DRM_lock_directory(DRM_DDT[current], omp_get_thread_num()) != -1) {
                     DRM_DDT_flush_index(current);
                     DRM_DDT[current] = directory;
                 }
@@ -464,7 +496,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 if (name == NULL) return NULL;
                 for (int i = 0; i < DDT_SIZE; i++) {
                     if (DRM_DDT[i] == NULL) continue;
-                    if (strncmp((char*)DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) { // Here
+                    if (strncmp((char*)DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
                         return DRM_DDT[i];
                     }
                 }
@@ -480,8 +512,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     char save_path[DEFAULT_PATH_SIZE];
                     sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, DRM_DDT[i]->header->name, DIRECTORY_EXTENSION);
 
-                    // TODO: Get thread ID
-                    if (DRM_lock_directory(DRM_DDT[i], 0) == 1) {
+                    if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
                         DRM_DDT_flush_index(i);
                         DRM_DDT[i] = DRM_load_directory(save_path);
                     } else return -1;

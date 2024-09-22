@@ -21,6 +21,7 @@ Credits: j1sk1ss
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <omp.h>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -222,14 +223,17 @@ Credits: j1sk1ss
     page_t* PGM_create_empty_page();
 
     /*
-    Save page on disk
+    Save page on disk.
     
     Params:
-    - page - pointer to page
-    - path - path where save
+    - page - pointer to page.
+    - path - path where save.
     
-    Return 0 - if something goes wrong
-    Return 1 - if saving was success
+    Return -3 if content write corrupt.
+    Return -2 if header write corrupt.
+    Return -1 if file can`t be opened.
+    Return 0 - if something goes wrong.
+    Return 1 - if saving was success.
     */
     int PGM_save_page(page_t* page, char* path);
 

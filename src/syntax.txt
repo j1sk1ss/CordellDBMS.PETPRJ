@@ -1,0 +1,11 @@
+/*
+This is a sandbox file for syntax development
+*/
+
+Command: get - get derictive // Get table data
+Command: create - create derictive // Create table
+
+
+create table columns([int-Название_колонки-64-primary-auto], [string-Название колонки-12-nprimary-nauto], [any-Название колонки-255-nprimary-nauto])
+get all from table1 - will return all rows from table1
+get row Название колонки

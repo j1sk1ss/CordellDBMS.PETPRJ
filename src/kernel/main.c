@@ -11,7 +11,7 @@
 #include "include/traceback.h"
 
 
-#define DATABASE_DELETE_ROW_TEST
+#define DATABASE_APPEND_AND_LINK_TEST
 
 int main() {
     TB_enable();
@@ -150,7 +150,7 @@ int main() {
     DB_link_table2database(database, table1);
     DB_save_database(database, "db.db");
 
-    TBM_link_column2column(table, "col2", table1, "col4");
+    TBM_link_column2column(table, "col2", table1, "col4", CREATE_LINK_TYPE_BYTE(LINK_NOTHING, LINK_NOTHING, LINK_NOTHING, LINK_NOTHING));
 
     TBM_save_table(table1, "table11.tb");
     TBM_free_table(table1);
