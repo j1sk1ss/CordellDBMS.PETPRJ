@@ -473,7 +473,6 @@ Credits: j1sk1ss
     int TBM_check_signature(table_t* table, uint8_t* data);
 
     /*
-    TODO: Add some error codes
     Link directory to table
     Note: Be sure that directory has same signature with table
     
@@ -540,6 +539,19 @@ Credits: j1sk1ss
     Return allocated table from disk 
     */
     table_t* TBM_load_table(char* path);
+
+    /*
+    Delete table from disk. 
+    Note: Will delete all linked directories and linked pages if flag full is 1.
+
+    Params:
+    - table - Table pointer.
+    - full - Special flag for full deleting.
+
+    Return -1 if something goes wrong.
+    Return 1 if all files was delete.
+    */
+    int TBM_delete_table(table_t* table, int full);
 
     /*
     Release table.

@@ -204,6 +204,19 @@
         return NULL;
     }
 
+    int DB_delete_table(database_t* database, char* table_name, int full) {
+        table_t* table = DB_get_table(database, table_name);
+        if (table == NULL) return -1;
+
+        DB_unlink_table_from_database(database, table_name);
+
+        char save_path[DEFAULT_PATH_SIZE];
+        sprintf(save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
+        DB_save_database(database, save_path);
+
+        return TBM_delete_table(table, full);
+    }
+
     int DB_link_table2database(database_t* database, table_t* table) {
         memcpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
         return 1;
@@ -272,9 +285,9 @@
             if (file == NULL) {
                 status = -1;
             } else {
-                if (fwrite(database->header, sizeof(database_header_t), SEEK_CUR, file) != 1) status = -2;
+                if (fwrite(database->header, sizeof(database_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
                 for (int i = 0; i < database->header->table_count; i++)
-                    if (fwrite(database->table_names[i], TABLE_NAME_SIZE, SEEK_CUR, file) != 1) {
+                    if (fwrite(database->table_names[i], TABLE_NAME_SIZE, SEEK_CUR, file) != SEEK_CUR) {
                         status = -3;
                         break;
                     }

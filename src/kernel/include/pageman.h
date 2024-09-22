@@ -167,7 +167,6 @@ Credits: j1sk1ss
     Note: Will return only block of free space. For examle if in page we have situation like below:
     NFREE -> SMALL FREE -> NFREE -> LARGE FREE -> ...
     function will return SMALL FREE size. That's why try to use offset (or provide -1 for getting all free space)
-    TODO: Too slow. Maybe use old with PAGE_CONTENT_SIZE - index?
     
     Params:
     - page - pointer to page
@@ -242,7 +241,6 @@ Credits: j1sk1ss
     
     Params:
     - name - page name (don`t forget path)
-    TODO: Maybe it will take too much time? Maybe save FILE descriptor?
     
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.

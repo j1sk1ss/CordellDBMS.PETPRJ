@@ -33,6 +33,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             char directory_save_path[DEFAULT_PATH_SIZE];
             sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
             directory = DRM_load_directory(directory_save_path);
+            if (directory == NULL) continue;
 
             // Check:
             // If current directory include page, that we want, we save this directory.
@@ -64,6 +65,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             char directory_save_path[DEFAULT_PATH_SIZE];
             sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
             directory = DRM_load_directory(directory_save_path);
+            if (directory == NULL) continue;
 
             // Get data from directory
             // After getting data, copy it to allocated output
@@ -128,10 +130,6 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             // Save directory to disk
             char save_path[DEFAULT_PATH_SIZE];
 
-            // TODO:
-            // sprintf(save_path, "%s%s.%s", DIRECTORY_BASE_PATH, new_directory->header->name, DIRECTORY_EXTENSION);
-            // Directory name don`t have \0 symbol at the end. In summary nothing bad, but in future
-            // we can take many problems with it.
             sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, new_directory->header->name, DIRECTORY_EXTENSION);
             int save_result = DRM_save_directory(new_directory, save_path);
 
@@ -191,9 +189,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             // If directory, after delete operation, full empty, we delete directory.
             // Also we realise directory pointer in RAM.
             if (directory->header->page_count == 0) {
-                TBM_unlink_dir_from_table(table, (char*)directory->header->name);
-                DRM_DDT_flush_directory(directory);
-                remove(directory_save_path);
+                DRM_delete_directory(directory, 1);
                 i--;
             }
             // In other hand, if directory not empty after this operation,
@@ -472,23 +468,23 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 status = -1;
             } else {
                 // Write header
-                if (fwrite(table->header, sizeof(table_header_t), SEEK_CUR, file) != 1) status = -2;
+                if (fwrite(table->header, sizeof(table_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
 
                 // Write table data to open file
                 for (int i = 0; i < table->header->column_count; i++) 
-                    if (fwrite(table->columns[i], sizeof(table_column_t), SEEK_CUR, file) != 1) {
+                    if (fwrite(table->columns[i], sizeof(table_column_t), SEEK_CUR, file) != SEEK_CUR) {
                         status = -3;
                         break;
                     }
 
                 for (int i = 0; i < table->header->column_link_count; i++) 
-                    if (fwrite(table->column_links[i], sizeof(table_column_link_t), SEEK_CUR, file) != 1) {
+                    if (fwrite(table->column_links[i], sizeof(table_column_link_t), SEEK_CUR, file) != SEEK_CUR) {
                         status = -4;
                         break;
                     }
-
+                    
                 for (int i = 0; i < table->header->dir_count; i++) 
-                    if (fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file) != 1) {
+                    if (fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file) != SEEK_CUR) {
                         status = -5;
                         break;
                     }
@@ -566,6 +562,26 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         return loaded_table;
     }
 
+    int TBM_delete_table(table_t* table, int full) {
+        char delete_path[DEFAULT_PATH_SIZE];
+        sprintf(delete_path, "%s%.8s.%s", TABLE_BASE_PATH, table->header->name, TABLE_EXTENSION);
+        if (TBM_lock_table(table, omp_get_thread_num()) == 1) {
+            #pragma omp parallel
+            for (int i = 0; i < table->header->dir_count; i++) {
+                char directory_path[DEFAULT_PATH_SIZE];
+                sprintf(directory_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
+                directory_t* directory = DRM_load_directory(directory_path);
+                TBM_unlink_dir_from_table(table, (char*)table->dir_names[i]);
+                DRM_delete_directory(directory, full);
+            }
+
+            remove(delete_path);
+            TBM_TDT_flush_table(table);
+        }
+
+        return 1;
+    }
+
     int TBM_free_table(table_t* table) {
         if (table == NULL) return -1;
         for (int i = 0; i < table->header->column_count; i++) 
@@ -627,7 +643,6 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                     char save_path[DEFAULT_PATH_SIZE];
                     sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, TBM_TDT[i]->header->name, TABLE_EXTENSION);
 
-                    // TODO: Get thread ID
                     if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) {
                         TBM_TDT_flush_index(i);
                         TBM_TDT[i] = TBM_load_table(save_path);

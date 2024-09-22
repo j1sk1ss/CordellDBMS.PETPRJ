@@ -1,9 +1,3 @@
-// TODO: Think about page table for minimizatio IO file operations
-//       and move main operations to RAM
-// TODO: Ask about this stuff:
-//      1) Page Descriptor Table PDT (Maybe it will take to much memory)
-//      2) Directory Descriptor Table DDT (Same situation as in page case)
-
 /*
 Directory is the next abstraction level, that work directly with pages.
 Dirman - list of functions for working with directories and pages:
@@ -269,6 +263,19 @@ Credits: j1sk1ss
     Return directory pointer.
     */
     directory_t* DRM_load_directory(char* path);
+
+    /*
+    Delete directory from disk. 
+    Note: Will delete all linked pages and linked pages if flag full is 1.
+
+    Params:
+    - directory - Directory pointer.
+    - full - Special flag for full deleting.
+
+    Return -1 if something goes wrong.
+    Return 1 if all files was delete.
+    */
+    int DRM_delete_directory(directory_t* directory, int full);
 
     /*
     Release directory.

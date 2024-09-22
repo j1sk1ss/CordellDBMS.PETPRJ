@@ -26,15 +26,20 @@
 
 #pragma region [Commands]
 
-    #define CREATE          "create"
+    #define CREATE          "create"    // Example: db.db create table "table_1" columns ( col1 10 str is_primary na col2 10 any np na )
+    #define DELETE          "delete"    // Example: db.db delete table "table_1"
+    #define APPEND          "append"    // Example: db.db append "table_1" columns "hello     second col" 000
+    #define UPDATE          "update"    // Example: db.db update row "table_1" by_index 0 "goodbye   hello  bye" 000
+    #define GET_INFO        "info"      // Example: db.db info table "table_1"
+    #define GET             "get"       // Example: db.db get row "table_1" by_value "hello" column "col2" 000
+
     #define TABLE           "table"
     #define DATABASE        "database"
+    
     #define COLUMNS         "columns"
     #define COLUMN          "column"
-    #define DELETE          "delete"
-    #define APPEND          "append"
-    #define GET             "get"
     #define ROW             "row"
+    
     #define BY_INDEX        "by_index"
     #define BY_VALUE        "by_value"
 
@@ -51,7 +56,6 @@
     #define AUTO_INC        "auto_increment"
     #define NAUTO_INC       "na"
 
-    #define GET_INFO        "info"
 
 #pragma endregion
 
@@ -66,16 +70,18 @@ int main(int argc, char* argv[]) {
     TB_enable();
     omp_set_num_threads(1);
 
-    database_t* database = DB_load_database(argv[1]);
+    int current_start = 1;
+    database_t* database = DB_load_database(argv[current_start++]);
     if (database == NULL) {
         printf("[WARN] Database wasn`t found. Create a new one with CREATE DATABASE.\n");
+        current_start = 1;
     }
 
     /*
     Save commands into RAM.
     */
     char* commands[MAX_COMMANDS] = { NULL };
-    for (int i = 2; i < argc; i++) commands[i - 2] = argv[i];
+    for (int i = current_start; i < argc; i++) commands[i - current_start] = argv[i];
 
     /*
     Handle command.
@@ -163,17 +169,14 @@ int main(int argc, char* argv[]) {
                     }
                 }
 
-                printf("Creating empty table...\n");
                 table_t* new_table = TBM_create_table(table_name, columns, column_count, CREATE_ACCESS_BYTE(rd, wr, del));
                 DB_link_table2database(database, new_table);
 
-                printf("Saving linked empty table...\n");
                 char tb_save_path[DEFAULT_PATH_SIZE];
                 sprintf(tb_save_path, "%s%.8s.%s", TABLE_BASE_PATH, new_table->header->name, TABLE_EXTENSION);
                 TBM_save_table(new_table, tb_save_path);
                 TBM_free_table(new_table);
 
-                printf("Updating existed database...\n");
                 char db_save_path[DEFAULT_PATH_SIZE];
                 sprintf(db_save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
                 DB_save_database(database, db_save_path);
@@ -220,11 +223,10 @@ int main(int argc, char* argv[]) {
             command_index++;
             if (strcmp(commands[command_index], TABLE) == 0) {
                 char* table_name = commands[++command_index];
-                DB_unlink_table_from_database(database, table_name);
+                if (DB_delete_table(database, table_name, atoi(commands[++command_index])) != 1) printf("Error code 1 during deleting %s\n", table_name);
+                else printf("Table [%s] was delete successfully.\n", table_name);
 
-                char delete_path[DEFAULT_PATH_SIZE];
-                sprintf(delete_path, "%s%.8s.%s", TABLE_BASE_PATH, table_name, TABLE_EXTENSION);
-                return remove(delete_path);
+                return 0;
             }
 
             /*
@@ -352,6 +354,65 @@ int main(int argc, char* argv[]) {
             }
 
             return 1;
+        }
+        /*
+        Handle info command.
+        Command syntax: update <option>
+        */
+        else if (strcmp(command, UPDATE) == 0) {
+            /*
+            Command syntax: update row <table_name> <option>
+            */
+            if (strcmp(commands[++command_index], ROW) == 0) {
+                char* table_name = commands[++command_index];
+                command_index++;
+
+                /*
+                Command syntax: update row <table_name> by_index <index> <new_data> <rwd>
+                */
+                if (strcmp(commands[command_index], BY_INDEX) == 0) {
+                    int index = atoi(commands[++command_index]);
+                    char* data = commands[++command_index];
+                    char* access = commands[++command_index];
+                    uint8_t rd  = access[0] - '0';
+                    uint8_t wr  = access[1] - '0';
+                    uint8_t del = access[2] - '0';
+                    
+                    int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), CREATE_ACCESS_BYTE(rd, wr, del));
+                    if (result >= 0) printf("Success update of row [%i] in [%s]\n", index, table_name);
+                    else printf("Error code: %i\n", result);
+
+                    return result;
+                }
+
+                /*
+                Command syntax: update row <table_name> by_value <value> column <column_name> <new_data> <rwd>
+                */
+                else if (strcmp(commands[command_index], BY_VALUE) == 0) {
+                    char* value = commands[++command_index];
+                    if (strcmp(commands[++command_index], COLUMN) == 0) {
+                        char* col_name = commands[++command_index];
+                        char* data = commands[++command_index];
+                        char* access = commands[++command_index];
+                        uint8_t rd  = access[0] - '0';
+                        uint8_t wr  = access[1] - '0';
+                        uint8_t del = access[2] - '0';
+
+                        int index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), CREATE_ACCESS_BYTE(rd, wr, del));
+                        if (index == -1) {
+                            printf("Value [%s] not presented in table [%s]\n", data, table_name);
+                            return -1;
+                        }
+
+                        int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), CREATE_ACCESS_BYTE(rd, wr, del));
+                        if (result >= 0) printf("Success update of row [%i] in [%s]\n", index, table_name);
+                        else printf("Error code: %i\n", result);
+
+                        return result;
+                    }
+                }
+            }
+
         }
         /*
         Handle info command.

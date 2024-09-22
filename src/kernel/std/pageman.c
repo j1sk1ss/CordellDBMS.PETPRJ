@@ -1,8 +1,5 @@
 #include "../include/pageman.h"
 
-// TODO: Maybe we can`t avoid saving full page to disk? 
-//       We can fill EP and EDP symbols when we load page into RAM.
-
 /*
 Page destriptor table, is an a static array of pages indexes. Main idea in
 saving pages temporary in static table somewhere in memory. Max size of this 
@@ -175,8 +172,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 status = -1;
             } else {
                 // Write data to disk
-                if (fwrite(page->header, sizeof(page_header_t), SEEK_CUR, file) != 1) status = -2;
-                if (fwrite(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file) != 1) status = -3;
+                if (fwrite(page->header, sizeof(page_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
+                if (fwrite(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file) != SEEK_CUR) status = -3;
 
                 // Close file
                 #ifndef _WIN32
@@ -268,7 +265,6 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     break;
                 }
                 
-                // TODO: get thread ID
                 if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
                     PGM_PDT_flush_index(current);
                     PGM_PDT[current] = page;

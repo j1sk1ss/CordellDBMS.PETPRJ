@@ -48,7 +48,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
 // HEADER (MAGIC | NAME) -> | TABLE_NAMES -> ... -> end |
 //=======================================================
 
-    // TODO: Remove cache database and use TDT
     struct database_header {
         // Database header magic
         uint8_t magic;
@@ -134,7 +133,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     this function will trunc data and return specific error code. For avoiding this, prefere using delete_row, then append_row.
     This happens because dynamic creation of pages simple, but dynamic creation of directories are not.
-    TODO: Think about dynamic creation of new pages and directories.
 
     Params:
     - database - pointer to database. (If NULL, we don`t use database table cache)
@@ -270,6 +268,19 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return pointer to table
     */
     table_t* DB_get_table(database_t* database, char* table_name);
+
+    /*
+    Delete table from database.
+
+    Params:
+    - database - Database pointer.
+    - table_name - Table name for delete.
+    - full - Special flag for full deleting.
+
+    Return -1 if something goes wrong.
+    Return 1 if all files was delete.
+    */
+    int DB_delete_table(database_t* database, char* table_name, int full);
 
     /*
     Add table to database. You can add infinity count of tables.

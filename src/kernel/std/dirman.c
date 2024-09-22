@@ -381,13 +381,14 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         {
             FILE* file = fopen(path, "wb");
             if (file == NULL) {
+                printf("Can`t create file: [%s]\n", path);
                 status = -1;
             } else {
-                if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1) 
+                if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != SEEK_CUR) 
                     status = -1;
 
                 for (int i = 0; i < directory->header->page_count; i++) {
-                    if (fwrite(directory->names[i], PAGE_NAME_SIZE, 1, file) != 1) {
+                    if (fwrite(directory->names[i], PAGE_NAME_SIZE, 1, file) != SEEK_CUR) {
                         status = -1;
                         break;
                     }
@@ -457,6 +458,27 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         return loaded_directory;
     }
     
+    int DRM_delete_directory(directory_t* directory, int full) {
+        char delete_path[DEFAULT_PATH_SIZE];
+        sprintf(delete_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory->header->name, DIRECTORY_EXTENSION);
+        if (DRM_lock_directory(directory, omp_get_thread_num()) == 1) {
+            #pragma omp parallel
+            for (int i = 0; i < directory->header->page_count; i++) {
+                char page_path[DEFAULT_PATH_SIZE];
+                sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
+                page_t* page = PGM_load_page(page_path);
+                if (PGM_lock_page(page, omp_get_thread_num()) == 1) {
+                    remove(page_path);
+                    PGM_PDT_flush_page(page);
+                }
+            }
+
+            remove(delete_path);
+            DRM_DDT_flush_directory(directory);
+        }
+
+        return 1;
+    }
 
     int DRM_free_directory(directory_t* directory) {
         if (directory == NULL) return -1;
