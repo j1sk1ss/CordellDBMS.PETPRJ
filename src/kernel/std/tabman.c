@@ -302,7 +302,6 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name, uint8_t type) {
         master->column_links = (table_column_link_t**)realloc(master->column_links, (master->header->column_link_count + 1) * sizeof(table_column_link_t*));
         master->column_links[master->header->column_link_count] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-
         memcpy(
             master->column_links[master->header->column_link_count]->master_column_name,
             master_column_name, COLUMN_NAME_SIZE
@@ -482,7 +481,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                         status = -4;
                         break;
                     }
-                    
+
                 for (int i = 0; i < table->header->dir_count; i++) 
                     if (fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file) != SEEK_CUR) {
                         status = -5;
@@ -526,7 +525,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 // Note: If magic is wrong, we can say, that this file isn`t table.
                 //       We just return error code.
                 table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
-                fread(header, sizeof(table_header_t), SEEK_CUR, file);
+                fread(header, sizeof(table_header_t), 1, file);
                 if (header->magic != TABLE_MAGIC) {
                     free(header);
                     loaded_table = NULL;
@@ -536,19 +535,19 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                     table->columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
                     for (int i = 0; i < header->column_count; i++) {
                         table->columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
-                        fread(table->columns[i], sizeof(table_column_t), SEEK_CUR, file);
+                        fread(table->columns[i], sizeof(table_column_t), 1, file);
                     }
 
                     // Read column links from file.
                     table->column_links = (table_column_link_t**)malloc(header->column_link_count * sizeof(table_column_link_t*));
                     for (int i = 0; i < header->column_link_count; i++) {
                         table->column_links[i] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-                        fread(table->column_links[i], sizeof(table_column_link_t), SEEK_CUR, file);
+                        fread(table->column_links[i], sizeof(table_column_link_t), 1, file);
                     }
 
                     // Read directory names from file, that linked to this directory.
                     for (int i = 0; i < header->dir_count; i++) 
-                        fread(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file);
+                        fread(table->dir_names[i], DIRECTORY_NAME_SIZE, 1, file);
 
                     fclose(file);
                     table->header = header;
@@ -614,8 +613,11 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 }
                 
                 if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
-                    TBM_TDT_flush_index(current);
-                    TBM_TDT[current] = table;
+                    if (TBM_TDT[current] == NULL) return -1;
+                    if (memcmp(table->header->name, TBM_TDT[current]->header->name, TABLE_NAME_SIZE) != 0) {
+                        TBM_TDT_flush_index(current);
+                        TBM_TDT[current] = table;
+                    }
                 }
             #endif
 

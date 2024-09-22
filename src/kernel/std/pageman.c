@@ -172,8 +172,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 status = -1;
             } else {
                 // Write data to disk
-                if (fwrite(page->header, sizeof(page_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
-                if (fwrite(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file) != SEEK_CUR) status = -3;
+                if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
+                if (fwrite(page->content, PAGE_CONTENT_SIZE, 1, file) != 1) status = -3;
 
                 // Close file
                 #ifndef _WIN32
@@ -212,7 +212,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             } else {
                 // Read header from file
                 uint8_t* header_data = (uint8_t*)malloc(sizeof(page_header_t));
-                fread(header_data, sizeof(page_header_t), SEEK_CUR, file);
+                fread(header_data, sizeof(page_header_t), 1, file);
                 page_header_t* header = (page_header_t*)header_data;
 
                 // Check page magic
@@ -222,7 +222,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 } else {
                     // Allocate memory for page structure
                     page_t* page = (page_t*)malloc(sizeof(page_t));
-                    fread(page->content, PAGE_CONTENT_SIZE, SEEK_CUR, file);
+                    fread(page->content, PAGE_CONTENT_SIZE, 1, file);
                     page->header = header;
 
                     // Close file page
@@ -266,8 +266,11 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 }
                 
                 if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
-                    PGM_PDT_flush_index(current);
-                    PGM_PDT[current] = page;
+                    if (PGM_PDT[current] == NULL) return -1;
+                    if (memcmp(page->header->name, PGM_PDT[current]->header->name, PAGE_NAME_SIZE) != 0) {
+                        PGM_PDT_flush_index(current);
+                        PGM_PDT[current] = page;
+                    }
                 }
             #endif
 

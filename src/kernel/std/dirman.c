@@ -384,11 +384,11 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 printf("Can`t create file: [%s]\n", path);
                 status = -1;
             } else {
-                if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != SEEK_CUR) 
+                if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1) 
                     status = -1;
 
                 for (int i = 0; i < directory->header->page_count; i++) {
-                    if (fwrite(directory->names[i], PAGE_NAME_SIZE, 1, file) != SEEK_CUR) {
+                    if (fwrite(directory->names[i], PAGE_NAME_SIZE, 1, file) != 1) {
                         status = -1;
                         break;
                     }
@@ -430,7 +430,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             } else {
                 // Read header from file
                 directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
-                fread(header, sizeof(directory_header_t), SEEK_CUR, file);
+                fread(header, sizeof(directory_header_t), 1, file);
 
                 // Check directory magic
                 if (header->magic != DIRECTORY_MAGIC) {
@@ -441,7 +441,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     // Then we read page names
                     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
                     for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
-                        fread(directory->names[i], PAGE_NAME_SIZE, SEEK_CUR, file);
+                        fread(directory->names[i], PAGE_NAME_SIZE, 1, file);
                     }
 
                     directory->header = header;
@@ -505,8 +505,11 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 }
                 
                 if (DRM_lock_directory(DRM_DDT[current], omp_get_thread_num()) != -1) {
-                    DRM_DDT_flush_index(current);
-                    DRM_DDT[current] = directory;
+                    if (DRM_DDT[current] == NULL) return -1;
+                    if (memcmp(directory->header->name, DRM_DDT[current]->header->name, DIRECTORY_NAME_SIZE) != 0) {
+                        DRM_DDT_flush_index(current);
+                        DRM_DDT[current] = directory;
+                    }
                 }
             #endif
 

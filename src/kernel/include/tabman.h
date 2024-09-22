@@ -151,7 +151,7 @@ Credits: j1sk1ss
         Note: If you have less flags, then 4, use NOTHING flag.
         cf - Cascade find flag or NOTHING
         ca - Cascade append flag or NOTHING
-        cu - Cascade uppend flag or NOTHING
+        cu - Cascade update flag or NOTHING
         cd - Cascade delete flag or NOTHING
         */
         #define CREATE_LINK_TYPE_BYTE(cf, ca, cu, cd) \

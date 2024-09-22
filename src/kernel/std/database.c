@@ -257,7 +257,7 @@
                 loaded_database = NULL;
             } else {
                 database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
-                fread(header, sizeof(database_header_t), SEEK_CUR, file);
+                fread(header, sizeof(database_header_t), 1, file);
 
                 if (header->magic != DATABASE_MAGIC) {
                     free(header);
@@ -265,7 +265,7 @@
                 } else {
                     database_t* database = (database_t*)malloc(sizeof(database_t));
                     for (int i = 0; i < header->table_count; i++) {
-                        fread(database->table_names[i], TABLE_NAME_SIZE, SEEK_CUR, file);
+                        fread(database->table_names[i], TABLE_NAME_SIZE, 1, file);
                     }
 
                     database->header = header;
@@ -285,9 +285,9 @@
             if (file == NULL) {
                 status = -1;
             } else {
-                if (fwrite(database->header, sizeof(database_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
+                if (fwrite(database->header, sizeof(database_header_t), 1, file) != 1) status = -2;
                 for (int i = 0; i < database->header->table_count; i++)
-                    if (fwrite(database->table_names[i], TABLE_NAME_SIZE, SEEK_CUR, file) != SEEK_CUR) {
+                    if (fwrite(database->table_names[i], TABLE_NAME_SIZE, 1, file) != 1) {
                         status = -3;
                         break;
                     }

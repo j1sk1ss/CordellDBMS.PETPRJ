@@ -28,12 +28,15 @@
 
 #pragma region [Commands]
 
-    #define CREATE          "create"    // Example: db.db create table "table_1" columns ( col1 10 str is_primary na col2 10 any np na )
-    #define DELETE          "delete"    // Example: db.db delete table "table_1"
-    #define APPEND          "append"    // Example: db.db append "table_1" columns "hello     second col" 000
-    #define UPDATE          "update"    // Example: db.db update row "table_1" by_index 0 "goodbye   hello  bye" 000
-    #define GET_INFO        "info"      // Example: db.db info table "table_1"
-    #define GET             "get"       // Example: db.db get row "table_1" by_value "hello" column "col2" 000
+    #define HELP            "help"
+
+    #define CREATE          "create"    // Example: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )
+    #define LINK            "link"      // Example: db.db link master_table master_column slave_table slave_column ( cdel cupd capp cfnd )
+    #define DELETE          "delete"    // Example: db.db delete table table_1
+    #define APPEND          "append"    // Example: db.db append table_1 columns "hello     second col" 000
+    #define UPDATE          "update"    // Example: db.db update row table_1 by_index 0 "goodbye   hello  bye" 000
+    #define GET_INFO        "info"      // Example: db.db info table table_1
+    #define GET             "get"       // Example: db.db get row table_1 by_value "hello" column "col2" 000
 
     #define TABLE           "table"
     #define DATABASE        "database"
@@ -48,10 +51,19 @@
     #define OPEN_BRACKET    "("
     #define CLOSE_BRACKET   ")"
 
-    #define INT             "int"
-    #define DOUBLE          "dob"
-    #define STRING          "str"
-    #define ANY             "any"
+    #pragma region [Types]
+
+        #define INT             "int"
+        #define DOUBLE          "dob"
+        #define STRING          "str"
+        #define ANY             "any"
+
+        #define CASCADE_DEL     "cdel"
+        #define CASCADE_UPD     "cupd"
+        #define CASCADE_APP     "capp"
+        #define CASCADE_FND     "cfnd"
+
+    #pragma endregion
 
     #define PRIMARY         "is_primary"
     #define NPRIMART        "np"
@@ -316,7 +328,7 @@ int main(int argc, char* argv[]) {
                         return -1;
                     }
 
-                    printf("Row [%i]: [%s]\n", index, data);
+                    printf("Row [%i]: [%s]\n", index, (char*)data);
                     free(data);
 
                     return 1;
@@ -347,7 +359,7 @@ int main(int argc, char* argv[]) {
                             return -1;
                         }
 
-                        printf("Row [%i]: [%s]\n", row2get, data);
+                        printf("Row [%i]: [%s]\n", row2get, (char*)data);
                         free(data);
 
                         return 1;
@@ -418,9 +430,116 @@ int main(int argc, char* argv[]) {
         }
         /*
         Handle info command.
-        Command syntax: info <option>
+        Command syntax: info table
         */
         else if (strcmp(command, GET_INFO) == 0) {
+            if (strcmp(commands[++command_index], TABLE) == 0) {
+                char* table_name = commands[++command_index];
+                table_t* table = DB_get_table(database, table_name);
+                if (table == NULL) {
+                    printf("Table [%s] not found in database!\n", table_name);
+                    return -1;
+                }
+
+                printf("Table [%s]:\n", table_name);
+                printf("Table CC [%i].\n", table->header->column_count);
+                printf("Table DC [%i].\n", table->header->dir_count);
+                printf("Table M [%i].\n", table->header->magic);
+                printf("Table CLC [%i].\n", table->header->column_link_count);
+
+                printf("\n");
+                printf("- COLUMNS: \n");
+                for (int i = 0; i < table->header->column_count; i++)
+                    printf("\tColumn [%s], type [%i], size [%i].\n", table->columns[i]->name, table->columns[i]->type, table->columns[i]->size);
+
+                printf("\n");
+                printf("- LINKS: \n");
+                for (int i = 0; i < table->header->column_link_count; i++)
+                    printf(
+                        "\tLink [%s] column with [%s] column from [%s] table.\n", 
+                        table->column_links[i]->master_column_name, 
+                        table->column_links[i]->slave_column_name, 
+                        table->column_links[i]->slave_table_name
+                    );
+            }
+        }
+        /*
+        Handle info command.
+        Command syntax: link <master_table> <naster_column> <slave_table> <slave_volumn> ( flags )
+        */
+        else if (strcmp(command, LINK) == 0) {
+            char* master_table  = commands[++command_index];
+            char* master_column = commands[++command_index];
+            char* slave_table   = commands[++command_index];
+            char* slave_column  = commands[++command_index];
+
+            uint8_t delete_link = LINK_NOTHING;
+            uint8_t update_link = LINK_NOTHING;
+            uint8_t append_link = LINK_NOTHING;
+            uint8_t find_link   = LINK_NOTHING;
+
+            table_t* master = DB_get_table(database, master_table);
+            if (master == NULL) {
+                printf("Table [%s] not found in database!\n", master_table);
+                return -1;
+            }
+
+            table_t* slave  = DB_get_table(database, slave_table);
+            if (slave == NULL) {
+                printf("Table [%s] not found in database!\n", slave_table);
+                return -1;
+            }
+
+            if (strcmp(OPEN_BRACKET, commands[++command_index]) == 0) {
+                while (strcmp(CLOSE_BRACKET, commands[++command_index]) != 0) {
+                    if (strcmp(CASCADE_DEL, commands[command_index]) == 0) delete_link = LINK_CASCADE_DELETE;
+                    else if (strcmp(CASCADE_UPD, commands[command_index]) == 0) update_link = LINK_CASCADE_UPDATE;
+                    else if (strcmp(CASCADE_APP, commands[command_index]) == 0) append_link = LINK_CASCADE_APPEND;
+                    else if (strcmp(CASCADE_FND, commands[command_index]) == 0) find_link = LINK_CASCADE_FIND;
+                }
+            }
+            int result = TBM_link_column2column(
+                master, master_column, slave, slave_column,
+                CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
+            );
+            
+            char save_path[DEFAULT_PATH_SIZE];
+            sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, master_table, TABLE_EXTENSION);
+            int save_result = TBM_save_table(master, save_path);
+
+            printf("Result [%i] of linking table [%s] with table [%s]\n", save_result, master_table, slave_table);
+        }
+        /*
+        Handle info command.
+        Command syntax: help
+        */
+        else if (strcmp(command, HELP) == 0) {
+            printf("Examples:\n");
+            printf("- CREATE:\n");
+            printf("\tExample: db.db create database db1\n");
+            printf("\tExample: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )\n");
+
+            printf("- APPEND:\n");
+            printf("\tExample: db.db append table_1 columns 'hello     second col' 000\n");
+            
+            printf("- UPDATE:\n");
+            printf("\tExample: db.db update row table_1 by_index 0 'goodbye   hello  bye' 000\n");
+            printf("\tExample: db.db update row table_1 by_value value column col1 'goodbye   hello  bye' 000\n");
+            
+            printf("- GET:\n");
+            printf("\tExample: db.db get row table_1 by_value hello column col2 000\n");
+            printf("\tExample: db.db get row table_1 by_index 0 000\n");
+
+            printf("- DELETE:\n");
+            printf("\tExample: db.db delete table table_1\n");
+            printf("\tExample: db.db delete row table_1 by_index 0 000\n");
+            printf("\tExample: db.db delete row table_1 by_value value column col1 000\n");
+
+            printf("- LINK:\n");
+            printf("\tExample: db.db link table1 col1 table2 col1 ( capp cdel )\n");
+
+            printf("- INFO:\n");
+            printf("\tExample: db.db info table table_1\n");
 
         }
     }
