@@ -1,88 +1,39 @@
-/*
- * Kmain file. In future here will be placed some kernel init stuff.
- * Also, this file handle commands, and work with database.
- * 
- * Cordell DBMS is a light weight data base manager studio. Main idea
- * that we can work with big data by using very light weighten app.
- * 
- * Anyway, that fact, that we try to simplify DBMS, create some points:
- * - We don`t have rollbacks, hosting and user managment. This is work for
- * higher abstractions.
- * - We have few fixed enviroment variable (paths for saving databases, 
- * tables, directories and pages), that can`t be changed by default user.
- * 
- * building without OMP: gcc -Wall .\kmain.c .\std\* -Wunknown-pragmas -fpermissive -o cdbms.exe
- * buildinc with OMP: gcc -Wall .\kmain.c .\std\* -fopenmp -fpermissive -o cdbms.exe
-*/
-
-#include <string.h>
-#include <stdio.h>
-#include <stdint.h>
-
-#include "include/common.h"
-#include "include/traceback.h"
-#include "include/database.h"
+#include "kmain.h"
 
 
-#define MAX_COMMANDS    100
-
-#pragma region [Commands]
-
-    #define HELP            "help"
-
-    #define CREATE          "create"    // Example: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )
-    #define LINK            "link"      // Example: db.db link master_table master_column slave_table slave_column ( cdel cupd capp cfnd )
-    #define DELETE          "delete"    // Example: db.db delete table table_1
-    #define APPEND          "append"    // Example: db.db append table_1 columns "hello     second col" 000
-    #define UPDATE          "update"    // Example: db.db update row table_1 by_index 0 "goodbye   hello  bye" 000
-    #define GET_INFO        "info"      // Example: db.db info table table_1
-    #define GET             "get"       // Example: db.db get row table_1 by_value "hello" column "col2" 000
-
-    #define TABLE           "table"
-    #define DATABASE        "database"
-    
-    #define COLUMNS         "columns"
-    #define COLUMN          "column"
-    #define ROW             "row"
-    
-    #define BY_INDEX        "by_index"
-    #define BY_VALUE        "by_value"
-
-    #define OPEN_BRACKET    "("
-    #define CLOSE_BRACKET   ")"
-
-    #pragma region [Types]
-
-        #define INT             "int"
-        #define DOUBLE          "dob"
-        #define STRING          "str"
-        #define ANY             "any"
-
-        #define CASCADE_DEL     "cdel"
-        #define CASCADE_UPD     "cupd"
-        #define CASCADE_APP     "capp"
-        #define CASCADE_FND     "cfnd"
-
-    #pragma endregion
-
-    #define PRIMARY         "is_primary"
-    #define NPRIMART        "np"
-    #define AUTO_INC        "auto_increment"
-    #define NAUTO_INC       "na"
-
-
-#pragma endregion
-
-
-/*
-Entry syntax: data_base_path<*.db> <commands>
-*/
-int main(int argc, char* argv[]) {
+int kernel_entry(int argc, char* argv[]) {
     /*
     Enable traceback for current session.
     */
     TB_enable();
     omp_set_num_threads(1);
+
+    /*
+    Check transaction status.
+    Syntax: <db path> transaction-start <command count>
+    */
+    int transaction_size = 1;
+    char** commands_pointer = argv;
+    if (strcmp(argv[0], TRANSACTION) == 0) 
+        transaction_size = atoi(argv[1]);
+
+    /*
+    Commands executing and pointer moving.
+    */
+    int arg_count = 0; 
+    for (int i = 0; i < transaction_size; i++) {
+        kernel_answer_t* answer = kernel_process_command(argc - arg_count, commands_pointer);
+        arg_count += answer->commands_processed;
+        commands_pointer += arg_count;
+    }
+}
+
+kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
+    kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
+
+    uint8_t* answer_body = NULL;
+    uint8_t answer_code = -1;
+    uint8_t answer_size = -1;
 
     int current_start = 1;
     database_t* database = DB_load_database(argv[current_start++]);
@@ -125,7 +76,10 @@ int main(int argc, char* argv[]) {
                 DB_save_database(new_database, save_path);
 
                 printf("Database [%s] create succes!\n", save_path);
-                return 1;
+                answer->answer_code = 1;
+                answer->answer_size = -1;
+
+                return answer;
             }
             /*
             Handle table creation.
@@ -193,10 +147,13 @@ int main(int argc, char* argv[]) {
 
                 char db_save_path[DEFAULT_PATH_SIZE];
                 sprintf(db_save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
-                DB_save_database(database, db_save_path);
+                int result = DB_save_database(database, db_save_path);
                 
                 printf("Table [%s] create success!\n", table_name);
-                return 1;
+                answer->answer_code = result;
+                answer->answer_size = -1;
+
+                return answer;
             }
         }
         /*
@@ -222,7 +179,10 @@ int main(int argc, char* argv[]) {
                     printf("Error code: %i\n", result);
                 }
 
-                return result;
+                answer->answer_code = result;
+                answer->answer_size = -1;
+
+                return answer;
             }
         }
         /*
@@ -240,7 +200,10 @@ int main(int argc, char* argv[]) {
                 if (DB_delete_table(database, table_name, atoi(commands[++command_index])) != 1) printf("Error code 1 during deleting %s\n", table_name);
                 else printf("Table [%s] was delete successfully.\n", table_name);
 
-                return 0;
+                answer->answer_code = 1;
+                answer->answer_size = -1;
+
+                return answer;
             }
 
             /*
@@ -262,7 +225,11 @@ int main(int argc, char* argv[]) {
                     uint8_t wr  = access[1] - '0';
                     uint8_t del = access[2] - '0';
 
-                    return DB_delete_row(database, table_name, index, CREATE_ACCESS_BYTE(rd, wr, del));
+                    int result = DB_delete_row(database, table_name, index, CREATE_ACCESS_BYTE(rd, wr, del));
+                    answer->answer_code = result;
+                    answer->answer_size = -1;
+
+                    return answer;
                 }
                
                 /*
@@ -281,22 +248,25 @@ int main(int argc, char* argv[]) {
                         int row2delete = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), CREATE_ACCESS_BYTE(rd, wr, del));
                         if (row2delete == -1) {
                             printf("Value not presented in table [%s].\n", table_name);
-                            return -1;
+                            return NULL;
                         }
 
                         int result = DB_delete_row(database, table_name, row2delete, CREATE_ACCESS_BYTE(rd, wr, del));
                         if (result == 1) printf("Row %i was deleted succesfully from %s\n", row2delete, table_name);
                         else {
                             printf("Error code: %i\n", result);
-                            return -1;
+                            return NULL;
                         }
 
-                        return 1;
+                        answer->answer_code = result;
+                        answer->answer_size = -1;
+
+                        return answer;
                     }
                 }
             }
 
-            return 1;
+            return answer;
         }
         /*
         Handle get command.
@@ -325,13 +295,18 @@ int main(int argc, char* argv[]) {
                     uint8_t* data = DB_get_row(database, table_name, index, CREATE_ACCESS_BYTE(rd, wr, del));
                     if (data == NULL) {
                         printf("Something goes wrong!\n");
-                        return -1;
+                        return NULL;
                     }
 
-                    printf("Row [%i]: [%s]\n", index, data);
-                    free(data);
+                    int row_size = 0;
+                    table_t* table = DB_get_table(database, table_name);
+                    for (int j = 0; j < table->header->column_count; j++) row_size += table->columns[j]->size;
 
-                    return 1;
+                    answer->answer_body = data;
+                    answer->answer_code = index;
+                    answer->answer_size = row_size;
+
+                    return answer;
                 }
                
                 /*
@@ -350,24 +325,29 @@ int main(int argc, char* argv[]) {
                         int row2get = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), CREATE_ACCESS_BYTE(rd, wr, del));
                         if (row2get == -1) {
                             printf("Value not presented in table [%s].\n", table_name);
-                            return -1;
+                            return NULL;
                         }
 
                         uint8_t* data = DB_get_row(database, table_name, row2get, CREATE_ACCESS_BYTE(rd, wr, del));
                         if (data == NULL) {
                             printf("Something goes wrong!\n");
-                            return -1;
+                            return NULL;
                         }
 
-                        printf("Row [%i]: [%s]\n", row2get, (char*)data);
-                        free(data);
+                        int row_size = 0;
+                        table_t* table = DB_get_table(database, table_name);
+                        for (int j = 0; j < table->header->column_count; j++) row_size += table->columns[j]->size;
 
-                        return 1;
+                        answer->answer_body = data;
+                        answer->answer_code = 1;
+                        answer->answer_size = row_size;
+
+                        return answer;
                     }
                 }
             }
 
-            return 1;
+            return answer;
         }
         /*
         Handle info command.
@@ -396,7 +376,10 @@ int main(int argc, char* argv[]) {
                     if (result >= 0) printf("Success update of row [%i] in [%s]\n", index, table_name);
                     else printf("Error code: %i\n", result);
 
-                    return result;
+                    answer->answer_code = result;
+                    answer->answer_size = -1;
+
+                    return answer;
                 }
 
                 /*
@@ -415,14 +398,17 @@ int main(int argc, char* argv[]) {
                         int index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), CREATE_ACCESS_BYTE(rd, wr, del));
                         if (index == -1) {
                             printf("Value [%s] not presented in table [%s]\n", data, table_name);
-                            return -1;
+                            return NULL;
                         }
 
                         int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), CREATE_ACCESS_BYTE(rd, wr, del));
                         if (result >= 0) printf("Success update of row [%i] in [%s]\n", index, table_name);
                         else printf("Error code: %i\n", result);
 
-                        return result;
+                        answer->answer_code = result;
+                        answer->answer_size = -1;
+
+                        return answer;
                     }
                 }
             }
@@ -508,6 +494,10 @@ int main(int argc, char* argv[]) {
             int save_result = TBM_save_table(master, save_path);
 
             printf("Result [%i %i] of linking table [%s] with table [%s]\n", save_result, result, master_table, slave_table);
+            
+            answer->answer_code = save_result;
+            answer->answer_size = -1;
+            return answer;
         }
         /*
         Handle info command.
@@ -541,8 +531,14 @@ int main(int argc, char* argv[]) {
             printf("- INFO:\n");
             printf("\tExample: db.db info table table_1\n");
 
+            return NULL;
         }
     }
 
-    return 1;
+    return NULL;
+}
+
+int kernel_free_answer(kernel_answer_t* answer) {
+    SOFT_FREE(answer->answer_body);
+    SOFT_FREE(answer);
 }

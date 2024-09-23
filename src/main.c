@@ -4,11 +4,11 @@
 
 #include <string.h>
 
-#include "include/tabman.h"
-#include "include/dirman.h"
-#include "include/pageman.h"
-#include "include/database.h"
-#include "include/traceback.h"
+#include "kernel/include/tabman.h"
+#include "kernel/include/dirman.h"
+#include "kernel/include/pageman.h"
+#include "kernel/include/database.h"
+#include "kernel/include/traceback.h"
 
 
 #define DATABASE_APPEND_AND_LINK_TEST

@@ -1,1 +1,6 @@
 builds/*
+.vscode/settings.json
+*.pg
+*.db
+*.dr
+*.tb

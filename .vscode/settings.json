@@ -51,6 +51,10 @@
         "type_traits": "c",
         "array": "c",
         "utility": "c",
-        "variant": "c"
+        "variant": "c",
+        "kmain.h": "c",
+        "types.h": "c",
+        "stdlib.h": "c",
+        "stdio.h": "c"
     }
 }

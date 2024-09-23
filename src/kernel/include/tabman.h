@@ -19,7 +19,7 @@ Credits: j1sk1ss
 #include <stdio.h>
 
 #ifndef _WIN32
-#include <unistd.h>
+    #include <unistd.h>
 #endif
 
 #include "common.h"

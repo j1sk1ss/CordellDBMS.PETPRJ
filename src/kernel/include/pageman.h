@@ -23,8 +23,8 @@ Credits: j1sk1ss
 #include <string.h>
 
 #ifndef _WIN32
-#include <unistd.h>
-#include <libgen.h>
+    #include <unistd.h>
+    #include <libgen.h>
 #endif
 
 #include "common.h"

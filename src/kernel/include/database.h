@@ -18,7 +18,7 @@
 #include <string.h>
 
 #ifndef _WIN32
-#include <unistd.h>
+    #include <unistd.h>
 #endif
 
 #include "common.h"

@@ -25,7 +25,7 @@ Credits: j1sk1ss
 #include <string.h>
 
 #ifndef _WIN32
-#include <unistd.h>
+    #include <unistd.h>
 #endif
 
 #include "common.h"
