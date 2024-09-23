@@ -417,23 +417,29 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         if (table->header->dir_count + 1 >= DIRECTORIES_PER_TABLE) 
             return -1;
 
+        #pragma omp critical (link_dir2table)
         memcpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
         return 1;
     }
 
     int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
-        for (int i = 0; i < table->header->dir_count; i++) {
-            if (strncmp((char*)table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
-                for (int j = i; j < table->header->dir_count - 1; j++) {
-                    memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
-                }
+        int status = 0;
+        #pragma omp critical (unlink_dir_from_table)
+        {
+            for (int i = 0; i < table->header->dir_count; i++) {
+                if (strncmp((char*)table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
+                    for (int j = i; j < table->header->dir_count - 1; j++) {
+                        memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
+                    }
 
-                table->header->dir_count--;
-                return 1;
+                    table->header->dir_count--;
+                    status = 1;
+                    break;
+                }
             }
         }
 
-        return 0;
+        return status;
     }
 
     table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access) {

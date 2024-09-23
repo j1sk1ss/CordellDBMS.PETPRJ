@@ -32,10 +32,10 @@ Credits: j1sk1ss
 #include "pageman.h"
 
 
-#define DIRECTORY_EXTENSION "dr"
+#define DIRECTORY_EXTENSION getenv("DIRECTORY_EXTENSION") == NULL ? "dr" : getenv("DIRECTORY_EXTENSION")
 // Set here default path for save. 
 // Important Note ! : This path is main for ALL directories
-#define DIRECTORY_BASE_PATH ""
+#define DIRECTORY_BASE_PATH getenv("DIRECTORY_BASE_PATH") == NULL ? "" : getenv("DIRECTORY_BASE_PATH")
 
 #define DDT_SIZE            10
 

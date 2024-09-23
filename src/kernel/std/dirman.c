@@ -356,23 +356,29 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) 
             return -1;
 
+        #pragma omp critical (link_page2dir)
         memcpy(directory->names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
         return 1;
     }
 
     int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
-        for (int i = 0; i < directory->header->page_count; i++) {
-            if (memcmp(directory->names[i], page_name, PAGE_NAME_SIZE) == 0) {
-                for (int j = i; j < directory->header->page_count - 1; j++) {
-                    memcpy(directory->names[j], directory->names[j + 1], PAGE_NAME_SIZE);
-                }
+        int status = 0;
+        #pragma omp critical (unlink_page_from_directory)
+        {
+            for (int i = 0; i < directory->header->page_count; i++) {
+                if (memcmp(directory->names[i], page_name, PAGE_NAME_SIZE) == 0) {
+                    for (int j = i; j < directory->header->page_count - 1; j++) {
+                        memcpy(directory->names[j], directory->names[j + 1], PAGE_NAME_SIZE);
+                    }
 
-                directory->header->page_count--;
-                return 1;
+                    directory->header->page_count--;
+                    status = 1;
+                    break;
+                }
             }
         }
 
-        return 0;
+        return status;
     }
 
     int DRM_save_directory(directory_t* directory, char* path) {

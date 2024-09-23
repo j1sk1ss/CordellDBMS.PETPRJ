@@ -328,7 +328,7 @@ int main(int argc, char* argv[]) {
                         return -1;
                     }
 
-                    printf("Row [%i]: [%s]\n", index, (char*)data);
+                    printf("Row [%i]: [%s]\n", index, data);
                     free(data);
 
                     return 1;
@@ -507,7 +507,7 @@ int main(int argc, char* argv[]) {
             sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, master_table, TABLE_EXTENSION);
             int save_result = TBM_save_table(master, save_path);
 
-            printf("Result [%i] of linking table [%s] with table [%s]\n", save_result, master_table, slave_table);
+            printf("Result [%i %i] of linking table [%s] with table [%s]\n", save_result, result, master_table, slave_table);
         }
         /*
         Handle info command.

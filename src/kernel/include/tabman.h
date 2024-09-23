@@ -69,10 +69,10 @@ Credits: j1sk1ss
 
 #define DIRECTORIES_PER_TABLE    0xFF
 
-#define TABLE_EXTENSION         "tb"
+#define TABLE_EXTENSION         getenv("TABLE_EXTENSION") == NULL ? "tb" : getenv("TABLE_EXTENSION")
 // Set here default path for save. 
 // Important Note ! : This path is main for ALL tables
-#define TABLE_BASE_PATH         ""
+#define TABLE_BASE_PATH         getenv("TABLE_BASE_PATH") == NULL ? "" : getenv("TABLE_BASE_PATH")
 
 #pragma region [Column]
 

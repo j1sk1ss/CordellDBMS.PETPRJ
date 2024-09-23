@@ -27,10 +27,10 @@
 
 #define TABLES_PER_DATABASE     0xFF
 
-#define DATABASE_EXTENSION      "db"
+#define DATABASE_EXTENSION      getenv("DATABASE_EXTENSION") == NULL ? "db" : getenv("DATABASE_EXTENSION")
 // Set here default path for save. 
 // Important Note ! : This path is main for ALL databases
-#define DATABASE_BASE_PATH      ""
+#define DATABASE_BASE_PATH      getenv("DATABASE_BASE_PATH") == NULL ? "" : getenv("DATABASE_BASE_PATH")
 
 // Database magic for file load_database function check
 #define DATABASE_MAGIC      0xFC

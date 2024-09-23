@@ -66,16 +66,16 @@
         database_t* database, char* table_name, 
         int row, char* column_name, uint8_t* data, 
         size_t data_size, uint8_t access
-    ) {
+    ) { // TODO: Cascade Update (If updated linked column)
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
         if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
             return -3;
         }
 
-        int row_size = 0;
-        int column_offset = -1;
-        int column_size = -1;
+        int row_size        = 0;
+        int column_offset   = -1;
+        int column_size     = -1;
         for (int i = 0; i < table->header->column_count; i++) {
             if (column_name != NULL) {
                 if (strcmp((char*)table->columns[i]->name, column_name) == 0) {
@@ -107,6 +107,45 @@
         for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
         int global_offset = row * row_size;
 
+        #pragma omp parallel
+        for (int i = 0; i < table->header->column_link_count; i++) {
+            // Load slave table from disk
+            table_t* slave_table = DB_get_table(database, (char*)table->column_links[i]->slave_table_name);
+            if (slave_table == NULL) continue;
+            if (CHECK_DELETE_ACCESS(access, slave_table->header->access) == -1) continue;
+
+            // Get master column data and offset
+            int master_column_offset = 0;
+            table_column_t* master_column = NULL;
+            for (int j = 0; j < table->header->column_count; j++) {
+                master_column_offset += table->columns[j]->size;
+                if (memcmp(table->columns[j]->name, table->column_links[i]->master_column_name, COLUMN_NAME_SIZE) == 0) {
+                    master_column = table->columns[j];
+                    break;
+                }
+            }
+
+            // Get slave column
+            table_column_t* slave_column = NULL;
+            for (int j = 0; j < table->header->column_count; j++) {
+                if (memcmp(slave_table->columns[j]->name, table->column_links[i]->slave_column_name, COLUMN_NAME_SIZE) == 0) {
+                    slave_column = table->columns[j];
+                    break;
+                }
+            }
+
+            // Get row by provided index
+            if (master_column == NULL || slave_column == NULL) continue;
+            char* master_row = (char*)DB_get_row(database, table_name, row, access);
+            char* master_row_pointer = master_row;
+            master_row_pointer += master_column_offset;
+
+            // Find row in slave table with same key on linked column
+            int slave_row = DB_find_data_row(database, (char*)slave_table->header->name, (char*)slave_column->name, 0, (uint8_t*)master_row_pointer, master_column->size, access);
+            free(master_row);
+            DB_delete_row(database, (char*)slave_table->header->name, slave_row, access);
+        }
+
         return TBM_delete_content(table, global_offset, row_size);
     }
 
@@ -121,9 +160,9 @@
             return -3;
         }
 
-        int row_size = 0;
-        int column_offset = -1;
-        int column_size = -1;
+        int row_size        = 0;
+        int column_offset   = -1;
+        int column_size     = -1;
         for (int i = 0; i < table->header->column_count; i++) {
             if (column != NULL) {
                 if (strcmp((char*)table->columns[i]->name, column) == 0) {
@@ -159,9 +198,9 @@
             return -3;
         }
 
-        int row_size = 0;
-        int column_offset = -1;
-        int column_size = -1;
+        int row_size        = 0;
+        int column_offset   = -1;
+        int column_size     = -1;
         for (int i = 0; i < table->header->column_count; i++) {
             if (column != NULL) {
                 if (strcmp((char*)table->columns[i]->name, column) == 0) {
@@ -218,12 +257,32 @@
     }
 
     int DB_link_table2database(database_t* database, table_t* table) {
+        if (database->header->table_count + 1 >= TABLES_PER_DATABASE) 
+            return -1;
+
+        #pragma omp critical (link_table2database)
         memcpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
         return 1;
     }
 
     int DB_unlink_table_from_database(database_t* database, char* name) {
-        return 1; // TODO
+        int status = 0;
+        #pragma omp critical (unlink_table_from_database) 
+        {
+            for (int i = 0; i < database->header->table_count; i++) {
+                if (strncmp((char*)database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
+                    for (int j = i; j < database->header->table_count - 1; j++) {
+                        memcpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
+                    }
+
+                    database->header->table_count--;
+                    status = 1;
+                    break;
+                }
+            }
+        }
+
+        return status;
     }
 
     database_t* DB_create_database(char* name) {
@@ -249,7 +308,7 @@
 
     database_t* DB_load_database(char* path) {
         database_t* loaded_database = NULL;
-        #pragma omp critical (database_load)
+        #pragma omp critical (load_database)
         {
             FILE* file = fopen(path, "rb");
             if (file == NULL) {
@@ -279,7 +338,7 @@
 
     int DB_save_database(database_t* database, char* path) {
         int status = 1;
-        #pragma omp critical (database_save)
+        #pragma omp critical (save_database)
         {
             FILE* file = fopen(path, "wb");
             if (file == NULL) {
