@@ -1,12 +1,11 @@
-#include "kmain.h"
+#include "include/kentry.h"
 
 
-int kernel_entry(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
     /*
     Enable traceback for current session.
     */
     TB_enable();
-    omp_set_num_threads(1);
 
     /*
     Check transaction status.
@@ -38,7 +37,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
     int current_start = 1;
     database_t* database = DB_load_database(argv[current_start++]);
     if (database == NULL) {
-        printf("[WARN] Database wasn`t found. Create a new one with CREATE DATABASE.\n");
+        print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
         current_start = 1;
     }
 
@@ -75,7 +74,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 database_t* new_database = DB_create_database(database_name);
                 DB_save_database(new_database, save_path);
 
-                printf("Database [%s] create succes!\n", save_path);
+                print_info("Database [%s] create succes!", save_path);
                 answer->answer_code = 1;
                 answer->answer_size = -1;
 
@@ -89,7 +88,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             */
             else if (strcmp(commands[command_index], TABLE) == 0) {
                 char* table_name = commands[++command_index];
-                if (DB_get_table(database, table_name) != NULL) return -1;
+                if (DB_get_table(database, table_name) != NULL) return NULL;
 
                 char* access = commands[++command_index];
                 uint8_t rd  = access[0] - '0';
@@ -132,7 +131,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                                 atoi(column_stack[j + 1]), column_stack[j]
                             );
 
-                            printf("%i) Column [%s] with args: [%i], created success!\n", column_count, column_stack[j], columns[column_count - 1]->type);
+                            print_info("%i) Column [%s] with args: [%i], created success!", column_count, column_stack[j], columns[column_count - 1]->type);
                         }
                     }
                 }
@@ -149,7 +148,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 sprintf(db_save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
                 int result = DB_save_database(database, db_save_path);
                 
-                printf("Table [%s] create success!\n", table_name);
+                print_info("Table [%s] create success!", table_name);
                 answer->answer_code = result;
                 answer->answer_size = -1;
 
@@ -174,9 +173,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 uint8_t del = access[2] - '0';
 
                 int result = DB_append_row(database, table_name, (uint8_t*)input_data, strlen(input_data), CREATE_ACCESS_BYTE(rd, wr, del));
-                if (result >= 0) printf("Row [%s] successfully added to [%s] database!\n", input_data, database->header->name);
+                if (result >= 0) print_info("Row [%s] successfully added to [%s] database!", input_data, database->header->name);
                 else {
-                    printf("Error code: %i\n", result);
+                    print_error("Error code: %i\n", result);
                 }
 
                 answer->answer_code = result;
@@ -197,8 +196,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             command_index++;
             if (strcmp(commands[command_index], TABLE) == 0) {
                 char* table_name = commands[++command_index];
-                if (DB_delete_table(database, table_name, atoi(commands[++command_index])) != 1) printf("Error code 1 during deleting %s\n", table_name);
-                else printf("Table [%s] was delete successfully.\n", table_name);
+                if (DB_delete_table(database, table_name, atoi(commands[++command_index])) != 1) print_error("Error code 1 during deleting %s", table_name);
+                else print_info("Table [%s] was delete successfully.", table_name);
 
                 answer->answer_code = 1;
                 answer->answer_size = -1;
@@ -247,14 +246,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
                         int row2delete = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), CREATE_ACCESS_BYTE(rd, wr, del));
                         if (row2delete == -1) {
-                            printf("Value not presented in table [%s].\n", table_name);
+                            print_error("Value not presented in table [%s].", table_name);
                             return NULL;
                         }
 
                         int result = DB_delete_row(database, table_name, row2delete, CREATE_ACCESS_BYTE(rd, wr, del));
                         if (result == 1) printf("Row %i was deleted succesfully from %s\n", row2delete, table_name);
                         else {
-                            printf("Error code: %i\n", result);
+                            print_error("[%s %i] Error code: %i", result);
                             return NULL;
                         }
 
@@ -294,7 +293,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
                     uint8_t* data = DB_get_row(database, table_name, index, CREATE_ACCESS_BYTE(rd, wr, del));
                     if (data == NULL) {
-                        printf("Something goes wrong!\n");
+                        print_error("Something goes wrong!");
                         return NULL;
                     }
 
@@ -324,13 +323,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
                         int row2get = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), CREATE_ACCESS_BYTE(rd, wr, del));
                         if (row2get == -1) {
-                            printf("Value not presented in table [%s].\n", table_name);
+                            print_error("Value not presented in table [%s].", table_name);
                             return NULL;
                         }
 
                         uint8_t* data = DB_get_row(database, table_name, row2get, CREATE_ACCESS_BYTE(rd, wr, del));
                         if (data == NULL) {
-                            printf("Something goes wrong!\n");
+                            print_error("Something goes wrong!");
                             return NULL;
                         }
 
@@ -373,8 +372,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     uint8_t del = access[2] - '0';
                     
                     int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), CREATE_ACCESS_BYTE(rd, wr, del));
-                    if (result >= 0) printf("Success update of row [%i] in [%s]\n", index, table_name);
-                    else printf("Error code: %i\n", result);
+                    if (result >= 0) print_info("Success update of row [%i] in [%s]", index, table_name);
+                    else print_error("Error code: %i", result);
 
                     answer->answer_code = result;
                     answer->answer_size = -1;
@@ -397,13 +396,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
                         int index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), CREATE_ACCESS_BYTE(rd, wr, del));
                         if (index == -1) {
-                            printf("Value [%s] not presented in table [%s]\n", data, table_name);
+                            print_error("Value [%s] not presented in table [%s]", data, table_name);
                             return NULL;
                         }
 
                         int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), CREATE_ACCESS_BYTE(rd, wr, del));
-                        if (result >= 0) printf("Success update of row [%i] in [%s]\n", index, table_name);
-                        else printf("Error code: %i\n", result);
+                        if (result >= 0) print_info("Success update of row [%i] in [%s]", index, table_name);
+                        else print_error("Error code: %i", result);
 
                         answer->answer_code = result;
                         answer->answer_size = -1;
@@ -423,8 +422,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 char* table_name = commands[++command_index];
                 table_t* table = DB_get_table(database, table_name);
                 if (table == NULL) {
-                    printf("Table [%s] not found in database!\n", table_name);
-                    return -1;
+                    print_error("Table [%s] not found in database!", table_name);
+                    return NULL;
                 }
 
                 printf("Table [%s]:\n", table_name);
@@ -466,14 +465,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
             table_t* master = DB_get_table(database, master_table);
             if (master == NULL) {
-                printf("Table [%s] not found in database!\n", master_table);
-                return -1;
+                print_error("Table [%s] not found in database!", master_table);
+                return NULL;
             }
 
             table_t* slave  = DB_get_table(database, slave_table);
             if (slave == NULL) {
-                printf("Table [%s] not found in database!\n", slave_table);
-                return -1;
+                print_error("Table [%s] not found in database!", slave_table);
+                return NULL;
             }
 
             if (strcmp(OPEN_BRACKET, commands[++command_index]) == 0) {
@@ -493,7 +492,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, master_table, TABLE_EXTENSION);
             int save_result = TBM_save_table(master, save_path);
 
-            printf("Result [%i %i] of linking table [%s] with table [%s]\n", save_result, result, master_table, slave_table);
+            print_info("Result [%i %i] of linking table [%s] with table [%s]", save_result, result, master_table, slave_table);
             
             answer->answer_code = save_result;
             answer->answer_size = -1;

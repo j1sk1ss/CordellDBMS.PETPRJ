@@ -387,8 +387,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         {
             FILE* file = fopen(path, "wb");
             if (file == NULL) {
-                printf("Can`t create file: [%s]\n", path);
                 status = -1;
+                print_error("Can`t create file: [%s]", path);
             } else {
                 if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1) 
                     status = -1;
@@ -431,8 +431,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             // Open file directory
             FILE* file = fopen(path, "rb");
             if (file == NULL) {
-                printf("Directory not found! Path: [%s]\n", path);
                 loaded_directory = NULL;
+                print_error("Directory not found! Path: [%s]\n", path);
             } else {
                 // Read header from file
                 directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));

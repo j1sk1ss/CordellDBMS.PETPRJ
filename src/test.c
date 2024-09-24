@@ -1,5 +1,9 @@
 /*
-*   This is sandbox file for testing functions in DBMS
+ * This is sandbox file for testing functions in DBMS
+ *
+ * ! Building of this code will produce test program !
+ * building without OMP: gcc -Wall .\test.c .\kernel\std\* .\server\* -Wunknown-pragmas -fpermissive -o cdbms.exe
+ * buildinc with OMP: gcc -Wall .\test.c .\kernel\std\* .\server\* -fopenmp -fpermissive -o cdbms.exe
 */
 
 #include <string.h>

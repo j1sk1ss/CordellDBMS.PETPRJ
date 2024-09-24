@@ -312,8 +312,8 @@
         {
             FILE* file = fopen(path, "rb");
             if (file == NULL) {
-                printf("Database file not found! [%s]\n", path);
                 loaded_database = NULL;
+                print_error("Database file not found! [%s]", path);
             } else {
                 database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
                 fread(header, sizeof(database_header_t), 1, file);

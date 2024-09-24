@@ -2,6 +2,8 @@
 Code took from: https://devhops.ru/code/c/sockets.php
 */
 
+#include "../include/kentry.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +16,7 @@ Code took from: https://devhops.ru/code/c/sockets.php
 #endif
 
 
-#define SERVER_PORT 9002
+#define SERVER_PORT 8888
 
 
 void processing_message(unsigned char *s, int n) {
@@ -27,20 +29,65 @@ void processing_message(unsigned char *s, int n) {
     }
 }  
 
-
 void processing_message_service(int in, int out) {
     unsigned char buf[1024];
     int count;
 
-    while  ((count = read(in, buf, 1024)) > 0) {
-        processing_message(buf, count);
-        write(out, buf, count);
+    // Buffer to store response from the database
+    char response[1024];
+
+    while ((count = read(in, buf, 1024)) > 0) {
+        buf[count] = '\0';  // Null-terminate the received message
+
+        // Array for storing arguments
+        char *argv[20];  // Max 20 arguments
+        int argc = 0;
+
+        // Variable to store parsing state
+        int in_quotes = 0;
+        char *current_arg = NULL;
+
+        // Iterate through the buffer and parse arguments
+        for (char *p = (char *)buf; *p != '\0'; p++) {
+            // Start or end of a quoted argument
+            if (*p == '"') {
+                in_quotes = !in_quotes;
+                if (in_quotes) {
+                    // Start of a new quoted argument
+                    current_arg = p + 1;
+                } else {
+                    // End of the quoted argument
+                    *p = '\0';
+                    argv[argc++] = current_arg;
+                }
+            }
+            // Non-quoted argument parsing
+            else if (!in_quotes && (*p == ' ' || *p == '\t')) {
+                // Argument delimiter
+                *p = '\0';  // Null-terminate the argument
+                if (current_arg) {
+                    argv[argc++] = current_arg;
+                    current_arg = NULL;
+                }
+            }
+            else if (!current_arg) {
+                // Start of a new argument (non-quoted)
+                current_arg = p;
+            }
+        }
+
+        if (current_arg) {
+            argv[argc++] = current_arg;
+        }
+
+        kernel_answer_t* result = kernel_process_command(argc, argv);
+        snprintf(response, sizeof(response), "Result: %s\n", result->answer_body);
+
+        write(out, response, strlen(response));
     }
+}
 
-}  
-
-
-int main() {
+int setup_server() {
     #ifndef _WIN32
         int rc;
         char server_message[1024];

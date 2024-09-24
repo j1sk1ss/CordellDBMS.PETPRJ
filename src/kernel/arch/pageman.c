@@ -170,6 +170,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             FILE* file = fopen(path, "wb");
             if (file == NULL) {
                 status = -1;
+                print_error("Can't save or create [%s] file", path);
             } else {
                 // Write data to disk
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
@@ -207,8 +208,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             // Open file page
             FILE* file = fopen(path, "rb");
             if (file == NULL) {
-                printf("Page not found! Path: [%s]\n", path);
                 loaded_page = NULL;
+                print_error("Page not found! Path: [%s]", path);
             } else {
                 // Read header from file
                 uint8_t* header_data = (uint8_t*)malloc(sizeof(page_header_t));

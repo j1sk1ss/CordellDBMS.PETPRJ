@@ -11,20 +11,21 @@
  * - We have few fixed enviroment variable (paths for saving databases, 
  * tables, directories and pages), that can`t be changed by default user.
  * 
- * building without OMP: gcc -Wall .\kmain.c .\std\* -Wunknown-pragmas -fpermissive -o cdbms.exe
- * buildinc with OMP: gcc -Wall .\kmain.c .\std\* -fopenmp -fpermissive -o cdbms.exe
+ * ! Building this file without server side, will disable API communication of third-part applications !
+ * building without OMP: gcc -Wall .\kentry.c .\std\* -Wunknown-pragmas -fpermissive -o cdbms.exe
+ * buildinc with OMP: gcc -Wall .\kentry.c .\std\* -fopenmp -fpermissive -o cdbms.exe
 */
 
-#ifndef KMAIN_H_
-#define KMAIN_H_
+#ifndef KENTRY_H_
+#define KENTRY_H_
 
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
 
-#include "include/common.h"
-#include "include/traceback.h"
-#include "include/database.h"
+#include "common.h"
+#include "traceback.h"
+#include "database.h"
 
 
 #define MAX_COMMANDS    100
@@ -89,13 +90,12 @@ struct kernel_answer {
 Entry syntax: data_base_path<*.db> <commands>.
 
 Params:
-Params:
 - argc - args count.
 - argv - args body.
 
 Return -1 or 1.
 */
-int kernel_entry(int argc, char* argv[]);
+int main(int argc, char* argv[]);
 
 /*
 Process commands and return answer structure.

@@ -471,6 +471,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             FILE* file = fopen(path, "wb");
             if (file == NULL) {
                 status = -1;
+                print_error("Can't save or create table [%s] file", path);
             } else {
                 // Write header
                 if (fwrite(table->header, sizeof(table_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
@@ -526,6 +527,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             FILE* file = fopen(path, "rb");
             if (file == NULL) {
                 loaded_table = NULL;
+                print_error("Can't open table [%s]", path);
             } else {
                 // Read header of table from file.
                 // Note: If magic is wrong, we can say, that this file isn`t table.

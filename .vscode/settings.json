@@ -55,6 +55,8 @@
         "kmain.h": "c",
         "types.h": "c",
         "stdlib.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "kentry.h": "c",
+        "logging.h": "c"
     }
 }
