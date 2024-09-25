@@ -31,7 +31,7 @@ Credits: j1sk1ss
 
 
 #define PAGE_EXTENSION getenv("PAGE_EXTENSION") == NULL ? "pg" : getenv("PAGE_EXTENSION")
-// Set here default path for save. 
+// Set here default path for save.
 // Important Note ! : This path is main for ALL pages
 #define PAGE_BASE_PATH getenv("PAGE_BASE_PATH") == NULL ? "" : getenv("PAGE_BASE_PATH")
 
@@ -42,7 +42,7 @@ Credits: j1sk1ss
     #define PAGE_EMPTY          0xEE
     #define PAGE_END            0xED
     #define PAGE_CONTENT_SIZE   1024
-    #define PAGE_START          0
+    #define PAGE_START          0x00
 
 #pragma endregion
 
@@ -83,40 +83,40 @@ Credits: j1sk1ss
 #pragma region [Content]
 
     /*
-    Append content to page. This function move page_end symbol to new location.
-    
+    Insert value to page.
+
     Params:
     - page - pointer to page.
-    - data - data for append.
-    - data_lenght - lenght of data.
-    
-    Return size of data, that can be stored in page.
-    Return -1 if something goes wrong.
+    - offset - offset in page.
+    - value - value for input.
+
+    Return 1 if insert success.
+    Return -1 if offset too large.
     */
-    int PGM_append_content(page_t* page, uint8_t* data, size_t data_lenght);
+    int PGM_insert_value(page_t* page, int offset, uint8_t value);
 
     /*
     Insert content to page. This function don't move page_end symbol to new location.
     In summary this function just rewrite part of page with provided data.
     Note: You should use this function carefull, because it don't warn if it rewrite special bytes.
-    
+
     Params:
     - page - pointer to page.
     - data - data for append.
     - data_lenght - lenght of data.
-    
+
     Return size of data, that can be stored in page.
     */
     int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_lenght);
 
     /*
     Rewrite all line by EMPTY symbols
-    
+
     Params:
     - page - pointer to page
     - offset - offset in page
     - length - length of data to mark as delete
-    
+
     Return 1 - if write was success
     Return -1 - if index not found in page
     */
@@ -139,22 +139,22 @@ Credits: j1sk1ss
     - page - pointer to page.
     - offset - offset in page
     - data - data for search
-    - data_size - data for search size 
+    - data_size - data for search size
 
     Return -2 if something goes wrong
     Return -1 if data nfound
-    Return index (first entry) of target data 
+    Return index (first entry) of target data
     */
     int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size);
 
     /*
     Find local index of line with input value
-    
+
     Params:
     - page - pointer to page
     - offset - offset index
     - value - target value
-    
+
     Return -2 - if something goes wrong
     Return -1 - if not found
     Return index of value in content
@@ -166,24 +166,24 @@ Credits: j1sk1ss
     Note: Will return only block of free space. For examle if in page we have situation like below:
     NFREE -> SMALL FREE -> NFREE -> LARGE FREE -> ...
     function will return SMALL FREE size. That's why try to use offset (or provide -1 for getting all free space)
-    
+
     Params:
     - page - pointer to page
     - offset - offset in page. It needs to skip small part, if they too small
-    
+
     Return -1 - if something goes wrong
     */
     int PGM_get_free_space(page_t* page, int offset);
 
     /*
     Return index in page of empty space, that more or equals provided size
-    
+
     Params:
     - page - pointer to page
     - offset - offset in page. It needs to skip small part, if they too small
     - size - needed size of block.
            If provided -1, return first empty space
-    
+
     Return -1 - if something goes wrong
     Return start index of empty space in page
     Return -2 if empty space with provided size of more not exists in page
@@ -196,12 +196,12 @@ Credits: j1sk1ss
 
     /*
     Create page
-    
+
     Params:
     - name - page name
     - buffer - page content
     - data_size - data size
-    
+
     P.S. Function always pad content to fit default page size
          If buffer_size higher then default page-size, it will trunc
     */
@@ -222,11 +222,11 @@ Credits: j1sk1ss
 
     /*
     Save page on disk.
-    
+
     Params:
     - page - pointer to page.
     - path - path where save.
-    
+
     Return -3 if content write corrupt.
     Return -2 if header write corrupt.
     Return -1 if file can`t be opened.
@@ -237,10 +237,10 @@ Credits: j1sk1ss
 
     /*
     Open file, load page, close file
-    
+
     Params:
     - name - page name (don`t forget path)
-    
+
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
     Return NULL if magic wrong
@@ -250,14 +250,14 @@ Credits: j1sk1ss
 
     /*
     Release page
-    Imoortant Note!: Usualy page, if we use load_page function, 
+    Imoortant Note!: Usualy page, if we use load_page function,
     saved in PDT, that's means, that you should avoid free_page with pages,
     that was created by load_page.
     Note 1: Use this function with pages, that was created by create_page function.
 
     Params:
     - page - pointer to page
-    
+
     Return 0 - if something goes wrong
     Return 1 - if Release was success
     */
@@ -267,7 +267,7 @@ Credits: j1sk1ss
 
         /*
         Add page to PDT table.
-        Note: It will unload old page if we earn end of PDT. 
+        Note: It will unload old page if we earn end of PDT.
 
         Params:
         - page - pointer to page (Be sure that you don't realise this page. We save link in PDT)

@@ -113,7 +113,9 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             page_t* new_page = PGM_create_empty_page();
             if (new_page == NULL) return -2;
 
-            memcpy(new_page->content, data_pointer, current_size);
+            // Insert new content to page and mark end
+            PGM_insert_content(new_page, 0, data_pointer, current_size);
+            PGM_insert_value(new_page, current_size, PAGE_END);
 
             char save_path[DEFAULT_PATH_SIZE];
             sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, new_page->header->name, PAGE_EXTENSION);
@@ -417,11 +419,10 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         char temp_path[DEFAULT_PATH_SIZE];
         strncpy(temp_path, path, DEFAULT_PATH_SIZE);
 
-        char file_path[DEFAULT_PATH_SIZE];
+        char buffer[512];
         char file_name[DIRECTORY_NAME_SIZE];
-        char file_ext[8];
 
-        get_file_path_parts(temp_path, file_path, file_name, file_ext);
+        get_file_path_parts(temp_path, buffer, file_name, buffer);
 
         directory_t* loaded_directory = DRM_DDT_find_directory(file_name);
         if (loaded_directory != NULL) return loaded_directory;

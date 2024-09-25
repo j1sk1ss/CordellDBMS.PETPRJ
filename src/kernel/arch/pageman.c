@@ -1,4 +1,5 @@
 #include "../include/pageman.h"
+#include <stdint.h>
 
 /*
 Page destriptor table, is an a static array of pages indexes. Main idea in
@@ -20,22 +21,11 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
 #pragma region [Content]
 
-    int PGM_append_content(page_t* page, uint8_t* data, size_t data_length) {
-        int eof = PGM_find_value(page, PAGE_START, PAGE_END);
-        if (eof == -1) return -1;
+    int PGM_insert_value(page_t* page, int offset, uint8_t value) {
+        if (offset < PAGE_CONTENT_SIZE) page->content[offset] = value;
+        else return -1;
 
-        int start_index = eof;
-        int end_index = MIN(PAGE_CONTENT_SIZE, eof + (int)data_length);
-
-        for (int i = start_index, j = 0; i < end_index && j < (int)data_length; i++, j++) {
-            page->content[i] = data[j];
-        }
-
-        if (end_index < PAGE_CONTENT_SIZE) {
-            page->content[end_index] = PAGE_END;
-        }
-
-        return (int)data_length - (end_index - start_index);
+        return 1;
     }
 
     int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_length) {
@@ -125,10 +115,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         page->header = header;
         memcpy(page->content, buffer, data_size);
 
-        if (data_size < PAGE_CONTENT_SIZE) {
-            page->content[data_size] = PAGE_END;
-            for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
-        }
+        if (data_size < PAGE_CONTENT_SIZE) page->content[data_size] = PAGE_END;
+        for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
 
         return page;
     }
@@ -173,8 +161,11 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 print_error("Can't save or create [%s] file", path);
             } else {
                 // Write data to disk
+                int page_size = PGM_find_value(page, 0, PAGE_END);
+                if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
+
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
-                if (fwrite(page->content, PAGE_CONTENT_SIZE, 1, file) != 1) status = -3;
+                if (fwrite(page->content, page_size, 1, file) != 1) status = -3;
 
                 // Close file
                 #ifndef _WIN32
@@ -194,11 +185,10 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         char temp_path[DEFAULT_PATH_SIZE];
         strncpy(temp_path, path, DEFAULT_PATH_SIZE);
 
-        char file_path[DEFAULT_PATH_SIZE];
+        char buffer[512];
         char file_name[PAGE_NAME_SIZE];
-        char file_ext[8];
 
-        get_file_path_parts(temp_path, file_path, file_name, file_ext);
+        get_file_path_parts(temp_path, buffer, file_name, buffer);
 
         page_t* loaded_page = PGM_PDT_find_page(file_name);
         if (loaded_page != NULL) return loaded_page;
@@ -223,6 +213,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 } else {
                     // Allocate memory for page structure
                     page_t* page = (page_t*)malloc(sizeof(page_t));
+                    memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
+
                     fread(page->content, PAGE_CONTENT_SIZE, 1, file);
                     page->header = header;
 

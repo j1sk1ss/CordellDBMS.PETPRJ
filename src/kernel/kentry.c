@@ -1,4 +1,5 @@
 #include "include/kentry.h"
+#include "include/logging.h"
 
 
 int main(int argc, char* argv[]) {
@@ -24,15 +25,20 @@ int main(int argc, char* argv[]) {
         kernel_answer_t* answer = kernel_process_command(argc - arg_count, commands_pointer);
         arg_count += answer->commands_processed;
         commands_pointer += answer->commands_processed;
+
+        if (answer->answer_body != NULL) print_log("Answer body: [%s]", (char*)answer->answer_body);
+
+        kernel_free_answer(answer);
     }
 }
 
 kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
 
-    uint8_t* answer_body = NULL;
-    uint8_t answer_code = -1;
-    uint8_t answer_size = -1;
+    answer->answer_body = NULL;
+    answer->answer_code = -1;
+    answer->answer_size = -1;
+    answer->commands_processed = 0;
 
     int current_start = 1;
     database_t* database = DB_load_database(argv[current_start++]);
@@ -75,8 +81,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 DB_save_database(new_database, save_path);
 
                 print_info("Database [%s] create succes!", save_path);
+
                 answer->answer_code = 1;
                 answer->answer_size = -1;
+                answer->commands_processed = command_index;
 
                 return answer;
             }
@@ -88,7 +96,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             */
             else if (strcmp(commands[command_index], TABLE) == 0) {
                 char* table_name = commands[++command_index];
-                if (DB_get_table(database, table_name) != NULL) return NULL;
+                if (DB_get_table(database, table_name) != NULL) return answer;
 
                 char* access = commands[++command_index];
                 uint8_t rd  = access[0] - '0';
@@ -149,8 +157,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 int result = DB_save_database(database, db_save_path);
 
                 print_info("Table [%s] create success!", table_name);
-                answer->answer_code = result;
+
                 answer->answer_size = -1;
+                answer->answer_code = result;
+                answer->commands_processed = command_index;
 
                 return answer;
             }
@@ -178,8 +188,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     print_error("Error code: %i\n", result);
                 }
 
-                answer->answer_code = result;
                 answer->answer_size = -1;
+                answer->answer_code = result;
+                answer->commands_processed = command_index;
 
                 return answer;
             }
@@ -201,6 +212,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
                 answer->answer_code = 1;
                 answer->answer_size = -1;
+                answer->commands_processed = command_index;
 
                 return answer;
             }
@@ -225,8 +237,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     uint8_t del = access[2] - '0';
 
                     int result = DB_delete_row(database, table_name, index, CREATE_ACCESS_BYTE(rd, wr, del));
-                    answer->answer_code = result;
+
                     answer->answer_size = -1;
+                    answer->answer_code = result;
+                    answer->commands_processed = command_index;
 
                     return answer;
                 }
@@ -257,8 +271,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                             return NULL;
                         }
 
-                        answer->answer_code = result;
                         answer->answer_size = -1;
+                        answer->answer_code = result;
+                        answer->commands_processed = command_index;
 
                         return answer;
                     }
@@ -304,6 +319,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     answer->answer_body = data;
                     answer->answer_code = index;
                     answer->answer_size = row_size;
+                    answer->commands_processed = command_index;
 
                     return answer;
                 }
@@ -337,9 +353,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                         table_t* table = DB_get_table(database, table_name);
                         for (int j = 0; j < table->header->column_count; j++) row_size += table->columns[j]->size;
 
-                        answer->answer_body = data;
                         answer->answer_code = 1;
+                        answer->answer_body = data;
                         answer->answer_size = row_size;
+                        answer->commands_processed = command_index;
 
                         return answer;
                     }
@@ -375,8 +392,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     if (result >= 0) print_info("Success update of row [%i] in [%s]", index, table_name);
                     else print_error("Error code: %i", result);
 
-                    answer->answer_code = result;
                     answer->answer_size = -1;
+                    answer->answer_code = result;
+                    answer->commands_processed = command_index;
 
                     return answer;
                 }
@@ -404,8 +422,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                         if (result >= 0) print_info("Success update of row [%i] in [%s]", index, table_name);
                         else print_error("Error code: %i", result);
 
-                        answer->answer_code = result;
                         answer->answer_size = -1;
+                        answer->answer_code = result;
+                        answer->commands_processed = command_index;
 
                         return answer;
                     }
@@ -423,7 +442,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 table_t* table = DB_get_table(database, table_name);
                 if (table == NULL) {
                     print_error("Table [%s] not found in database!", table_name);
-                    return NULL;
+                    return answer;
                 }
 
                 printf("Table [%s]:\n", table_name);
@@ -466,13 +485,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             table_t* master = DB_get_table(database, master_table);
             if (master == NULL) {
                 print_error("Table [%s] not found in database!", master_table);
-                return NULL;
+                return answer;
             }
 
             table_t* slave  = DB_get_table(database, slave_table);
             if (slave == NULL) {
                 print_error("Table [%s] not found in database!", slave_table);
-                return NULL;
+                return answer;
             }
 
             if (strcmp(OPEN_BRACKET, commands[++command_index]) == 0) {
@@ -494,8 +513,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
             print_info("Result [%i %i] of linking table [%s] with table [%s]", save_result, result, master_table, slave_table);
 
-            answer->answer_code = save_result;
             answer->answer_size = -1;
+            answer->answer_code = save_result;
+            answer->commands_processed = command_index;
+
             return answer;
         }
         /*
@@ -530,11 +551,16 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             printf("- INFO:\n");
             printf("\tExample: db.db info table table_1\n");
 
-            return NULL;
+            printf("- HELP:\n");
+            printf("\tExample: help\n");
+
+            answer->commands_processed = command_index;
+            return answer;
         }
     }
 
-    return NULL;
+    answer->commands_processed = 0;
+    return answer;
 }
 
 int kernel_free_answer(kernel_answer_t* answer) {

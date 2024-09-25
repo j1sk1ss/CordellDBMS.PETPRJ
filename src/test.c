@@ -40,7 +40,7 @@ int main() {
     directory_t* dr = DRM_load_directory("directory.dr");
     page_t* pg = PGM_load_page("page.pg");
 
-    PGM_append_content(pg, "Hello there", 11);
+    // PGM_append_content(pg, "Hello there", 11);
     PGM_save_page(pg, "page.pg");
 
     printf("Page: name - %s\nContent - %s\n", pg->header->name, pg->content);

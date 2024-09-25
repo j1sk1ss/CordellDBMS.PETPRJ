@@ -512,11 +512,10 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         char temp_path[DEFAULT_PATH_SIZE];
         strncpy(temp_path, path, DEFAULT_PATH_SIZE);
 
-        char file_path[DEFAULT_PATH_SIZE];
+        char buffer[512];
         char file_name[DIRECTORY_NAME_SIZE];
-        char file_ext[8];
 
-        get_file_path_parts(temp_path, file_path, file_name, file_ext);
+        get_file_path_parts(temp_path, buffer, file_name, buffer);
 
         table_t* loaded_table = TBM_TDT_find_table(file_name);
         if (loaded_table != NULL) return loaded_table;
