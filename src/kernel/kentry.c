@@ -13,13 +13,13 @@ int main(int argc, char* argv[]) {
     */
     int transaction_size = 1;
     char** commands_pointer = argv;
-    if (strcmp(argv[0], TRANSACTION) == 0) 
+    if (strcmp(argv[0], TRANSACTION) == 0)
         transaction_size = atoi(argv[1]);
 
     /*
     Commands executing and pointer moving.
     */
-    int arg_count = 0; 
+    int arg_count = 0;
     for (int i = 0; i < transaction_size; i++) {
         kernel_answer_t* answer = kernel_process_command(argc - arg_count, commands_pointer);
         arg_count += answer->commands_processed;
@@ -147,7 +147,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 char db_save_path[DEFAULT_PATH_SIZE];
                 sprintf(db_save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
                 int result = DB_save_database(database, db_save_path);
-                
+
                 print_info("Table [%s] create success!", table_name);
                 answer->answer_code = result;
                 answer->answer_size = -1;
@@ -159,7 +159,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
         Handle data append.
         Command syntax: append <table_name> columns <data> <rwd>.
         Note: Command don`t care about spacing, data separations, padding and other stuff. This is your work.
-        Errors: 
+        Errors:
         - Return -1 error if table not found.
         - Return -2 error if data size not equals row size.
         */
@@ -230,7 +230,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
                     return answer;
                 }
-               
+
                 /*
                 Note: will delete first row, where will find value in provided column.
                 Command syntax: delete row <table_name> by_value <value> column <column_name> <rwd>
@@ -253,7 +253,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                         int result = DB_delete_row(database, table_name, row2delete, CREATE_ACCESS_BYTE(rd, wr, del));
                         if (result == 1) printf("Row %i was deleted succesfully from %s\n", row2delete, table_name);
                         else {
-                            print_error("[%s %i] Error code: %i", result);
+                            print_error("Error code: %i", result);
                             return NULL;
                         }
 
@@ -307,7 +307,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
                     return answer;
                 }
-               
+
                 /*
                 Note: will get first row, where will find value in provided column.
                 Command syntax: get row <table_name> by_value <value> column <column_name> <rwd>
@@ -370,7 +370,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     uint8_t rd  = access[0] - '0';
                     uint8_t wr  = access[1] - '0';
                     uint8_t del = access[2] - '0';
-                    
+
                     int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), CREATE_ACCESS_BYTE(rd, wr, del));
                     if (result >= 0) print_info("Success update of row [%i] in [%s]", index, table_name);
                     else print_error("Error code: %i", result);
@@ -441,9 +441,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 printf("- LINKS: \n");
                 for (int i = 0; i < table->header->column_link_count; i++)
                     printf(
-                        "\tLink [%s] column with [%s] column from [%s] table.\n", 
-                        table->column_links[i]->master_column_name, 
-                        table->column_links[i]->slave_column_name, 
+                        "\tLink [%s] column with [%s] column from [%s] table.\n",
+                        table->column_links[i]->master_column_name,
+                        table->column_links[i]->slave_column_name,
                         table->column_links[i]->slave_table_name
                     );
             }
@@ -487,13 +487,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 master, master_column, slave, slave_column,
                 CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
             );
-            
+
             char save_path[DEFAULT_PATH_SIZE];
             sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, master_table, TABLE_EXTENSION);
             int save_result = TBM_save_table(master, save_path);
 
             print_info("Result [%i %i] of linking table [%s] with table [%s]", save_result, result, master_table, slave_table);
-            
+
             answer->answer_code = save_result;
             answer->answer_size = -1;
             return answer;
@@ -510,11 +510,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
             printf("- APPEND:\n");
             printf("\tExample: db.db append table_1 columns 'hello     second col' 000\n");
-            
+
             printf("- UPDATE:\n");
             printf("\tExample: db.db update row table_1 by_index 0 'goodbye   hello  bye' 000\n");
             printf("\tExample: db.db update row table_1 by_value value column col1 'goodbye   hello  bye' 000\n");
-            
+
             printf("- GET:\n");
             printf("\tExample: db.db get row table_1 by_value hello column col2 000\n");
             printf("\tExample: db.db get row table_1 by_index 0 000\n");
@@ -540,4 +540,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 int kernel_free_answer(kernel_answer_t* answer) {
     SOFT_FREE(answer->answer_body);
     SOFT_FREE(answer);
+
+    return 1;
 }

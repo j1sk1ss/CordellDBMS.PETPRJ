@@ -6,13 +6,11 @@
  * buildinc with OMP: gcc -Wall .\test.c .\kernel\std\* .\server\* -fopenmp -fpermissive -o cdbms.exe
 */
 
-#include <string.h>
-
 #include "kernel/include/tabman.h"
-#include "kernel/include/dirman.h"
-#include "kernel/include/pageman.h"
 #include "kernel/include/database.h"
 #include "kernel/include/traceback.h"
+
+#include <stdint.h>
 
 
 #define DATABASE_APPEND_AND_LINK_TEST
@@ -90,10 +88,10 @@ int main() {
 
     columns[0] = column1;
     columns[1] = column2;
-    columns[2] = column3; 
+    columns[2] = column3;
 
     table_t* table = TBM_create_table("table1", columns, 3);
-    
+
     char wrong_data[60];
     sprintf(wrong_data, "column%cstring%c1.00", COLUMN_DELIMITER, COLUMN_DELIMITER);
 
@@ -105,7 +103,7 @@ int main() {
 
     char correct_data[60];
     sprintf(correct_data, "column%cstring%c100", COLUMN_DELIMITER, COLUMN_DELIMITER);
-    
+
     printf("Wrong data: %i\n", TBM_check_signature(table, wrong_data));
     printf("Wrong data 1: %i\n", TBM_check_signature(table, wrong_data_1));
     printf("Wrong data 2: %i\n", TBM_check_signature(table, wrong_data_2));
@@ -146,10 +144,10 @@ int main() {
     columns[0] = column1;
     columns[1] = column2;
     columns[2] = column3;
-    columns1[0] = column4; 
+    columns1[0] = column4;
 
-    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(7, 3, 7));
-    table_t* table1 = TBM_create_table("table11", columns1, 1, CREATE_ACCESS_BYTE(7, 3, 7));
+    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(3, 3, 3));
+    table_t* table1 = TBM_create_table("table11", columns1, 1, CREATE_ACCESS_BYTE(3, 3, 3));
     DB_link_table2database(database, table);
     DB_link_table2database(database, table1);
     DB_save_database(database, "db.db");
@@ -162,13 +160,13 @@ int main() {
     TBM_save_table(table, "table1.tb");
     TBM_free_table(table);
 
-    int result = DB_append_row(database, "table1", "hello guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    int result = DB_append_row(database, "table1", (uint8_t*)"hello guysstring  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("First table append result %i\n", result);
 
-    result = DB_append_row(database, "table1", "hello LOLLOLLOLU  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+    result = DB_append_row(database, "table1", (uint8_t*)"hello LOLLOLLOLU  101000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("First table append result %i\n", result);
 
-    result = DB_append_row(database, "table11", "0000000001", 10,  CREATE_ACCESS_BYTE(0, 0, 0));
+    result = DB_append_row(database, "table11", (uint8_t*)"0000000001", 10,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("Second table append result %i\n", result);
 
     uint8_t* data = DB_get_row(database, "table1", 0, CREATE_ACCESS_BYTE(0, 0, 0));
@@ -209,7 +207,7 @@ int main() {
     columns[1] = column2;
     columns[2] = column3;
 
-    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(7, 3, 7));
+    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(3, 3, 3));
     DB_link_table2database(database, table);
     DB_save_database(database, "db.db");
 
@@ -261,7 +259,7 @@ int main() {
     columns[1] = column2;
     columns[2] = column3;
 
-    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(7, 3, 7));
+    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(3, 3, 3));
     DB_link_table2database(database, table);
     DB_save_database(database, "db.db");
 

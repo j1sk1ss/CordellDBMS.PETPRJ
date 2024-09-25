@@ -3,7 +3,7 @@ Table operator is a simple functions to work with OS filesystem.
 Main idea that we have files with sizes near 1 KB for pages, dirs and tables.
 Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
 
-Tabman abstraction level responsible for working with directories. It send requests and earns data from lower 
+Tabman abstraction level responsible for working with directories. It send requests and earns data from lower
 abstraction level. Also tabman don't check data signature. This is work of database level.
 Note: Tabman don't work directly with pages. It can work only with directories.
 
@@ -33,7 +33,7 @@ Credits: j1sk1ss
     // Create access byte for new tables and for users. For input, this
     // function take values from 0 to 7.
     #define CREATE_ACCESS_BYTE(read_access, write_access, delete_access) \
-        (((read_access & 0b111) << 6) | ((write_access & 0b111) << 3) | (delete_access & 0b111))
+        (((read_access & 0b11) << 4) | ((write_access & 0b11) << 2) | (delete_access & 0b11))
 
     // Macros for getting access level
     #define GET_READ_ACCESS(access_byte)    ((access_byte >> 6) & 0b111)
@@ -70,7 +70,7 @@ Credits: j1sk1ss
 #define DIRECTORIES_PER_TABLE    0xFF
 
 #define TABLE_EXTENSION         getenv("TABLE_EXTENSION") == NULL ? "tb" : getenv("TABLE_EXTENSION")
-// Set here default path for save. 
+// Set here default path for save.
 // Important Note ! : This path is main for ALL tables
 #define TABLE_BASE_PATH         getenv("TABLE_BASE_PATH") == NULL ? "" : getenv("TABLE_BASE_PATH")
 
@@ -82,7 +82,7 @@ Credits: j1sk1ss
     With this delimiters we know, that every row has at start ROW_DELIMITER (it allows us use \n character).
     */
     #define COLUMN_DELIMITER    0xEE
-    /* 
+    /*
     <DEPRECATED>
     For splitting data by columns, we reserve another byte value.
     In summary data has next structure:
@@ -187,7 +187,7 @@ Credits: j1sk1ss
 
         /*
         Column type indicates what type should user insert to this column.
-        Main idea, that we save type, data type and primary status in one byte. 
+        Main idea, that we save type, data type and primary status in one byte.
         In summary we have next byte:
         0x00|PP|DD|TT|
 
@@ -217,7 +217,7 @@ Credits: j1sk1ss
         /*
         Main idea:
         We have table with RWD access (Read, Write and Delete). If user have all levels, he can delete rows,
-        append / insert data and read any values from table. 
+        append / insert data and read any values from table.
         If user level is higher then table level, that indicates that user can't do some stuff.
         In summary, 000 - highest level access (like root). 777 - lowest level access.
 
@@ -285,12 +285,12 @@ Credits: j1sk1ss
     Note 2: If during insert process, we reach page limit in directory, we return error code (-2)
 
     ! In summary, this function shouldn't be used in ususal tasks. It may broke whole table at one time. !
-    
+
     Params:
     - table - pointer to table
     - data - append data
     - data_size - size of data
-    
+
     Return -3 if table is empty
     Return -2 if we reach page limit in directory (Prefere using append_content)
     Return -1 if something goes wrong
@@ -303,12 +303,12 @@ Credits: j1sk1ss
     Append data to content pages in directories
     Note: If table don't have any directories, it will create one, then create one additional page
     Note 2: If during append process, we reach page limit in directory, we create a new one
-    
+
     Params:
     - table - pointer to table
     - data - append data
     - data_size - size of data
-    
+
     Return -1 if something goes wrong
     Return 0 if append was success
     Return 1 if append was success and we create new pages
@@ -324,12 +324,12 @@ Credits: j1sk1ss
     Note 2: For offset in pages or directories use defined vars like:
     - DIRECTORY_OFFSET for directory offset.
     - PAGE_CONTENT_SIZE for page offset.
-    
+
     Params:
     - table - pointer to table.
     - offset - offset in bytes.
     - size - size of deleted content.
-    
+
     Return -3 if table don't have directories.
     Return -2 if something goes wrong.
     Return -1 if you try to delete more, then already have.
@@ -356,11 +356,11 @@ Credits: j1sk1ss
                 DIRECTORY_OFFSET for directory offset,
                 PAGE_CONTENT_SIZE for page offset.
     - data - data for seacrh
-    - data_size - data for search size 
+    - data_size - data for search size
 
     Return -2 if something goes wrong
     Return -1 if data nfound
-    Return global index (first entry) of target data 
+    Return global index (first entry) of target data
     */
     int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size);
 
@@ -370,12 +370,12 @@ Credits: j1sk1ss
     Note: For offset in pages or directories use defined vars like:
     - DIRECTORY_OFFSET for directory offset
     - PAGE_CONTENT_SIZE for page offset
-    
+
     Params:
     - directory - pointer to directory
     - offset - offset in bytes
     - value - value that we want to find
-    
+
     Return -3 if table don't have linked directories.
     Return -1 - if not found
     Return index of value in page with end offset
@@ -422,7 +422,7 @@ Credits: j1sk1ss
     int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name);
 
     /*
-    Update column in provided table. 
+    Update column in provided table.
     Note: Provided column should have same size and same name with column, that we want to replace.
           If you want to change name of column, provide index of column to by_index variable.
     Note 1: If you don't want to change table by index, pass -1 to by_index variable.
@@ -441,12 +441,12 @@ Credits: j1sk1ss
     Create column and allocate memory for.
     Note: Use only defined types of column.
     Note 2: If you want use any value (disable in-build check), use ANY type.
-    
+
     Params:
     - type - column type
     - name - column name (Should equals or smaller then column max size).
            If it large then max size, name will trunc for fit.
-    
+
     Return pointer to column
     */
     table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name);
@@ -475,11 +475,11 @@ Credits: j1sk1ss
     /*
     Link directory to table
     Note: Be sure that directory has same signature with table
-    
+
     Params:
     - table - pointer to table (Can be freed after function)
     - directory - pointer to directory (Can be freed after function)
-    
+
     Return 0 - if something goes wrong
     Return 1 - if link was success
     */
@@ -501,24 +501,24 @@ Credits: j1sk1ss
 
     /*
     Create new table
-    
+
     Params:
     - name - name of table (Can be freed after function)
     - columns - columns in table (Please avoid free operations)
     - col_count - columns count
     - access - access of table
-    
+
     Return pointer to new table
     */
     table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access);
 
     /*
     Save table to the disk
-    
+
     Params:
     - table - pointer to table (Can be freed after function)
     - path - place where table will be saved (Can be freed after function)
-    
+
     Return -5 if dir names write corrupt.
     Return -4 if column links write corrupt.
     Return -3 if column names write corrupt.
@@ -531,17 +531,17 @@ Credits: j1sk1ss
 
     /*
     Load table from .tb bin file
-    
+
     Params:
     - path - path of file (Can be freed after function)
     Note: Don't forget about full path. Be sure that all code coreectly use paths
-    
-    Return allocated table from disk 
+
+    Return allocated table from disk
     */
     table_t* TBM_load_table(char* path);
 
     /*
-    Delete table from disk. 
+    Delete table from disk.
     Note: Will delete all linked directories and linked pages if flag full is 1.
 
     Params:
@@ -555,17 +555,17 @@ Credits: j1sk1ss
 
     /*
     Release table.
-    Imoortant Note!: Usualy table, if we use load_table function, 
+    Imoortant Note!: Usualy table, if we use load_table function,
     saved in TDT, that means, that you should avoid free_table with tables,
     that was created by load_table.
     Note 1: Use this function with tables, that was created by create_table function.
     Note 2: If you anyway want to free table, prefere using flush_table insted free_table.
             Difference in part, where flush_table first try to find provided table in TDT, then
             set it to NULL pointer, and free, instead simple free in free_table case.
-    
+
     Params:
     - table - pointer to table
-    
+
     Return 0 - if something goes wrong
     Return 1 - if Release was success
     */

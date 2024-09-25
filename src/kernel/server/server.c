@@ -27,7 +27,7 @@ void processing_message(unsigned char *s, int n) {
             if(*p > 'z') *p -= 26;
         }
     }
-}  
+}
 
 void processing_message_service(int in, int out) {
     unsigned char buf[1024];
@@ -159,7 +159,7 @@ int setup_server() {
             // client_socket = accept(server_socket, NULL, NULL);
 
             client_address_len = sizeof(client_address);
-            client_socket_fd   = accept(server_socket, (struct sockaddr *)&client_address, &client_address_len);
+            client_socket_fd   = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t*)&client_address_len);
             if (client_socket_fd < 0) {
                 perror("HH_ERROR: accept() call failed");
                 continue;
@@ -176,4 +176,4 @@ int setup_server() {
 
     #endif
 	return 1;
-}  
+}
