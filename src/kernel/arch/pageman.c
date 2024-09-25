@@ -2,10 +2,10 @@
 
 /*
 Page destriptor table, is an a static array of pages indexes. Main idea in
-saving pages temporary in static table somewhere in memory. Max size of this 
+saving pages temporary in static table somewhere in memory. Max size of this
 table equals 1024 * 10 = 10Kb.
 
-For working with table we have PAGE struct, that have index of table in PDT. If 
+For working with table we have PAGE struct, that have index of table in PDT. If
 we access to pages with full PGM_PDT, we also unload old page and load new page.
 (Stack)
 
@@ -56,7 +56,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size) {
         if (offset >= PAGE_CONTENT_SIZE) return -2;
         for (int i = offset; i <= PAGE_CONTENT_SIZE - (int)data_size; i++) {
-            if (memcmp(&page->content[i], data, data_size) == 0) 
+            if (memcmp(&page->content[i], data, data_size) == 0)
                 return i;
         }
 
@@ -65,7 +65,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
     int PGM_find_value(page_t* page, int offset, uint8_t value) {
         if (offset >= PAGE_CONTENT_SIZE) return -2;
-        
+
         int index = offset;
         while (1) {
             if (page->content[index] == value) return index;
@@ -182,7 +182,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 #else
                     fflush(file);
                 #endif
-                
+
                 fclose(file);
             }
         }
@@ -197,7 +197,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         char file_path[DEFAULT_PATH_SIZE];
         char file_name[PAGE_NAME_SIZE];
         char file_ext[8];
-        
+
         get_file_path_parts(temp_path, file_path, file_name, file_ext);
 
         page_t* loaded_page = PGM_PDT_find_page(file_name);
@@ -226,11 +226,11 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     fread(page->content, PAGE_CONTENT_SIZE, 1, file);
                     page->header = header;
 
-                    // Close file page
+                    // Close and flush file page
                     #ifndef _WIN32
-                        fsync(fileno(file));
+                    fsync(fileno(file));
                     #else
-                        fflush(file);
+                    fflush(file);
                     #endif
 
                     PGM_PDT_add_page(page);
@@ -265,7 +265,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     current = i;
                     break;
                 }
-                
+
                 if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
                     if (PGM_PDT[current] == NULL) return -1;
                     if (memcmp(page->header->name, PGM_PDT[current]->header->name, PAGE_NAME_SIZE) != 0) {
@@ -320,9 +320,11 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                         break;
                     }
                 }
-                
+
                 if (index != -1) PGM_PDT_flush_index(index);
                 else PGM_free_page(page);
+            #else
+                PGM_free_page(page);
             #endif
 
             return 1;
@@ -353,7 +355,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (page == NULL) return -2;
 
                 int delay = 99999;
-                while (page->lock == LOCKED && (page->lock_owner != owner || page->lock_owner != -1)) {
+                while (page->lock == LOCKED && (page->lock_owner != owner || page->lock_owner != NO_OWNER)) {
                     if (--delay <= 0) return -1;
                 }
 
@@ -377,10 +379,10 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             #ifndef NO_PDT
                 if (page == NULL) return -3;
                 if (page->lock == UNLOCKED) return -1;
-                if (page->lock_owner != owner && page->lock_owner != -1) return -2;
+                if (page->lock_owner != owner && page->lock_owner != NO_OWNER) return -2;
 
                 page->lock = UNLOCKED;
-                page->lock = -1;
+                page->lock_owner = NO_OWNER;
             #endif
 
             return 1;

@@ -31,14 +31,14 @@ Credits: j1sk1ss
 #pragma region [Access]
 
     // Create access byte for new tables and for users. For input, this
-    // function take values from 0 to 7.
+    // function take values from 0 to 3.
     #define CREATE_ACCESS_BYTE(read_access, write_access, delete_access) \
         (((read_access & 0b11) << 4) | ((write_access & 0b11) << 2) | (delete_access & 0b11))
 
     // Macros for getting access level
-    #define GET_READ_ACCESS(access_byte)    ((access_byte >> 6) & 0b111)
-    #define GET_WRITE_ACCESS(access_byte)   ((access_byte >> 3) & 0b111)
-    #define GET_DELETE_ACCESS(access_byte)  (access_byte & 0b111)
+    #define GET_READ_ACCESS(access_byte)    ((access_byte >> 4) & 0b11)
+    #define GET_WRITE_ACCESS(access_byte)   ((access_byte >> 2) & 0b11)
+    #define GET_DELETE_ACCESS(access_byte)  (access_byte & 0b11)
 
     /*
     Macros for checking read access level. Will return -1 if access denied.
@@ -93,15 +93,23 @@ Credits: j1sk1ss
     #define COLUMN_MAX_SIZE     0xFF
 
     #define COLUMN_MAGIC        0xEA
-    #define COLUMN_NAME_SIZE    16
+    /*
+    Column name size indicates how much bytes will reserve name field on disk.
+    In optimisation purpuse, this value should be equals something like 16 or 8.
+    Note: In PSQL, max size of column name is 64.
+    */
+    #define COLUMN_NAME_SIZE    8
 
-    // Column auto increment bits TODO
+    // Column auto increment bits.
+    // <Already not implemented yet>
     #define COLUMN_NO_AUTO_INC       0x00
     #define COLUMN_AUTO_INCREMENT    0x01
 
-    // Column primary status bits
+    // Column primary status bits. If column is primary
+    // thats mean, that value in every row in this column is uniqe.
     #define COLUMN_NOT_PRIMARY       0x00
     #define COLUMN_PRIMARY           0x01
+
     // Any type say that user can insert any value that he want
     #define COLUMN_TYPE_ANY          0x00
     // Int type throw error, if user insert something, that not int

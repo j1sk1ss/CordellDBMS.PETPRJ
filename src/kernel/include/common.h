@@ -13,19 +13,10 @@
 #include <stdint.h>
 
 #include "logging.h"
-
-#ifndef _OPENMP
-  #define omp_get_thread_num() 0
-  #define omp_set_num_threads(num)
-#else
-  #include <omp.h>
-#endif
+#include "threading.h"
 
 
 #define DEFAULT_PATH_SIZE 100
-
-#define LOCKED    1
-#define UNLOCKED  0
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -35,7 +26,7 @@
   } while(0)
 
 /*
-Create rundom string 
+Create rundom string
 Took from: https://stackoverflow.com/questions/15767691/whats-the-c-library-function-to-generate-random-string
 
 dest - pointer to place, where mamory for string allocated

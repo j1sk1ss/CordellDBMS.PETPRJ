@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < transaction_size; i++) {
         kernel_answer_t* answer = kernel_process_command(argc - arg_count, commands_pointer);
         arg_count += answer->commands_processed;
-        commands_pointer += arg_count;
+        commands_pointer += answer->commands_processed;
     }
 }
 

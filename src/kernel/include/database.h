@@ -3,8 +3,8 @@
  *  Main idea is to have main list of functions for handle user commands.
  *
  *  Also thanks to https://habr.com/ru/articles/803347/ for additional info about fflash and fsync,
- *  info about file based DBMS optimisation and other usefull stuff. 
- * 
+ *  info about file based DBMS optimisation and other usefull stuff.
+ *
  *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
  *  Credits: j1sk1ss
  */
@@ -28,7 +28,7 @@
 #define TABLES_PER_DATABASE     0xFF
 
 #define DATABASE_EXTENSION      getenv("DATABASE_EXTENSION") == NULL ? "db" : getenv("DATABASE_EXTENSION")
-// Set here default path for save. 
+// Set here default path for save.
 // Important Note ! : This path is main for ALL databases
 #define DATABASE_BASE_PATH      getenv("DATABASE_BASE_PATH") == NULL ? "" : getenv("DATABASE_BASE_PATH")
 
@@ -67,6 +67,10 @@ we use cache in pages (lowest level) and table cache at the highest level.
         // Database header
         database_header_t* header;
 
+        // Table cache for faster access without checking
+        // and iteration throw all tables
+        table_t* cached_table;
+
         // Database linked tables
         uint8_t table_names[TABLES_PER_DATABASE][TABLE_NAME_SIZE];
     } typedef database_t;
@@ -83,7 +87,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - table_name - current table name
     - row - index of row. You can get index by:
             1) find value row function,
-            2) find data row function. 
+            2) find data row function.
             For additional info check docs.
     - access - user access level
 
@@ -169,8 +173,8 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if update was success.
     */
     int DB_update_row(
-        database_t* database, char* table_name, 
-        int row, char* column_name, uint8_t* data, 
+        database_t* database, char* table_name,
+        int row, char* column_name, uint8_t* data,
         size_t data_size, uint8_t access
     );
 
@@ -214,20 +218,20 @@ we use cache in pages (lowest level) and table cache at the highest level.
                 DIRECTORY_OFFSET for directory offset,
                 PAGE_CONTENT_SIZE for page offset.
     - data - data for search
-    - data_size - data for search size 
+    - data_size - data for search size
     - access - user access level
 
     Return -3 if access denied
     Return -2 if something goes wrong
     Return -1 if data nfound
-    Return row index (first entry) of target data 
+    Return row index (first entry) of target data
     */
     int DB_find_data_row(
-        database_t* database, char* table_name, 
-        char* column, int offset, uint8_t* data, 
+        database_t* database, char* table_name,
+        char* column, int offset, uint8_t* data,
         size_t data_size, uint8_t access
     );
-    
+
     /*
     Find value function return row index in databse of provided value.
 
@@ -247,10 +251,10 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return row index (first entry) of target value
     */
     int DB_find_value_row(
-        database_t* database, char* table_name, 
-        char* column, int offset, uint8_t value, 
+        database_t* database, char* table_name,
+        char* column, int offset, uint8_t value,
         uint8_t access
-    ); 
+    );
 
 #pragma endregion
 
@@ -334,7 +338,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     /*
     Load database from disk by provided path to *.db file.
-    
+
     Params:
     - path - path to *.db file
 

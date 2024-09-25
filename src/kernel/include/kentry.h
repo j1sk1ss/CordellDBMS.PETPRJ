@@ -1,16 +1,16 @@
 /*
  * Kmain file. In future here will be placed some kernel init stuff.
  * Also, this file handle commands, and work with database.
- * 
+ *
  * Cordell DBMS is a light weight data base manager studio. Main idea
  * that we can work with big data by using very light weighten app.
- * 
+ *
  * Anyway, that fact, that we try to simplify DBMS, create some points:
  * - We don`t have rollbacks, hosting and user managment. This is work for
  * higher abstractions.
- * - We have few fixed enviroment variable (paths for saving databases, 
+ * - We have few fixed enviroment variable (paths for saving databases,
  * tables, directories and pages), that can`t be changed by default user.
- * 
+ *
  * ! Building this file without server side, will disable API communication of third-part applications !
  * building without OMP: gcc -Wall .\kentry.c .\std\* -Wunknown-pragmas -fpermissive -o cdbms.exe
  * buildinc with OMP: gcc -Wall .\kentry.c .\std\* -fopenmp -fpermissive -o cdbms.exe
@@ -45,11 +45,11 @@
 
     #define TABLE           "table"
     #define DATABASE        "database"
-    
+
     #define COLUMNS         "columns"
     #define COLUMN          "column"
     #define ROW             "row"
-    
+
     #define BY_INDEX        "by_index"
     #define BY_VALUE        "by_value"
 

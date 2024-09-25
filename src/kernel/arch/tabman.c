@@ -1,12 +1,11 @@
 #include "../include/tabman.h"
 
-
 /*
 Table destriptor table, is an a static array of table indexes. Main idea in
-saving tables temporary in static table somewhere in memory. Max size of this 
+saving tables temporary in static table somewhere in memory. Max size of this
 table equals 2072 * 10 = 20.72Kb.
 
-For working with table we have table struct, that have index of table in TDT. If 
+For working with table we have table struct, that have index of table in TDT. If
 we access to tables with full TBM_TDT, we also unload old tables and load new tables.
 (Stack)
 
@@ -89,7 +88,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
         uint8_t* data_pointer = data;
         int size4append = (int)data_size;
-        
+
         // Iterate existed directories. Maybe we can store data here?
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory to memory
@@ -97,7 +96,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             sprintf(directory_save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
             directory_t* directory = DRM_load_directory(directory_save_path);
             if (directory == NULL) return -1;
-            if (directory->header->page_count + size4append > PAGES_PER_DIRECTORY) continue; 
+            if (directory->header->page_count + size4append > PAGES_PER_DIRECTORY) continue;
 
             int result = DRM_append_content(directory, data_pointer, size4append);
             if (result == -2) return -2;
@@ -112,7 +111,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             data_pointer += loaded_data;
             size4append = result;
         }
-        
+
         // Create new directories while we don`t store all provided data.
         while (size4append > 0) {
             // If we reach table limit, return error code.
@@ -126,7 +125,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
             size4append = DRM_append_content(new_directory, data_pointer, size4append);
             TBM_link_dir2table(table, new_directory);
-            
+
             // Save directory to disk
             char save_path[DEFAULT_PATH_SIZE];
 
@@ -147,7 +146,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
         uint8_t* data_pointer = data;
         int size4insert = (int)data_size;
-        
+
         // Iterate existed directories. Maybe we can insert data here?
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory to memory
@@ -167,8 +166,8 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             data_pointer += loaded_data;
             size4insert = result;
         }
-        
-        // If we reach end, return error code. 
+
+        // If we reach end, return error code.
         // Check docs why we return error, instead dir creation.
         return -2;
     }
@@ -176,7 +175,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     int TBM_delete_content(table_t* table, int offset, size_t size) {
         if (table->header->dir_count == 0) return -3;
         int size4delete = (int)size;
-        
+
         // Iterate existed directories. Maybe we can insert data here?
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory to memory
@@ -202,7 +201,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 return size4delete;
             }
         }
-        
+
         // If we reach end, return error code.
         return -2;
     }
@@ -213,7 +212,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         int target_global_index = -1;
 
         uint8_t* data_pointer = data;
-        for (int i = 0; i < table->header->dir_count && size4seach > 0; i++) {            
+        for (int i = 0; i < table->header->dir_count && size4seach > 0; i++) {
             // We load current page to memory
             char save_path[DEFAULT_PATH_SIZE];
             sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, table->dir_names[i], DIRECTORY_EXTENSION);
@@ -234,7 +233,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             if (result == -1) {
                 // We don`t find any entry of data part.
                 // This indicates, that we don`t find any data.
-                // Restore size4search and datapointer, we go to start 
+                // Restore size4search and datapointer, we go to start
                 size4seach          = (int)data_size;
                 data_pointer        = data;
                 target_global_index = -1;
@@ -263,7 +262,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     int TBM_find_value(table_t* table, int offset, uint8_t value) {
         if (table->header->dir_count == 0) return -3;
         int final_result = -1;
-        
+
         #pragma omp parallel for shared(final_result)
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory to memory
@@ -284,7 +283,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             if (result != -1) {
                 #pragma omp critical (final_result2result)
                 {
-                    if (final_result == -1) 
+                    if (final_result == -1)
                         final_result = result;
                 }
             }
@@ -392,7 +391,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             char value[COLUMN_MAX_SIZE] = { '\0' };
             memcpy(value, data_pointer, table->columns[i]->size);
             data_pointer += table->columns[i]->size;
-            
+
             uint8_t data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
             switch (data_type) {
                 case COLUMN_TYPE_STRING:
@@ -414,7 +413,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     }
 
     int TBM_link_dir2table(table_t* table, directory_t* directory) {
-        if (table->header->dir_count + 1 >= DIRECTORIES_PER_TABLE) 
+        if (table->header->dir_count + 1 >= DIRECTORIES_PER_TABLE)
             return -1;
 
         #pragma omp critical (link_dir2table)
@@ -457,7 +456,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
         table->header  = header;
         table->columns = columns;
-        
+
         table->column_links = NULL;
 
         return table;
@@ -477,19 +476,19 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 if (fwrite(table->header, sizeof(table_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
 
                 // Write table data to open file
-                for (int i = 0; i < table->header->column_count; i++) 
+                for (int i = 0; i < table->header->column_count; i++)
                     if (fwrite(table->columns[i], sizeof(table_column_t), SEEK_CUR, file) != SEEK_CUR) {
                         status = -3;
                         break;
                     }
 
-                for (int i = 0; i < table->header->column_link_count; i++) 
+                for (int i = 0; i < table->header->column_link_count; i++)
                     if (fwrite(table->column_links[i], sizeof(table_column_link_t), SEEK_CUR, file) != SEEK_CUR) {
                         status = -4;
                         break;
                     }
 
-                for (int i = 0; i < table->header->dir_count; i++) 
+                for (int i = 0; i < table->header->dir_count; i++)
                     if (fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file) != SEEK_CUR) {
                         status = -5;
                         break;
@@ -497,11 +496,11 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
                 // Close file and clear buffers
                 #ifndef _WIN32
-                    fsync(fileno(file));
+                fsync(fileno(file));
                 #else
-                    fflush(file);
+                fflush(file);
                 #endif
-                
+
                 fclose(file);
             }
         }
@@ -554,7 +553,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                     }
 
                     // Read directory names from file, that linked to this directory.
-                    for (int i = 0; i < header->dir_count; i++) 
+                    for (int i = 0; i < header->dir_count; i++)
                         fread(table->dir_names[i], DIRECTORY_NAME_SIZE, 1, file);
 
                     fclose(file);
@@ -591,9 +590,9 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
     int TBM_free_table(table_t* table) {
         if (table == NULL) return -1;
-        for (int i = 0; i < table->header->column_count; i++) 
+        for (int i = 0; i < table->header->column_count; i++)
             SOFT_FREE(table->columns[i]);
-        
+
         for (int i = 0; i < table->header->column_link_count; i++)
             SOFT_FREE(table->column_links[i]);
 
@@ -619,7 +618,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                     current = i;
                     break;
                 }
-                
+
                 if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
                     if (TBM_TDT[current] == NULL) return -1;
                     if (memcmp(table->header->name, TBM_TDT[current]->header->name, TABLE_NAME_SIZE) != 0) {
@@ -675,9 +674,11 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                         break;
                     }
                 }
-                
+
                 if (index != -1) TBM_TDT_flush_index(index);
                 else TBM_free_table(table);
+            #else
+                TBM_free_table(directory);
             #endif
 
             return 1;
@@ -686,7 +687,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         int TBM_TDT_flush_index(int index) {
             #ifndef NO_TDT
                 if (TBM_TDT[index] == NULL) return -1;
-                
+
                 char save_path[DEFAULT_PATH_SIZE];
                 sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, TBM_TDT[index]->header->name, TABLE_EXTENSION);
 
@@ -708,7 +709,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 if (table == NULL) return -2;
 
                 int delay = 99999;
-                while (table->lock == LOCKED && (table->lock_owner != owner || table->lock_owner != -1)) {
+                while (table->lock == LOCKED && (table->lock_owner != owner || table->lock_owner != NO_OWNER)) {
                     if (--delay <= 0) return -1;
                 }
 
@@ -731,10 +732,10 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         int TBM_release_table(table_t* table, uint8_t owner) {
             #ifndef NO_TDT
                 if (table->lock == UNLOCKED) return -1;
-                if (table->lock_owner != owner && table->lock_owner != -1) return -2;
+                if (table->lock_owner != owner && table->lock_owner != NO_OWNER) return -2;
 
                 table->lock = UNLOCKED;
-                table->lock = -1;
+                table->lock_owner = NO_OWNER;
             #endif
 
             return 1;
