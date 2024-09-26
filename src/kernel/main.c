@@ -10,8 +10,8 @@
  * building with OMP: gcc-14 -Wall main.c kentry.c std\* arch\* -fopenmp -fpermissive -o cdbms.bin
  *
  * Win10/Win11:
- * building without OMP: gcc -Wall .\main.c .\kentry.c .\std\* .\arch\* -Wunknown-pragmas -fpermissive -o cdbms.exe
- * building with OMP: gcc -Wall .\main.c .\kentry.c .\std\* .\arch\* -fopenmp -fpermissive -o cdbms.exe
+ * building without OMP: gcc -Wall .\main.c .\kentry.c .\std\* .\arch\* -Wunknown-pragmas -lws2_32 -fpermissive -o cdbms.exe
+ * building with OMP: gcc -Wall .\main.c .\kentry.c .\std\* .\arch\* -fopenmp -lws2_32 -fpermissive -o cdbms.exe
  *
  * Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
@@ -24,13 +24,16 @@
 #include <string.h>
 #include <sys/types.h>
 
-#ifndef _WIN32
+#ifdef _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #pragma comment(lib, "ws2_32.lib")
+#else
     #include <unistd.h>
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
 #endif
-
 
 #define SERVER_PORT     8888
 #define MESSAGE_BUFFER  2048
@@ -40,8 +43,15 @@
 
 
 int setup_server();
+void cleanup();
 void send2kernel(int source, int destination);
 
+
+void cleanup() {
+    #ifdef _WIN32
+        WSACleanup();
+    #endif
+}
 
 /*
 This function takes source data and destination address for kernel answer.
@@ -95,11 +105,23 @@ void send2kernel(int source, int destination) {
     }
 }
 
+/*
+Server setup function
+*/
 int main(int argc, char* argv[]) {
     #ifndef _WIN32
         int rc = -1;
         int server_socket = -1;
         char server_message[MESSAGE_BUFFER];
+
+        #ifdef _WIN32
+            WSADATA wsa_data;
+            rc = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+            if (rc != 0) {
+                print_error("HH_ERROR: WSAStartup() failed");
+                return -1;
+            }
+        #endif
 
         server_socket = socket(AF_INET, SOCK_STREAM, 0);
         if (server_socket == -1) {
@@ -149,11 +171,17 @@ int main(int argc, char* argv[]) {
 
             send2kernel(client_socket_fd, client_socket_fd);
             send(client_socket_fd, server_message, sizeof(server_message), 0);
-            close(client_socket_fd);
+
+            #ifdef _WIN32
+                closesocket(client_socket_fd);
+            #else
+                close(client_socket_fd);
+            #endif
         }
     #else
         print_error("Windows server side currently not avaliabe!\nCheck for updates!\n");
     #endif
 
+    cleanup();
 	return 1;
 }
