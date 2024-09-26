@@ -1,5 +1,4 @@
 #include "../include/pageman.h"
-#include <stdint.h>
 
 /*
 Page destriptor table, is an a static array of pages indexes. Main idea in
@@ -29,7 +28,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_length) {
-        int end_index = MIN(PAGE_CONTENT_SIZE - offset, (int)data_length + offset);
+        int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
         for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) {
             page->content[i] = data[j];
         }
@@ -66,6 +65,33 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         return -1;
     }
 
+    int PGM_set_pe_symbol(page_t* page, int offset) {
+        int eof = -1;
+        for (int i = 0; i < PAGE_CONTENT_SIZE; i++) {
+            if (page->content[i] != PAGE_EMPTY) continue;
+            int current_eof = i;
+            for (int j = current_eof; j < PAGE_CONTENT_SIZE - current_eof; j++) {
+                if (page->content[j] != PAGE_EMPTY) {
+                    current_eof = -1;
+                    i = j;
+                    break;
+                }
+            }
+
+            if (current_eof >= 0) {
+                eof = current_eof;
+                break;
+            }
+        }
+
+        if (eof >= 0 && eof < PAGE_CONTENT_SIZE) {
+            page->content[eof] = PAGE_END;
+            return eof;
+        }
+
+        return 0;
+    }
+
     int PGM_get_free_space(page_t* page, int offset) {
         // We count empty symbols
         int count = 0;
@@ -79,7 +105,10 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
     int PGM_get_fit_free_space(page_t* page, int offset, int size) {
         int index = 0;
-        while (page->content[index] != PAGE_EMPTY) { index++; }
+        while (page->content[index] != PAGE_EMPTY) {
+            if (++index > PAGE_CONTENT_SIZE) return -1;
+        }
+
         if (offset == -1) return index;
 
         int is_reading = 0;
@@ -115,9 +144,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         page->header = header;
         memcpy(page->content, buffer, data_size);
 
-        if (data_size < PAGE_CONTENT_SIZE) page->content[data_size] = PAGE_END;
         for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
-
         return page;
     }
 
@@ -161,11 +188,12 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 print_error("Can't save or create [%s] file", path);
             } else {
                 // Write data to disk
+                int eof = PGM_set_pe_symbol(page, PAGE_START);
                 int page_size = PGM_find_value(page, 0, PAGE_END);
                 if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
 
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
-                if (fwrite(page->content, page_size, 1, file) != 1) status = -3;
+                if (fwrite(page->content, sizeof(uint8_t), page_size, file) != page_size) status = -3;
 
                 // Close file
                 #ifndef _WIN32
@@ -175,6 +203,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 #endif
 
                 fclose(file);
+                page->content[eof] = PAGE_EMPTY;
             }
         }
 
@@ -214,8 +243,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     // Allocate memory for page structure
                     page_t* page = (page_t*)malloc(sizeof(page_t));
                     memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
+                    fread(page->content, sizeof(uint8_t), PAGE_CONTENT_SIZE, file);
 
-                    fread(page->content, PAGE_CONTENT_SIZE, 1, file);
                     page->header = header;
 
                     // Close and flush file page

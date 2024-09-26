@@ -1,5 +1,7 @@
 /*
-Pages - first abstraction level, that responsible for working with files
+Pages - first abstraction level, that responsible for working with files. Main idea of page,
+that this file contains rows without trunc. That's mean, that we can't store in one page a part
+of row. Only whole row. This is important point, that guarantee data strength.
 Pageman - list of functions for working with pages and low-level content presentation in files:
 We can:
     - Create new pages

@@ -99,45 +99,33 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
             if (directory->header->page_count + size4append > PAGES_PER_DIRECTORY) continue;
 
             int result = DRM_append_content(directory, data_pointer, size4append);
-            if (result == -2) return -2;
+            if (result < 0) return result - 10;
             else if (result == 0 || result == 1 || result == 2) {
+                DRM_save_directory(directory, directory_save_path);
                 return 1;
             }
-
-            // Move append data pointer.
-            // And create new directories. Why new instead iterating?
-            // It will break end structure of data and create defragmentation.
-            int loaded_data = size4append - result;
-            data_pointer += loaded_data;
-            size4append = result;
         }
 
-        // Create new directories while we don`t store all provided data.
-        while (size4append > 0) {
-            // If we reach table limit, return error code.
-            if (table->header->dir_count + 1 > DIRECTORIES_PER_TABLE) return -1;
+        if (table->header->dir_count + 1 > DIRECTORIES_PER_TABLE) return -1;
 
-            // Create new empty directory and append data.
-            // If we overfill directory by data, save size of data,
-            // that we should save.
-            directory_t* new_directory = DRM_create_empty_directory();
-            if (new_directory == NULL) return -1;
+        // Create new empty directory and append data.
+        // If we overfill directory by data, save size of data,
+        // that we should save.
+        directory_t* new_directory = DRM_create_empty_directory();
+        if (new_directory == NULL) return -1;
 
-            size4append = DRM_append_content(new_directory, data_pointer, size4append);
-            TBM_link_dir2table(table, new_directory);
+        int append_result = DRM_append_content(new_directory, data_pointer, size4append);
+        if (append_result < 0) return append_result - 10;
 
-            // Save directory to disk
-            char save_path[DEFAULT_PATH_SIZE];
+        TBM_link_dir2table(table, new_directory);
 
-            sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, new_directory->header->name, DIRECTORY_EXTENSION);
-            int save_result = DRM_save_directory(new_directory, save_path);
+        // Save directory to disk
+        char save_path[DEFAULT_PATH_SIZE];
+        sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, new_directory->header->name, DIRECTORY_EXTENSION);
+        DRM_save_directory(new_directory, save_path);
 
-            // Realise directory
-            DRM_free_directory(new_directory);
-
-            if (save_result != 1) return -1;
-        }
-
+        // Realise directory
+        DRM_free_directory(new_directory);
         return 1;
     }
 
@@ -473,25 +461,22 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 print_error("Can't save or create table [%s] file", path);
             } else {
                 // Write header
-                if (fwrite(table->header, sizeof(table_header_t), SEEK_CUR, file) != SEEK_CUR) status = -2;
+                if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
 
                 // Write table data to open file
                 for (int i = 0; i < table->header->column_count; i++)
-                    if (fwrite(table->columns[i], sizeof(table_column_t), SEEK_CUR, file) != SEEK_CUR) {
+                    if (fwrite(table->columns[i], sizeof(table_column_t), 1, file) != 1) {
                         status = -3;
-                        break;
                     }
 
                 for (int i = 0; i < table->header->column_link_count; i++)
-                    if (fwrite(table->column_links[i], sizeof(table_column_link_t), SEEK_CUR, file) != SEEK_CUR) {
+                    if (fwrite(table->column_links[i], sizeof(table_column_link_t), 1, file) != 1) {
                         status = -4;
-                        break;
                     }
 
                 for (int i = 0; i < table->header->dir_count; i++)
-                    if (fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, SEEK_CUR, file) != SEEK_CUR) {
+                    if (fwrite(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file) != DIRECTORY_NAME_SIZE) {
                         status = -5;
-                        break;
                     }
 
                 // Close file and clear buffers
@@ -553,7 +538,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
                     // Read directory names from file, that linked to this directory.
                     for (int i = 0; i < header->dir_count; i++)
-                        fread(table->dir_names[i], DIRECTORY_NAME_SIZE, 1, file);
+                        fread(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file);
 
                     fclose(file);
                     table->header = header;

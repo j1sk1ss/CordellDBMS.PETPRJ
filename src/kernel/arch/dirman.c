@@ -24,21 +24,21 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         uint8_t* content = (uint8_t*)malloc(size);
         uint8_t* content_pointer = content;
 
-        int page_offset     = offset / PAGE_CONTENT_SIZE;
-        int current_index   = offset % PAGE_CONTENT_SIZE;
         int pages4work      = (int)size / PAGE_CONTENT_SIZE;
-        int current_page    = page_offset;
+        int page_offset     = offset / PAGE_CONTENT_SIZE;
+
+        int current_index   = offset % PAGE_CONTENT_SIZE;
         int size2get        = (int)size;
 
-        for (int i = 0; i < pages4work + 1 && size2get > 0; i++) {
-            if (current_page > directory->header->page_count) {
+        for (int i = page_offset; i < page_offset + pages4work + 1 && size2get > 0; i++) {
+            if (i > directory->header->page_count) {
                 // To  many pages. We reach directory end.
                 return content;
             }
 
             // We load current page
             char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
+            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
             page_t* page = PGM_load_page(page_path);
 
             // We check, that we don't return Page Empty, because
@@ -84,7 +84,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
                 page_t* page = PGM_load_page(page_path);
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
-                if (index == -2 || index == -1) {
+                if (index < 0) {
                     continue;
                 }
 
@@ -95,41 +95,25 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             }
         }
 
-        int pages4work  = (int)data_lenght / PAGE_CONTENT_SIZE;
-        int size2append = (int)data_lenght;
-        uint8_t* data_pointer = data;
+        if (data_lenght >= PAGE_CONTENT_SIZE) return -3;
+        if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) return (int)data_lenght;
 
-        // Allocate pages for input data
-        for (int i = 0; i < pages4work + 1 && size2append > 0; i++) {
-            int current_size = MIN(PAGE_CONTENT_SIZE, size2append);
+        // We allocate memory for page structure with all needed data
+        page_t* new_page = PGM_create_empty_page();
+        if (new_page == NULL) return -2;
 
-            // If we reach pages limit we return error code
-            // We return error instead creationg a new directory, because this is not our abstraction level
-            if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) {
-                return size2append;
-            }
+        // Insert new content to page and mark end
+        PGM_insert_content(new_page, 0, data, data_lenght);
 
-            // We allocate memory for page structure with all needed data
-            page_t* new_page = PGM_create_empty_page();
-            if (new_page == NULL) return -2;
+        char page_save_path[DEFAULT_PATH_SIZE];
+        sprintf(page_save_path, "%s%.8s.%s", PAGE_BASE_PATH, new_page->header->name, PAGE_EXTENSION);
+        PGM_save_page(new_page, page_save_path);
 
-            // Insert new content to page and mark end
-            PGM_insert_content(new_page, 0, data_pointer, current_size);
-            PGM_insert_value(new_page, current_size, PAGE_END);
+        // We link page to directory
+        DRM_link_page2dir(directory, new_page);
+        PGM_free_page(new_page);
 
-            char save_path[DEFAULT_PATH_SIZE];
-            sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, new_page->header->name, PAGE_EXTENSION);
-            PGM_save_page(new_page, save_path);
-
-            // We link page to directory
-            DRM_link_page2dir(directory, new_page);
-            PGM_free_page(new_page);
-
-            size2append -= current_size;
-            data_pointer += current_size;
-        }
-
-        return size2append;
+        return 1;
     }
 
     int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght) {
@@ -396,9 +380,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     status = -1;
 
                 for (int i = 0; i < directory->header->page_count; i++) {
-                    if (fwrite(directory->names[i], PAGE_NAME_SIZE, 1, file) != 1) {
+                    if (fwrite(directory->names[i], sizeof(uint8_t), PAGE_NAME_SIZE, file) != 1) {
                         status = -1;
-                        break;
                     }
                 }
 
@@ -448,7 +431,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     // Then we read page names
                     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
                     for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
-                        fread(directory->names[i], PAGE_NAME_SIZE, 1, file);
+                        fread(directory->names[i], sizeof(uint8_t), PAGE_NAME_SIZE, file);
                     }
 
                     directory->header = header;

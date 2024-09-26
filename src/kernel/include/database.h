@@ -120,7 +120,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
         Return -14 if column type unknown. Check table, that you provide into function.
         Return -13 if signature is wrong. You provide value for FLOAT column, but value is not float.
         Return -12 if signature is wrong. You provide value for INT column, but value is not integer.
-        Return -11 if provided data too small. Maybe you forgot additional CD?
+        Return -11 if provided data too small. Maybe you forgot additional CD? <DEPRECATED>
     }
     Return -1 if something goes wrong.
     Return 0 if row append was success.
@@ -148,7 +148,12 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - access - user access level
 
     Return -3 if access denied
-    Return -2 if signature is wrong
+    Return -2 if signature is wrong: {
+        Return -14 if column type unknown. Check table, that you provide into function.
+        Return -13 if signature is wrong. You provide value for FLOAT column, but value is not float.
+        Return -12 if signature is wrong. You provide value for INT column, but value is not integer.
+        Return -11 if provided data too small. Maybe you forgot additional CD? <DEPRECATED>
+    }
     Return -1 if something goes wrong
     Return 0 if row insert was success
     Return 1 if row insert cause page creation

@@ -15,7 +15,11 @@
 
         int row_size = 0;
         for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
-        int global_offset = row * row_size;
+
+        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+        int pages_offset  = row / rows_per_page;
+        int page_offset   = row % rows_per_page;
+        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
 
         uint8_t* row_data = TBM_get_content(table, global_offset, row_size);
         return row_data;
@@ -32,7 +36,7 @@
         }
 
         int result = TBM_check_signature(table, data);
-        if (result != 1) return result + 10;
+        if (result != 1) return result - 10;
 
         #ifndef NO_PRIMARY_CHECK
             // Get primary column and column offset
@@ -87,9 +91,14 @@
 
         int row_size = 0;
         for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
-        int global_offset = row * row_size;
 
-        if (TBM_check_signature(table, data) != 1) return -2;
+        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+        int pages_offset  = row / rows_per_page;
+        int page_offset   = row % rows_per_page;
+        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
+
+        int result = TBM_check_signature(table, data);
+        if (result != 1) return result - 10;
         return TBM_insert_content(table, global_offset, data, data_size);
     }
 
@@ -136,7 +145,11 @@
 
         int row_size = 0;
         for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
-        int global_offset = row * row_size;
+
+        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+        int pages_offset  = row / rows_per_page;
+        int page_offset   = row % rows_per_page;
+        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
 
         #ifndef NO_CASCADE_DELETE
             #pragma omp parallel
@@ -375,7 +388,7 @@
                 } else {
                     database_t* database = (database_t*)malloc(sizeof(database_t));
                     for (int i = 0; i < header->table_count; i++) {
-                        fread(database->table_names[i], TABLE_NAME_SIZE, 1, file);
+                        fread(database->table_names[i], sizeof(uint8_t), TABLE_NAME_SIZE, file);
                     }
 
                     database->header        = header;
@@ -398,7 +411,7 @@
             } else {
                 if (fwrite(database->header, sizeof(database_header_t), 1, file) != 1) status = -2;
                 for (int i = 0; i < database->header->table_count; i++)
-                    if (fwrite(database->table_names[i], TABLE_NAME_SIZE, 1, file) != 1) {
+                    if (fwrite(database->table_names[i], sizeof(uint8_t), TABLE_NAME_SIZE, file) != TABLE_NAME_SIZE) {
                         status = -3;
                         break;
                     }

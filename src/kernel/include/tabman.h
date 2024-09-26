@@ -317,6 +317,10 @@ Credits: j1sk1ss
     - data - append data
     - data_size - size of data
 
+    Return {
+    Return -12 if we can't create uniqe name for page.
+    Return -13 if data size too large for one page. Check [pageman.h] docs for explanation.
+    }
     Return -1 if something goes wrong
     Return 0 if append was success
     Return 1 if append was success and we create new pages
@@ -474,7 +478,7 @@ Credits: j1sk1ss
     Return -4 if column type unknown. Check table, that you provide into function.
     Return -3 if signature is wrong. You provide value for FLOAT column, but value is not float.
     Return -2 if signature is wrong. You provide value for INT column, but value is not integer.
-    Return -1 if provided data too small. Maybe you forgot additional CD?
+    Return -1 if provided data too small. Maybe you forgot additional CD? <DEPRECATED>
               This error indicates, that data to small for this column count.
     Return 1 if signature is correct.
     */

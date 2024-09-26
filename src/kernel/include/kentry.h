@@ -12,8 +12,8 @@
  * tables, directories and pages), that can`t be changed by default user.
  *
  * ! Building this file without server side, will disable API communication of third-part applications !
- * building without OMP: gcc -Wall .\kentry.c .\std\* -Wunknown-pragmas -fpermissive -o cdbms.exe
- * buildinc with OMP: gcc -Wall .\kentry.c .\std\* -fopenmp -fpermissive -o cdbms.exe
+ * building without OMP: gcc -Wall .\kentry.c .\std\* .\arch\* -Wunknown-pragmas -fpermissive -o cdbms.exe
+ * buildinc with OMP: gcc -Wall .\kentry.c .\std\* .\arch\* -fopenmp -fpermissive -o cdbms.exe
 */
 
 #ifndef KENTRY_H_
@@ -95,7 +95,7 @@ Params:
 
 Return -1 or 1.
 */
-int main(int argc, char* argv[]);
+int kmain(int argc, char* argv[]);
 
 /*
 Process commands and return answer structure.

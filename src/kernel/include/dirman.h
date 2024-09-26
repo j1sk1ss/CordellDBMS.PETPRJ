@@ -8,7 +8,7 @@ We can:
     - Free directory
     - Append / delete / find content in assosiated pages
 
-Dirnam abstraction level responsible for working with pages. It send requests and earns data from lower 
+Dirnam abstraction level responsible for working with pages. It send requests and earns data from lower
 abstraction level. Also dirman don`t check data signature. This is work of database level. Also dirman
 can`t create new directories during handling requests from higher abstraction levels.
 
@@ -33,7 +33,7 @@ Credits: j1sk1ss
 
 
 #define DIRECTORY_EXTENSION getenv("DIRECTORY_EXTENSION") == NULL ? "dr" : getenv("DIRECTORY_EXTENSION")
-// Set here default path for save. 
+// Set here default path for save.
 // Important Note ! : This path is main for ALL directories
 #define DIRECTORY_BASE_PATH getenv("DIRECTORY_BASE_PATH") == NULL ? "" : getenv("DIRECTORY_BASE_PATH")
 
@@ -97,11 +97,11 @@ Credits: j1sk1ss
 
     /*
     Rewrite all line by EMPTY symbols.
-    
+
     directory - pointer to directory.
     offset - offset in directory.
     length - length of data to mark as delete.
-    
+
     Return 1 - if write was success.
     Return -1 - if index not found in page.
     Return size, that can't be deleted, if we reach directory end during work.
@@ -111,17 +111,18 @@ Credits: j1sk1ss
     /*
     Append content to directory. This function move page_end symbol to new location.
     Note: If it can't append to existed pages, it creates new one.
-    Note 2: This function not guarantees that content will be append to last page. 
+    Note 2: This function not guarantees that content will be append to last page.
             Content will be placed at first empty space with fit size.
-    
+
     directory - pointer to directory.
     data - data for append.
     data_lenght - lenght of data.
-    
+
     Return 2 if all success and content was append to new page.
     Return 1 if all success and content was append to existed page.
     Return 0 if write succes, but content was trunc.
     Return -2 if we can't create uniqe name for page.
+    Return -3 if data size too large for one page. Check [pageman.h] docs for explanation.
     Return size, that can`t fit to this directory, if we reach page limit in directory.
     */
     int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght);
@@ -131,12 +132,12 @@ Credits: j1sk1ss
     Note: This function don't give ability for creation new pages. If content too large - it will trunc.
           To avoid this, use DRM_append_content function.
     Note 2: If directory don't have any pages - this function will fall and return -1.
-    
+
     directory - pointer to directory.
     offset - offset in bytes.
     data - data for append.
     data_lenght - lenght of data.
-    
+
     Return 1 if all success.
     Return 2 if write succes, but content was trunc.
     Return -1 if something goes wrong.
@@ -172,11 +173,11 @@ Credits: j1sk1ss
 
     /*
     Find value in assosiatet pages.
-    
+
     directory - pointer to directory.
     offset - offset in bytes.
     value - value that we want to find.
-    
+
     Return -1 - if not found.
     Return index of value in page with offset.
     */
@@ -190,10 +191,10 @@ Credits: j1sk1ss
     Save directory on the disk.
     Note: Be carefull with this function, it can rewrite existed content.
     Note 2: If you want update data on disk, just create same path with existed directory.
-    
+
     directory - pointer to directory.
     path - path where save.
-    
+
     Return -2 - if something goes wrong.
     Return -1 - if we can`t create file.
     Return 1 if file create success.
@@ -206,10 +207,10 @@ Credits: j1sk1ss
     Note: You can avoid page loading from disk if you want just link.
           For avoiuding additional IO file operations, use create_page function with same name,
           then just link allocated struct to directory.
-    
+
     directory - home directory.
     page - page for linking.
-    
+
     Return -1 if we reach page limit per directory.
     If sighnature wrong, return 0.
     If all okey - return 1.
@@ -232,9 +233,9 @@ Credits: j1sk1ss
 
     /*
     Allocate memory and create new directory.
-    
+
     name - directory name.
-    
+
     Return directory pointer.
     */
     directory_t* DRM_create_directory(char* name);
@@ -255,9 +256,9 @@ Credits: j1sk1ss
     /*
     Open file, load directory and page names, close file.
     Note: This function invoke create_directory function.
-    
+
     name - file name (don`t forget path).
-    
+
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
     Return directory pointer.
@@ -265,7 +266,7 @@ Credits: j1sk1ss
     directory_t* DRM_load_directory(char* path);
 
     /*
-    Delete directory from disk. 
+    Delete directory from disk.
     Note: Will delete all linked pages and linked pages if flag full is 1.
 
     Params:
@@ -279,16 +280,16 @@ Credits: j1sk1ss
 
     /*
     Release directory.
-    Imoortant Note!: that usualy directory, if we use load_directory function, 
+    Imoortant Note!: that usualy directory, if we use load_directory function,
     saved in DDT, that's means, that you should avoid free_directory with dirs,
     that was created by load_directory.
     Note 1: Use this function with dirs, that was created by create_directory function.
     Note 2: If tou anyway want to free directory, prefere using flush_directory insted free_directory.
             Difference in part, where flush_directory first try to find provided directory in DDT, then
             NULL pointer, and free, instead simple free in free_directory case.
-    
+
     directory - pointer to directory.
-    
+
     Return 0 - if something goes wrong.
     Return 1 - if Release was success.
     */

@@ -12,8 +12,8 @@
 
 #include <stdint.h>
 
-
-#define DATABASE_APPEND_AND_LINK_TEST
+#define LARGE_DATA_TEST
+#define NO_PRIMARY_CHECK
 
 int main() {
     TB_enable();
@@ -235,7 +235,6 @@ int main() {
 
     database_t* database = DB_create_database("db1");
     table_column_t** columns = (table_column_t**)calloc(3, sizeof(table_column_t*));
-    table_column_t** columns1 = (table_column_t**)calloc(3, sizeof(table_column_t*));
 
     table_column_t* column1 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
         COLUMN_PRIMARY,
@@ -291,6 +290,51 @@ int main() {
 
     result = DB_append_row(database, "table1", "222222222221OLLOLU  1010000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
     printf("Append result %i\n", result);
+
+#endif
+
+#ifdef LARGE_DATA_TEST // success
+
+    database_t* database = DB_create_database("db1");
+    table_column_t** columns = (table_column_t**)calloc(3, sizeof(table_column_t*));
+
+    table_column_t* column1 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_NOT_PRIMARY,
+        COLUMN_TYPE_ANY,
+        COLUMN_NO_AUTO_INC
+    ), 10, "col1");
+
+    table_column_t* column2 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_NOT_PRIMARY,
+        COLUMN_TYPE_STRING,
+        COLUMN_AUTO_INCREMENT
+    ), 10, "col2");
+
+    table_column_t* column3 = TBM_create_column(CREATE_COLUMN_TYPE_BYTE(
+        COLUMN_NOT_PRIMARY,
+        COLUMN_TYPE_ANY,
+        COLUMN_NO_AUTO_INC
+    ), 10, "col3");
+
+    columns[0] = column1;
+    columns[1] = column2;
+    columns[2] = column3;
+
+    table_t* table = TBM_create_table("table1", columns, 3, CREATE_ACCESS_BYTE(3, 3, 3));
+    DB_link_table2database(database, table);
+    DB_save_database(database, "db.db");
+
+    TBM_save_table(table, "table1.tb");
+    TBM_free_table(table);
+
+    for (int i = 0; i < 1000; i++) {
+        int result = DB_append_row(database, "table1", (uint8_t*)"he11o 11111LOLLU  102000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
+        printf("Append result %i\n", result);
+    }
+
+    uint8_t* data = DB_get_row(database, "table1", 811, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Row 811: %s\n", data);
+    free(data);
 
 #endif
 

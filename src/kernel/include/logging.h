@@ -7,7 +7,7 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
-#define INFO
+#define INFORMING
 #define LOGGING
 #define ERRORS
 

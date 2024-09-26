@@ -1,8 +1,7 @@
 #include "include/kentry.h"
-#include "include/logging.h"
 
 
-int main(int argc, char* argv[]) {
+int kmain(int argc, char* argv[]) {
     /*
     Enable traceback for current session.
     */
@@ -30,6 +29,8 @@ int main(int argc, char* argv[]) {
 
         kernel_free_answer(answer);
     }
+
+    return 1;
 }
 
 kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
@@ -502,6 +503,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     else if (strcmp(CASCADE_FND, commands[command_index]) == 0) find_link = LINK_CASCADE_FIND;
                 }
             }
+
             int result = TBM_link_column2column(
                 master, master_column, slave, slave_column,
                 CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
@@ -509,12 +511,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
             char save_path[DEFAULT_PATH_SIZE];
             sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, master_table, TABLE_EXTENSION);
-            int save_result = TBM_save_table(master, save_path);
+            TBM_save_table(master, save_path);
 
-            print_info("Result [%i %i] of linking table [%s] with table [%s]", save_result, result, master_table, slave_table);
+            print_info("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
 
             answer->answer_size = -1;
-            answer->answer_code = save_result;
+            answer->answer_code = result;
             answer->commands_processed = command_index;
 
             return answer;
