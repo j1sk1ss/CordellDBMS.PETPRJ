@@ -58,10 +58,10 @@
 
     #pragma region [Types]
 
-        #define INT             "int"
-        #define DOUBLE          "dob"
-        #define STRING          "str"
-        #define ANY             "any"
+        #define TYPE_INT        "int"
+        #define TYPE_DOUBLE     "dob"
+        #define TYPE_STRING     "str"
+        #define TYPE_ANY        "any"
 
         #define CASCADE_DEL     "cdel"
         #define CASCADE_UPD     "cupd"

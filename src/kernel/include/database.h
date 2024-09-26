@@ -119,7 +119,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -2 if signature is wrong: {
         Return -14 if column type unknown. Check table, that you provide into function.
         Return -13 if signature is wrong. You provide value for FLOAT column, but value is not float.
-        Return -12 if signature is wrong. You provide value for INT column, but value is not integer.
+        Return -12 if signature is wrong. You provide value for TYPE_INT column, but value is not integer.
         Return -11 if provided data too small. Maybe you forgot additional CD? <DEPRECATED>
     }
     Return -1 if something goes wrong.
@@ -151,7 +151,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -2 if signature is wrong: {
         Return -14 if column type unknown. Check table, that you provide into function.
         Return -13 if signature is wrong. You provide value for FLOAT column, but value is not float.
-        Return -12 if signature is wrong. You provide value for INT column, but value is not integer.
+        Return -12 if signature is wrong. You provide value for TYPE_INT column, but value is not integer.
         Return -11 if provided data too small. Maybe you forgot additional CD? <DEPRECATED>
     }
     Return -1 if something goes wrong

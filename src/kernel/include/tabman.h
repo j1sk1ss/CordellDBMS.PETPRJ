@@ -452,7 +452,7 @@ Credits: j1sk1ss
     /*
     Create column and allocate memory for.
     Note: Use only defined types of column.
-    Note 2: If you want use any value (disable in-build check), use ANY type.
+    Note 2: If you want use any value (disable in-build check), use TYPE_ANY type.
 
     Params:
     - type - column type
@@ -477,7 +477,7 @@ Credits: j1sk1ss
 
     Return -4 if column type unknown. Check table, that you provide into function.
     Return -3 if signature is wrong. You provide value for FLOAT column, but value is not float.
-    Return -2 if signature is wrong. You provide value for INT column, but value is not integer.
+    Return -2 if signature is wrong. You provide value for TYPE_INT column, but value is not integer.
     Return -1 if provided data too small. Maybe you forgot additional CD? <DEPRECATED>
               This error indicates, that data to small for this column count.
     Return 1 if signature is correct.

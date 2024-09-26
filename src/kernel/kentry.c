@@ -120,9 +120,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                             // Get column data type
                             uint8_t data_type = COLUMN_TYPE_ANY;
                             char* column_data_type = column_stack[j + 2];
-                            if (strcmp(column_data_type, INT) == 0) data_type = COLUMN_TYPE_INT;
-                            else if (strcmp(column_data_type, DOUBLE) == 0) data_type = COLUMN_TYPE_FLOAT;
-                            else if (strcmp(column_data_type, STRING) == 0) data_type = COLUMN_TYPE_STRING;
+                            if (strcmp(column_data_type, TYPE_INT) == 0) data_type = COLUMN_TYPE_INT;
+                            else if (strcmp(column_data_type, TYPE_DOUBLE) == 0) data_type = COLUMN_TYPE_FLOAT;
+                            else if (strcmp(column_data_type, TYPE_STRING) == 0) data_type = COLUMN_TYPE_STRING;
 
                             // Get column primary status
                             uint8_t primary_status = COLUMN_NOT_PRIMARY;
@@ -529,7 +529,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             printf("Examples:\n");
             printf("- CREATE:\n");
             printf("\tExample: db.db create database db1\n");
-            printf("\tExample: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )\n");
+            printf("\tExample: db.db create table table_1 000 columns ( col1 10 str is_primary na col2 10 any np na )\n");
 
             printf("- APPEND:\n");
             printf("\tExample: db.db append table_1 columns 'hello     second col' 000\n");
