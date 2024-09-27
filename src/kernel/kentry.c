@@ -476,6 +476,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                         table->column_links[i]->slave_column_name,
                         table->column_links[i]->slave_table_name
                     );
+
+                answer->answer_code = 1;
+                return answer;
             }
         }
         /*
