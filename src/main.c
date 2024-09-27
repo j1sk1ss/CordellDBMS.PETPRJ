@@ -6,18 +6,18 @@
  * that we can work with big data by using very light weighten app.
  *
  * Unix:
- * building without OMP: gcc-14 -Wall main.c kentry.c std\* arch\* -Wunknown-pragmas -fpermissive -o cdbms.bin
- * building with OMP: gcc-14 -Wall main.c kentry.c std\* arch\* -fopenmp -fpermissive -o cdbms.bin
+ * building without OMP: gcc-14 -Wall main.c kernel\kentry.c kernel\std\* kernel\arch\* -Wunknown-pragmas -fpermissive -o cdbms.bin
+ * building with OMP: gcc-14 -Wall main.c kernel\kentry.c kernel\std\* kernel\arch\* -fopenmp -fpermissive -o cdbms.bin
  *
  * Win10/Win11:
- * building without OMP: gcc -Wall .\main.c .\kentry.c .\std\* .\arch\* -Wunknown-pragmas -lws2_32 -fpermissive -o cdbms.exe
- * building with OMP: gcc -Wall .\main.c .\kentry.c .\std\* .\arch\* -fopenmp -lws2_32 -fpermissive -o cdbms.exe
+ * building without OMP: .\main.c .\kernel\kentry.c .\kernel\std\* .\kernel\arch\* -Wunknown-pragmas -lws2_32 -fopenmp -fpermissive -o cdbms_win_x86-64_omp.exe
+ * building with OMP: .\main.c .\kernel\kentry.c .\kernel\std\* .\kernel\arch\* -Wunknown-pragmas -lws2_32 -fpermissive -o cdbms_win_x86-64_omp.exe
  *
  * Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
 
-#include "include/kentry.h"
-#include "include/logging.h"
+#include "kernel/include/kentry.h"
+#include "kernel/include/logging.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,11 +39,9 @@
 #define MESSAGE_BUFFER      2048
 #define COMMANDS_BUFFER     256
 
-#define COMMAND_DELIMITER   0x1F
 
-
-int setup_server();
 void cleanup();
+int setup_server();
 void send2kernel(int source, int destination);
 
 
@@ -62,40 +60,44 @@ Params:
 - destination - destination FD for kernel answer.
 */
 void send2kernel(int source, int destination) {
-    uint8_t buffer[MESSAGE_BUFFER];
     int count = 0;
+    uint8_t buffer[MESSAGE_BUFFER];
 
     #ifdef _WIN32
-        while ((count = recv(source, (char*)buffer, MESSAGE_BUFFER, 0)) > 0) {
+    while ((count = recv(source, (char*)buffer, MESSAGE_BUFFER, 0)) > 0)
     #else
-        while ((count = read(source, buffer, MESSAGE_BUFFER)) > 0) {
+    while ((count = read(source, buffer, MESSAGE_BUFFER)) > 0)
     #endif
+    {
 
         buffer[count - 1] = '\0';
 
         char* argv[COMMANDS_BUFFER];
-        int argc = 1;
-
-        int in_quotes = 0;
         char* current_arg = NULL;
+
+        int argc = 1;
+        int in_quotes = 0;
 
         for (char *p = (char *)buffer; *p != '\0'; p++) {
             if (*p == '"') {
                 in_quotes = !in_quotes;
                 if (in_quotes) {
                     current_arg = p + 1;
-                } else {
+                } 
+                else {
                     *p = '\0';
                     argv[argc++] = current_arg;
-                    current_arg = NULL;
+                    current_arg  = NULL;
                 }
-            } else if (!in_quotes && (*p == ' ' || *p == '\t')) {
+            } 
+            else if (!in_quotes && (*p == ' ' || *p == '\t')) {
                 *p = '\0';
                 if (current_arg) {
                     argv[argc++] = current_arg;
-                    current_arg = NULL;
+                    current_arg  = NULL;
                 }
-            } else if (!current_arg) {
+            } 
+            else if (!current_arg) {
                 current_arg = p;
             }
         }
@@ -105,12 +107,22 @@ void send2kernel(int source, int destination) {
         }
 
         kernel_answer_t* result = kernel_process_command(argc, argv);
-        if (result->answer_body != NULL) write(destination, result->answer_body, result->answer_size);
+        if (result->answer_body != NULL) {
+            #ifdef _WIN32
+                send(destination, (const char*)result->answer_body, result->answer_size, 0);
+            #else
+                write(destination, result->answer_body, result->answer_size);
+            #endif
+        }
         else {
-            char answer_body[24];
-            sprintf(answer_body, "Code: %i", result->answer_code);
-            write(destination, answer_body, strlen(answer_body));
-            print_log("%s", answer_body);
+            #ifdef _WIN32
+                uint8_t buffer[1] = { result->answer_code };
+                send(destination, (const char*)buffer, sizeof(uint8_t), 0);
+            #else
+                write(destination, result->answer_code, sizeof(uint8_t));
+            #endif
+
+            print_log("Answer code: %i", result->answer_code);
         }
 
         kernel_free_answer(result);
@@ -121,8 +133,8 @@ void send2kernel(int source, int destination) {
 Server setup function
 */
 int main(int argc, char* argv[]) {
-    int reciever = -1;
-    int server_socket = -1;
+    int reciever        = -1;
+    int server_socket   = -1;
     char server_message[MESSAGE_BUFFER];
 
     #ifdef _WIN32
@@ -175,7 +187,7 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        char *client_ip = inet_ntoa(client_address.sin_addr);
+        char* client_ip = inet_ntoa(client_address.sin_addr);
         int client_port = ntohs(client_address.sin_port);
         print_info("Client connected from IP %s and port %d\n", client_ip, client_port);
 

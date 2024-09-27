@@ -28,6 +28,14 @@
 #include "database.h"
 
 
+#define SAFE_GET_VALUE(argv, max, index)            index >= max ? NULL : argv[index]
+#define SAFE_GET_VALUE_PRE_INC(argv, max, index)    index + 1 >= max ? NULL : argv[++index]
+#define SAFE_GET_VALUE_POST_INC(argv, max, index)   index >= max ? NULL : argv[index++]
+
+#define SAFE_GET_VALUE_S(argv, max, index)            index >= max ? "SqwPP[=1-33\n\n]" : argv[index]
+#define SAFE_GET_VALUE_PRE_INC_S(argv, max, index)    index + 1 >= max ? "SqwPP[=1-33\n\n]" : argv[++index]
+#define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "SqwPP[=1-33\n\n]" : argv[index++]
+
 #define MAX_COMMANDS    100
 
 #pragma region [Commands]
