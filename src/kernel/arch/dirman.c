@@ -22,6 +22,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
     uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
         uint8_t* content = (uint8_t*)malloc(size);
+        memset(content, '\0', size);
+
         uint8_t* content_pointer = content;
 
         int pages4work      = (int)size / PAGE_CONTENT_SIZE;

@@ -101,6 +101,12 @@ void send2kernel(int source, int destination) {
 
         kernel_answer_t* result = kernel_process_command(argc, argv);
         if (result->answer_body != NULL) write(destination, result->answer_body, result->answer_size);
+        else {
+            char answer_body[24];
+            sprintf(answer_body, "Code: %i", result->answer_code);
+            write(destination, answer_body, 24);
+        }
+
         kernel_free_answer(result);
     }
 }
@@ -109,78 +115,73 @@ void send2kernel(int source, int destination) {
 Server setup function
 */
 int main(int argc, char* argv[]) {
-    #ifndef _WIN32
-        int rc = -1;
-        int server_socket = -1;
-        char server_message[MESSAGE_BUFFER];
+    int reciever = -1;
+    int server_socket = -1;
+    char server_message[MESSAGE_BUFFER];
+
+    #ifdef _WIN32
+        WSADATA wsa_data;
+        reciever = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+        if (reciever != 0) {
+            print_error("HH_ERROR: WSAStartup() failed");
+            return -1;
+        }
+    #endif
+
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket == -1) {
+        print_error("HH_ERROR: error in calling socket()");
+        return -1;
+    }
+
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
+
+    server_address.sin_family = AF_INET;
+    server_address.sin_port   = htons(SERVER_PORT);
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    reciever = bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address));
+    if (reciever < 0) {
+        print_error("HH_ERROR: bind() call failed");
+        return -1;
+    }
+
+    reciever = listen(server_socket, 5);
+    if (reciever < 0) {
+        print_error("HH_ERROR: listen() call failed");
+        return -1;
+    }
+
+    char *server_ip = inet_ntoa(server_address.sin_addr);
+    int server_port = ntohs(server_address.sin_port);
+    print_info("DB server started on IP %s and port %d\n", server_ip, server_port);
+
+    int keep_socket = 1;
+    while (keep_socket) {
+        int client_socket_fd = -1;
+        int client_address_len = -1;
+
+        client_address_len = sizeof(client_address);
+        client_socket_fd   = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t*)&client_address_len);
+        if (client_socket_fd < 0) {
+            print_error("HH_ERROR: accept() call failed");
+            continue;
+        }
+
+        char *client_ip = inet_ntoa(client_address.sin_addr);
+        int client_port = ntohs(client_address.sin_port);
+        print_info("Client connected from IP %s and port %d\n", client_ip, client_port);
+
+        send2kernel(client_socket_fd, client_socket_fd);
+        send(client_socket_fd, server_message, sizeof(server_message), 0);
 
         #ifdef _WIN32
-            WSADATA wsa_data;
-            rc = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-            if (rc != 0) {
-                print_error("HH_ERROR: WSAStartup() failed");
-                return -1;
-            }
+            closesocket(client_socket_fd);
+        #else
+            close(client_socket_fd);
         #endif
-
-        server_socket = socket(AF_INET, SOCK_STREAM, 0);
-        if (server_socket == -1) {
-            print_error("HH_ERROR: error in calling socket()");
-            return -1;
-        }
-
-        struct sockaddr_in server_address;
-        struct sockaddr_in client_address;
-
-        server_address.sin_family = AF_INET;
-        server_address.sin_port   = htons(SERVER_PORT);
-
-        server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-        rc = bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address));
-
-        if (rc < 0) {
-            print_error("HH_ERROR: bind() call failed");
-            return -1;
-        }
-
-        rc = listen(server_socket, 5);
-        if (rc < 0) {
-            print_error("HH_ERROR: listen() call failed");
-            return -1;
-        }
-
-        char *server_ip = inet_ntoa(server_address.sin_addr);
-        int server_port = ntohs(server_address.sin_port);
-        print_info("DB server started on IP %s and port %d\n", server_ip, server_port);
-
-        int keep_socket = 1;
-        while (keep_socket) {
-            int client_socket_fd = -1;
-            int client_address_len = -1;
-
-            client_address_len = sizeof(client_address);
-            client_socket_fd   = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t*)&client_address_len);
-            if (client_socket_fd < 0) {
-                print_error("HH_ERROR: accept() call failed");
-                continue;
-            }
-
-            char *client_ip = inet_ntoa(client_address.sin_addr);
-            int client_port = ntohs(client_address.sin_port);
-            print_info("Client connected from IP %s and port %d\n", client_ip, client_port);
-
-            send2kernel(client_socket_fd, client_socket_fd);
-            send(client_socket_fd, server_message, sizeof(server_message), 0);
-
-            #ifdef _WIN32
-                closesocket(client_socket_fd);
-            #else
-                close(client_socket_fd);
-            #endif
-        }
-    #else
-        print_error("Windows server side currently not avaliabe!\nCheck for updates!\n");
-    #endif
+    }
 
     cleanup();
 	return 1;

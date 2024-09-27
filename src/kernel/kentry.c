@@ -2,6 +2,11 @@
 
 
 int kmain(int argc, char* argv[]) {
+    if (argc <= 1) {
+        print_error("Too small argument count. Should be 1, but provided 0.");
+        return -1;
+    }
+
     /*
     Enable traceback for current session.
     */
@@ -13,13 +18,18 @@ int kmain(int argc, char* argv[]) {
     */
     int transaction_size = 1;
     char** commands_pointer = argv;
-    if (strcmp(argv[0], TRANSACTION) == 0)
-        transaction_size = atoi(argv[1]);
+    if (strcmp(argv[1], TRANSACTION) == 0) {
+        if (argc >= 3) transaction_size = atoi(argv[2]);
+        print_error(
+            "Too small argument count. Should be 3, but provided 2.\nExample: transaction-start <transaction size>"
+        );
+    }
 
     /*
     Commands executing and pointer moving.
     */
     int arg_count = 0;
+    commands_pointer += 1;
     for (int i = 0; i < transaction_size; i++) {
         kernel_answer_t* answer = kernel_process_command(argc - arg_count, commands_pointer);
         arg_count += answer->commands_processed;
