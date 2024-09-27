@@ -193,7 +193,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
 
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
-                if (fwrite(page->content, sizeof(uint8_t), page_size, file) != page_size) status = -3;
+                if (fwrite(page->content, sizeof(uint8_t), page_size, file) != (size_t)page_size) status = -3;
 
                 // Close file
                 #ifndef _WIN32

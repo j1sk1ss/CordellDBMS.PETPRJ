@@ -65,7 +65,13 @@ void send2kernel(int source, int destination) {
     unsigned char buffer[MESSAGE_BUFFER];
 
     int count = 0;
-    while ((count = read(source, buffer, MESSAGE_BUFFER)) > 0) {
+
+    #ifdef _WIN32
+        while ((count = recv(source, (char*)buffer, MESSAGE_BUFFER, 0)) > 0) {
+    #else
+        while ((count = read(source, buffer, MESSAGE_BUFFER)) > 0) {
+    #endif
+
         buffer[count - 1] = '\0';
 
         char* argv[COMMANDS_BUFFER];
@@ -133,7 +139,14 @@ int main(int argc, char* argv[]) {
         print_error("HH_ERROR: error in calling socket()");
         return -1;
     }
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket == -1) {
+        print_error("HH_ERROR: error in calling socket()");
+        return -1;
+    }
 
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
 
@@ -156,7 +169,14 @@ int main(int argc, char* argv[]) {
     char *server_ip = inet_ntoa(server_address.sin_addr);
     int server_port = ntohs(server_address.sin_port);
     print_info("DB server started on IP %s and port %d\n", server_ip, server_port);
+    char *server_ip = inet_ntoa(server_address.sin_addr);
+    int server_port = ntohs(server_address.sin_port);
+    print_info("DB server started on IP %s and port %d\n", server_ip, server_port);
 
+    int keep_socket = 1;
+    while (keep_socket) {
+        int client_socket_fd = -1;
+        int client_address_len = -1;
     int keep_socket = 1;
     while (keep_socket) {
         int client_socket_fd = -1;
@@ -168,14 +188,31 @@ int main(int argc, char* argv[]) {
             print_error("HH_ERROR: accept() call failed");
             continue;
         }
+        client_address_len = sizeof(client_address);
+        client_socket_fd   = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t*)&client_address_len);
+        if (client_socket_fd < 0) {
+            print_error("HH_ERROR: accept() call failed");
+            continue;
+        }
 
+        char *client_ip = inet_ntoa(client_address.sin_addr);
+        int client_port = ntohs(client_address.sin_port);
+        print_info("Client connected from IP %s and port %d\n", client_ip, client_port);
         char *client_ip = inet_ntoa(client_address.sin_addr);
         int client_port = ntohs(client_address.sin_port);
         print_info("Client connected from IP %s and port %d\n", client_ip, client_port);
 
         send2kernel(client_socket_fd, client_socket_fd);
         send(client_socket_fd, server_message, sizeof(server_message), 0);
+        send2kernel(client_socket_fd, client_socket_fd);
+        send(client_socket_fd, server_message, sizeof(server_message), 0);
 
+        #ifdef _WIN32
+            closesocket(client_socket_fd);
+        #else
+            close(client_socket_fd);
+        #endif
+    }
         #ifdef _WIN32
             closesocket(client_socket_fd);
         #else
