@@ -36,7 +36,9 @@ int kmain(int argc, char* argv[]) {
         arg_count += answer->commands_processed;
         commands_pointer += answer->commands_processed;
 
-        if (answer->answer_body != NULL) print_log("Answer body: [%s]", (char*)answer->answer_body);
+        if (answer->answer_body != NULL) {
+            print_log("Answer body: [%s]", (char*)answer->answer_body);
+        }
 
         kernel_free_answer(answer);
     }
@@ -53,7 +55,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
     answer->commands_processed = 0;
 
     int current_start = 1;
-    database_t* database = DB_load_database(argv[current_start++]);
+
+    database_t* database = DB_load_database(SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start));
     if (database == NULL) {
         print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
         current_start = 1;
@@ -83,8 +86,15 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             Command syntax: create database <name>
             */
             command_index++;
-            if (strcmp(commands[command_index], DATABASE) == 0) {
-                char* database_name = commands[++command_index];
+            if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
+                char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (database_name == NULL) {
+                    return answer;
+                }
+
+                char save_path[DEFAULT_PATH_SIZE];
+                sprintf(save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database_name, DATABASE_EXTENSION);
+
                 database_t* new_database = DB_create_database(database_name);
                 DB_save_database(new_database, NULL);
 
@@ -102,23 +112,31 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             Errors:
             - Return -1 if table already exists in database.
             */
-            else if (strcmp(commands[command_index], TABLE) == 0) {
-                char* table_name = commands[++command_index];
-                if (DB_get_table(database, table_name) != NULL) return answer;
+            else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
+                char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (table_name == NULL) {
+                    return answer;
+                }
 
-                char* access = commands[++command_index];
+                if (DB_get_table(database, table_name) != NULL) return answer;
+                char* access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (access == NULL) {
+                    answer->answer_code = -5;
+                    return answer;
+                }
+
                 uint8_t rd  = access[0] - '0';
                 uint8_t wr  = access[1] - '0';
                 uint8_t del = access[2] - '0';
 
                 int column_count = 0;
                 table_column_t** columns = NULL;
-                if (strcmp(commands[++command_index], COLUMNS) == 0) {
-                    if (strcmp(commands[++command_index], OPEN_BRACKET) == 0) {
+                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
+                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), OPEN_BRACKET) == 0) {
                         int column_stack_index = 0;
                         char* column_stack[256] = { NULL };
-                        while (strcmp(commands[++command_index], CLOSE_BRACKET) != 0) {
-                            column_stack[column_stack_index++] = commands[command_index];
+                        while (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), CLOSE_BRACKET) != 0) {
+                            column_stack[column_stack_index++] = SAFE_GET_VALUE(commands, argc, command_index);
                         }
 
                         for (int j = 0; j < 256; j += 5) {
@@ -177,10 +195,20 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
         - Return -2 error if data size not equals row size.
         */
         else if (strcmp(command, APPEND) == 0) {
-            char* table_name = commands[++command_index];
-            if (strcmp(commands[++command_index], COLUMNS) == 0) {
-                char* input_data = commands[++command_index];
-                char* access = commands[++command_index];
+            char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+            if (table_name == NULL) {
+                answer->answer_code = -5;
+                return answer;
+            }
+
+            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
+                char* input_data    = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                char* access        = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (input_data == NULL || access == NULL) {
+                    answer->answer_code = -5;
+                    return answer;
+                }
+
                 uint8_t rd  = access[0] - '0';
                 uint8_t wr  = access[1] - '0';
                 uint8_t del = access[2] - '0';
@@ -203,14 +231,18 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
         Command syntax: delete <option>
         */
         else if (strcmp(command, DELETE) == 0) {
-
             /*
             Command syntax: delete table <name> <rwd>
             */
             command_index++;
-            if (strcmp(commands[command_index], TABLE) == 0) {
-                char* table_name = commands[++command_index];
-                if (DB_delete_table(database, table_name, atoi(commands[++command_index])) != 1) print_error("Error code 1 during deleting %s", table_name);
+            if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
+                char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (table_name == NULL) {
+                    answer->answer_code = -5;
+                    return answer;
+                }
+
+                if (DB_delete_table(database, table_name, atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index))) != 1) print_error("Error code 1 during deleting %s", table_name);
                 else print_info("Table [%s] was delete successfully.", table_name);
 
                 answer->answer_code = 1;
@@ -223,18 +255,26 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             /*
             Command syntax: delete row <table_name> <operation_type> <options>
             */
-            else if (strcmp(commands[command_index], ROW) == 0) {
-
-                char* table_name = commands[++command_index];
+            else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), ROW) == 0) {
+                char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (table_name == NULL) {
+                    answer->answer_code = -5;
+                    return answer;
+                }
 
                 /*
                 Note: Will delete entire row. (If table has links, it will cause CASCADE operations).
                 Command syntax: delete row <table_name> by_index <index> <rwd>
                 */
                 command_index++;
-                if (strcmp(commands[command_index], BY_INDEX) == 0) {
-                    int index = atoi(commands[++command_index]);
-                    char* access = commands[++command_index];
+                if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
+                    int index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                    char* access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    if (access == NULL) {
+                        answer->answer_code = -5;
+                        return answer;
+                    }
+
                     uint8_t rd  = access[0] - '0';
                     uint8_t wr  = access[1] - '0';
                     uint8_t del = access[2] - '0';
@@ -252,11 +292,21 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 Note: will delete first row, where will find value in provided column.
                 Command syntax: delete row <table_name> by_value <value> column <column_name> <rwd>
                 */
-                else if (strcmp(commands[command_index], BY_VALUE) == 0) {
-                    char* value = commands[++command_index];
-                    if (strcmp(commands[++command_index], COLUMN) == 0) {
-                        char* column_name = commands[++command_index];
-                        char* access = commands[++command_index];
+                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
+                    char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    if (value == NULL) {
+                        answer->answer_code = -5;
+                        return answer;
+                    }
+
+                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
+                        char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        if (column_name == NULL || access == NULL) {
+                            answer->answer_code = -5;
+                            return answer;
+                        }
+
                         uint8_t rd  = access[0] - '0';
                         uint8_t wr  = access[1] - '0';
                         uint8_t del = access[2] - '0';
@@ -294,17 +344,26 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             /*
             Command syntax: get row <table_name> <operation_type> <options>
             */
-            if (strcmp(commands[++command_index], ROW) == 0) {
-                char* table_name = commands[++command_index];
+            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
+                char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (table_name == NULL) {
+                    answer->answer_code = -5;
+                    return answer;
+                }
 
                 /*
                 Note: Will get entire row. (If table has links, it will cause CASCADE operations).
                 Command syntax: get row <table_name> by_index <index> <rwd>
                 */
                 command_index++;
-                if (strcmp(commands[command_index], BY_INDEX) == 0) {
-                    int index = atoi(commands[++command_index]);
-                    char* access = commands[++command_index];
+                if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
+                    int index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                    char* access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    if (access == NULL) {
+                        answer->answer_code = -5;
+                        return answer;
+                    }
+
                     uint8_t rd  = access[0] - '0';
                     uint8_t wr  = access[1] - '0';
                     uint8_t del = access[2] - '0';
@@ -331,11 +390,21 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 Note: will get first row, where will find value in provided column.
                 Command syntax: get row <table_name> by_value <value> column <column_name> <rwd>
                 */
-                else if (strcmp(commands[command_index], BY_VALUE) == 0) {
-                    char* value = commands[++command_index];
-                    if (strcmp(commands[++command_index], COLUMN) == 0) {
-                        char* column_name = commands[++command_index];
-                        char* access = commands[++command_index];
+                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
+                    char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    if (value == NULL) {
+                        answer->answer_code = -5;
+                        return answer;
+                    }
+
+                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
+                        char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        if (column_name == NULL || access == NULL) {
+                            answer->answer_code = -5;
+                            return answer;
+                        }
+
                         uint8_t rd  = access[0] - '0';
                         uint8_t wr  = access[1] - '0';
                         uint8_t del = access[2] - '0';
@@ -376,17 +445,27 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             /*
             Command syntax: update row <table_name> <option>
             */
-            if (strcmp(commands[++command_index], ROW) == 0) {
-                char* table_name = commands[++command_index];
+            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
+                char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (table_name == NULL) {
+                    answer->answer_code = -5;
+                    return answer;
+                }
+
                 command_index++;
 
                 /*
                 Command syntax: update row <table_name> by_index <index> <new_data> <rwd>
                 */
-                if (strcmp(commands[command_index], BY_INDEX) == 0) {
-                    int index = atoi(commands[++command_index]);
-                    char* data = commands[++command_index];
-                    char* access = commands[++command_index];
+                if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
+                    int index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                    char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    char* access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    if (data == NULL || access == NULL) {
+                        answer->answer_code = -5;
+                        return answer;
+                    }
+
                     uint8_t rd  = access[0] - '0';
                     uint8_t wr  = access[1] - '0';
                     uint8_t del = access[2] - '0';
@@ -405,12 +484,22 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 /*
                 Command syntax: update row <table_name> by_value <value> column <column_name> <new_data> <rwd>
                 */
-                else if (strcmp(commands[command_index], BY_VALUE) == 0) {
-                    char* value = commands[++command_index];
-                    if (strcmp(commands[++command_index], COLUMN) == 0) {
-                        char* col_name = commands[++command_index];
-                        char* data = commands[++command_index];
-                        char* access = commands[++command_index];
+                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
+                    char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    if (value == NULL) {
+                        answer->answer_code = -5;
+                        return answer;
+                    }
+
+                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
+                        char* col_name  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* data      = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* access    = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        if (col_name == NULL || data == NULL || access == NULL) {
+                            answer->answer_code = -5;
+                            return answer;
+                        }
+
                         uint8_t rd  = access[0] - '0';
                         uint8_t wr  = access[1] - '0';
                         uint8_t del = access[2] - '0';
@@ -440,8 +529,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
         Command syntax: info table
         */
         else if (strcmp(command, GET_INFO) == 0) {
-            if (strcmp(commands[++command_index], TABLE) == 0) {
-                char* table_name = commands[++command_index];
+            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), TABLE) == 0) {
+                char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (table_name == NULL) {
+                    answer->answer_code = -5;
+                    return answer;
+                }
+                
                 table_t* table = DB_get_table(database, table_name);
                 if (table == NULL) {
                     print_error("Table [%s] not found in database!", table_name);
@@ -478,10 +572,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
         Command syntax: link <master_table> <naster_column> <slave_table> <slave_volumn> ( flags )
         */
         else if (strcmp(command, LINK) == 0) {
-            char* master_table  = commands[++command_index];
-            char* master_column = commands[++command_index];
-            char* slave_table   = commands[++command_index];
-            char* slave_column  = commands[++command_index];
+            char* master_table  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+            char* master_column = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+            char* slave_table   = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+            char* slave_column  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+            if (master_table == NULL || master_column == NULL || slave_table == NULL || slave_column == NULL) {
+                answer->answer_code = -5;
+                return answer;
+            }
 
             uint8_t delete_link = LINK_NOTHING;
             uint8_t update_link = LINK_NOTHING;
@@ -500,12 +598,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 return answer;
             }
 
-            if (strcmp(OPEN_BRACKET, commands[++command_index]) == 0) {
-                while (strcmp(CLOSE_BRACKET, commands[++command_index]) != 0) {
-                    if (strcmp(CASCADE_DEL, commands[command_index]) == 0) delete_link = LINK_CASCADE_DELETE;
-                    else if (strcmp(CASCADE_UPD, commands[command_index]) == 0) update_link = LINK_CASCADE_UPDATE;
-                    else if (strcmp(CASCADE_APP, commands[command_index]) == 0) append_link = LINK_CASCADE_APPEND;
-                    else if (strcmp(CASCADE_FND, commands[command_index]) == 0) find_link = LINK_CASCADE_FIND;
+            if (strcmp(OPEN_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == 0) {
+                while (strcmp(CLOSE_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != 0) {
+                    if (strcmp(CASCADE_DEL, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) delete_link = LINK_CASCADE_DELETE;
+                    else if (strcmp(CASCADE_UPD, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) update_link = LINK_CASCADE_UPDATE;
+                    else if (strcmp(CASCADE_APP, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) append_link = LINK_CASCADE_APPEND;
+                    else if (strcmp(CASCADE_FND, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) find_link = LINK_CASCADE_FIND;
                 }
             }
 
@@ -568,8 +666,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 }
 
 int kernel_free_answer(kernel_answer_t* answer) {
-    SOFT_FREE(answer->answer_body);
-    SOFT_FREE(answer);
+    free(answer->answer_body);
+    free(answer);
 
     return 1;
 }
