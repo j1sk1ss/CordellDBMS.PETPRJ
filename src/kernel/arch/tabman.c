@@ -1,19 +1,19 @@
 #include "../include/tabman.h"
 
 /*
-Table destriptor table, is an a static array of table indexes. Main idea in
-saving tables temporary in static table somewhere in memory. Max size of this
-table equals 2072 * 10 = 20.72Kb.
-
-For working with table we have table struct, that have index of table in TDT. If
-we access to tables with full TBM_TDT, we also unload old tables and load new tables.
-(Stack)
-
-Main problem in parallel work. If we have threads, they can try to access this
-table at one time. If you use OMP parallel libs, or something like this, please,
-define NO_TDT flag (For avoiding deadlocks), or use locks to tables.
-
-Why we need TDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
+ *  Table destriptor table, is an a static array of table indexes. Main idea in
+ *  saving tables temporary in static table somewhere in memory. Max size of this
+ *  table equals 2072 * 10 = 20.72Kb.
+ *
+ *  For working with table we have table struct, that have index of table in TDT. If
+ *  we access to tables with full TBM_TDT, we also unload old tables and load new tables.
+ *  (Stack)
+ *
+ *  Main problem in parallel work. If we have threads, they can try to access this
+ *  table at one time. If you use OMP parallel libs, or something like this, please,
+ *  define NO_TDT flag (For avoiding deadlocks), or use locks to tables.
+ *
+ *  Why we need TDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
 table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
@@ -120,9 +120,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         TBM_link_dir2table(table, new_directory);
 
         // Save directory to disk
-        char save_path[DEFAULT_PATH_SIZE];
-        sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, new_directory->header->name, DIRECTORY_EXTENSION);
-        DRM_save_directory(new_directory, save_path);
+        DRM_save_directory(new_directory, NULL);
 
         // Realise directory
         DRM_free_directory(new_directory);
@@ -454,11 +452,18 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         int status = 1;
         #pragma omp critical (table_save)
         {
+            // We generate default path
+            char save_path[DEFAULT_PATH_SIZE];
+            if (path == NULL) {
+                sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, table->header->name, TABLE_EXTENSION);
+            }
+            else strcpy(save_path, path);
+
             // Open or create file
-            FILE* file = fopen(path, "wb");
+            FILE* file = fopen(save_path, "wb");
             if (file == NULL) {
                 status = -1;
-                print_error("Can't save or create table [%s] file", path);
+                print_error("Can't save or create table [%s] file", save_path);
             } else {
                 // Write header
                 if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
@@ -671,11 +676,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         int TBM_TDT_flush_index(int index) {
             #ifndef NO_TDT
                 if (TBM_TDT[index] == NULL) return -1;
-
-                char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, TBM_TDT[index]->header->name, TABLE_EXTENSION);
-
-                TBM_save_table(TBM_TDT[index], save_path);
+                TBM_save_table(TBM_TDT[index], NULL);
                 TBM_free_table(TBM_TDT[index]);
 
                 TBM_TDT[index] = NULL;

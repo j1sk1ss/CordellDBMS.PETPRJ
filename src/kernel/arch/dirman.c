@@ -1,19 +1,19 @@
 #include "../include/dirman.h"
 
 /*
-Directory destriptor table, is an a static array of directory indexes. Main idea in
-saving dirs temporary in static table somewhere in memory. Max size of this
-table equals (11 + 255 * 8) * 10 = 20.5Kb.
-
-For working with table we have directory struct, that have index of table in DDT. If
-we access to dirs with full DRM_DDT, we also unload old dirs and load new dirs.
-(Stack)
-
-Main problem in parallel work. If we have threads, they can try to access this
-table at one time. If you use OMP parallel libs, or something like this, please,
-define NO_DDT flag (For avoiding deadlocks), or use locks to directories.
-
-Why we need DDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
+ *  Directory destriptor table, is an a static array of directory indexes. Main idea in
+ *  saving dirs temporary in static table somewhere in memory. Max size of this
+ *  table equals (11 + 255 * 8) * 10 = 20.5Kb.
+ *
+ *  For working with table we have directory struct, that have index of table in DDT. If
+ *  we access to dirs with full DRM_DDT, we also unload old dirs and load new dirs.
+ *  (Stack)
+ *
+ *  Main problem in parallel work. If we have threads, they can try to access this
+ *  table at one time. If you use OMP parallel libs, or something like this, please,
+ *  define NO_DDT flag (For avoiding deadlocks), or use locks to directories.
+ *
+ *  Why we need DDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
 directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
@@ -373,10 +373,17 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         int status = 1;
         #pragma omp critical (directory_save)
         {
-            FILE* file = fopen(path, "wb");
+            // We generate default path
+            char save_path[DEFAULT_PATH_SIZE];
+            if (path == NULL) {
+                sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory->header->name, DIRECTORY_EXTENSION);
+            }
+            else strcpy(save_path, path);
+
+            FILE* file = fopen(save_path, "wb");
             if (file == NULL) {
                 status = -1;
-                print_error("Can`t create file: [%s]", path);
+                print_error("Can`t create file: [%s]", save_path);
             } else {
                 if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1)
                     status = -1;
@@ -564,11 +571,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         int DRM_DDT_flush_index(int index) {
             #ifndef NO_DDT
                 if (DRM_DDT[index] == NULL) return -1;
-
-                char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, DRM_DDT[index]->header->name, DIRECTORY_EXTENSION);
-
-                DRM_save_directory(DRM_DDT[index], save_path);
+                DRM_save_directory(DRM_DDT[index], NULL);
                 DRM_free_directory(DRM_DDT[index]);
 
                 DRM_DDT[index] = NULL;

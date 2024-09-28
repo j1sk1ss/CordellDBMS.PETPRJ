@@ -1,18 +1,18 @@
 /*
-Table operator is a simple functions to work with OS filesystem.
-Main idea that we have files with sizes near 1 KB for pages, dirs and tables.
-Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
-
-Tabman abstraction level responsible for working with directories. It send requests and earns data from lower
-abstraction level. Also tabman don't check data signature. This is work of database level.
-Note: Tabman don't work directly with pages. It can work only with directories.
-
-CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
-Credits: j1sk1ss
+ *  Table operator is a simple functions to work with OS filesystem.
+ *  Main idea that we have files with sizes near 1 KB for pages, dirs and tables.
+ *  Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
+ *
+ *  Tabman abstraction level responsible for working with directories. It send requests and earns data from lower
+ *  abstraction level. Also tabman don't check data signature. This is work of database level.
+ *  Note: Tabman don't work directly with pages. It can work only with directories.
+ *
+ *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+ *  Credits: j1sk1ss
 */
 
-#ifndef FILE_MANAGER_
-#define FILE_MANAGER_
+#ifndef TABMAN_H_
+#define TABMAN_H_
 
 #include <stdint.h>
 #include <stdlib.h>

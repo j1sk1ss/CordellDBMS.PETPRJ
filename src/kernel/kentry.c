@@ -1,4 +1,5 @@
 #include "include/kentry.h"
+#include "include/database.h"
 
 
 int kmain(int argc, char* argv[]) {
@@ -84,14 +85,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             command_index++;
             if (strcmp(commands[command_index], DATABASE) == 0) {
                 char* database_name = commands[++command_index];
-
-                char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database_name, DATABASE_EXTENSION);
-
                 database_t* new_database = DB_create_database(database_name);
-                DB_save_database(new_database, save_path);
+                DB_save_database(new_database, NULL);
 
-                print_info("Database [%s] create succes!", save_path);
+                print_info("Database [%s.%s] create succes!", new_database->header->name, DATABASE_EXTENSION);
 
                 answer->answer_code = 1;
                 answer->answer_size = -1;
@@ -158,15 +155,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 table_t* new_table = TBM_create_table(table_name, columns, column_count, CREATE_ACCESS_BYTE(rd, wr, del));
                 DB_link_table2database(database, new_table);
 
-                char tb_save_path[DEFAULT_PATH_SIZE];
-                sprintf(tb_save_path, "%s%.8s.%s", TABLE_BASE_PATH, new_table->header->name, TABLE_EXTENSION);
-                TBM_save_table(new_table, tb_save_path);
+                TBM_save_table(new_table, NULL);
                 TBM_free_table(new_table);
 
-                char db_save_path[DEFAULT_PATH_SIZE];
-                sprintf(db_save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
-                int result = DB_save_database(database, db_save_path);
-
+                int result = DB_save_database(database, NULL);
                 print_info("Table [%s] create success!", table_name);
 
                 answer->answer_size = -1;
@@ -522,10 +514,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
             );
 
-            char save_path[DEFAULT_PATH_SIZE];
-            sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, master_table, TABLE_EXTENSION);
-            TBM_save_table(master, save_path);
-
+            TBM_save_table(master, NULL);
             print_info("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
 
             answer->answer_size = -1;

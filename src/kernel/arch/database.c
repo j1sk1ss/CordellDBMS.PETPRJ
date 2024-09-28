@@ -70,10 +70,7 @@
         #endif
 
         int append_result = TBM_append_content(table, data, data_size);
-
-        char save_path[DEFAULT_PATH_SIZE];
-        sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, table_name, TABLE_EXTENSION);
-        TBM_save_table(table, save_path);
+        TBM_save_table(table, NULL);
 
         return append_result;
     }
@@ -304,10 +301,7 @@
         if (table == NULL) return -1;
 
         DB_unlink_table_from_database(database, table_name);
-
-        char save_path[DEFAULT_PATH_SIZE];
-        sprintf(save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
-        DB_save_database(database, save_path);
+        DB_save_database(database, NULL);
 
         return TBM_delete_table(table, full);
     }
@@ -405,15 +399,22 @@
         int status = 1;
         #pragma omp critical (save_database)
         {
-            FILE* file = fopen(path, "wb");
+            // We generate default path
+            char save_path[DEFAULT_PATH_SIZE];
+            if (path == NULL) {
+                sprintf(save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database->header->name, DATABASE_EXTENSION);
+            }
+            else strcpy(save_path, path);
+
+            FILE* file = fopen(save_path, "wb");
             if (file == NULL) {
                 status = -1;
+                print_error("Can`t create file: [%s]", save_path);
             } else {
                 if (fwrite(database->header, sizeof(database_header_t), 1, file) != 1) status = -2;
                 for (int i = 0; i < database->header->table_count; i++)
                     if (fwrite(database->table_names[i], sizeof(uint8_t), TABLE_NAME_SIZE, file) != TABLE_NAME_SIZE) {
                         status = -3;
-                        break;
                     }
 
                 #ifndef _WIN32

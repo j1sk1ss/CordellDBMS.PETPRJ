@@ -1,19 +1,20 @@
 #include "../include/pageman.h"
+#include <stdio.h>
 
 /*
-Page destriptor table, is an a static array of pages indexes. Main idea in
-saving pages temporary in static table somewhere in memory. Max size of this
-table equals 1024 * 10 = 10Kb.
-
-For working with table we have PAGE struct, that have index of table in PDT. If
-we access to pages with full PGM_PDT, we also unload old page and load new page.
-(Stack)
-
-Main problem in parallel work. If we have threads, they can try to access this
-table at one time. If you use OMP parallel libs, or something like this, please,
-define NO_PDT flag (For avoiding deadlocks), or use locks to pages.
-
-Why we need PDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
+ *  Page destriptor table, is an a static array of pages indexes. Main idea in
+ *  saving pages temporary in static table somewhere in memory. Max size of this
+ *  table equals 1024 * 10 = 10Kb.
+ *
+ *  For working with table we have PAGE struct, that have index of table in PDT. If
+ *  we access to pages with full PGM_PDT, we also unload old page and load new page.
+ *  (Stack)
+ *
+ *  Main problem in parallel work. If we have threads, they can try to access this
+ *  table at one time. If you use OMP parallel libs, or something like this, please,
+ *  define NO_PDT flag (For avoiding deadlocks), or use locks to pages.
+ *
+ *  Why we need PDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
 page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
@@ -181,11 +182,18 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         int status = 1;
         #pragma omp critical (page_save)
         {
+            // We generate default path
+            char save_path[DEFAULT_PATH_SIZE];
+            if (path == NULL) {
+                sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
+            }
+            else strcpy(save_path, path);
+
             // Open or create file
-            FILE* file = fopen(path, "wb");
+            FILE* file = fopen(save_path, "wb");
             if (file == NULL) {
                 status = -1;
-                print_error("Can't save or create [%s] file", path);
+                print_error("Can't save or create [%s] file", save_path);
             } else {
                 // Write data to disk
                 int eof = PGM_set_pe_symbol(page, PAGE_START);
@@ -380,8 +388,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     if (--delay <= 0) return -1;
                 }
 
-                page->lock = LOCKED;
-                page->lock_owner = owner;
+                page->lock          = LOCKED;
+                page->lock_owner    = owner;
             #endif
 
             return 1;
@@ -402,8 +410,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (page->lock == UNLOCKED) return -1;
                 if (page->lock_owner != owner && page->lock_owner != NO_OWNER) return -2;
 
-                page->lock = UNLOCKED;
-                page->lock_owner = NO_OWNER;
+                page->lock          = UNLOCKED;
+                page->lock_owner    = NO_OWNER;
             #endif
 
             return 1;

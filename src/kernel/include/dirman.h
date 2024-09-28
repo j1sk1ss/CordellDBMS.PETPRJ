@@ -1,19 +1,19 @@
 /*
-Directory is the next abstraction level, that work directly with pages.
-Dirman - list of functions for working with directories and pages:
-We can:
-    - Create new directory
-    - Link pages to directory
-    - Unlink pages from directory (TODO)
-    - Free directory
-    - Append / delete / find content in assosiated pages
-
-Dirnam abstraction level responsible for working with pages. It send requests and earns data from lower
-abstraction level. Also dirman don`t check data signature. This is work of database level. Also dirman
-can`t create new directories during handling requests from higher abstraction levels.
-
-CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
-Credits: j1sk1ss
+ *  Directory is the next abstraction level, that work directly with pages.
+ *  Dirman - list of functions for working with directories and pages:
+ *  We can:
+ *      - Create new directory
+ *      - Link pages to directory
+ *      - Unlink pages from directory (TODO)
+ *      - Free directory
+ *      - Append / delete / find content in assosiated pages
+ *
+ *  Dirnam abstraction level responsible for working with pages. It send requests and earns data from lower
+ *  abstraction level. Also dirman don`t check data signature. This is work of database level. Also dirman
+ *  can`t create new directories during handling requests from higher abstraction levels.
+ *
+ *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+ *  Credits: j1sk1ss
 */
 
 #ifndef DIRMAN_H_
@@ -400,7 +400,6 @@ Credits: j1sk1ss
         int DRM_release_directory(directory_t* directory, uint8_t owner);
 
     #pragma endregion
-
 
 #pragma endregion
 

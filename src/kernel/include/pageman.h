@@ -1,19 +1,19 @@
 /*
-Pages - first abstraction level, that responsible for working with files. Main idea of page,
-that this file contains rows without trunc. That's mean, that we can't store in one page a part
-of row. Only whole row. This is important point, that guarantee data strength.
-Pageman - list of functions for working with pages and low-level content presentation in files:
-We can:
-    - Create new pages
-    - Free pages
-    - Append / delete / find content in files
-
-Pageman abstraction level responsible for working with data. Read, save and insert data directly
-to content in pages. Also pageman don`t check data signature. This is work of database level. Also pageman
-can`t create new pages during handling requests from higher abstraction levels.
-
-CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
-Credits: j1sk1ss
+ *  Pages - first abstraction level, that responsible for working with files. Main idea of page,
+ *  that this file contains rows without trunc. That's mean, that we can't store in one page a part
+ *  of row. Only whole row. This is important point, that guarantee data strength.
+ *  Pageman - list of functions for working with pages and low-level content presentation in files:
+ *  We can:
+ *   - Create new pages
+ *   - Free pages
+ *   - Append / delete / find content in files
+ *
+ *  Pageman abstraction level responsible for working with data. Read, save and insert data directly
+ *  to content in pages. Also pageman don`t check data signature. This is work of database level. Also pageman
+ *  can`t create new pages during handling requests from higher abstraction levels.
+ *
+ *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+ *  Credits: j1sk1ss
  */
 
 #ifndef PAGEMAN_H_
