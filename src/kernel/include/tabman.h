@@ -529,7 +529,7 @@
 
     Params:
     - table - pointer to table (Can be freed after function)
-    - path - place where table will be saved (Can be freed after function)
+    - path - place where table will be saved (Can be freed after function). If provided NULL, function try to save file by default path.
 
     Return -5 if dir names write corrupt.
     Return -4 if column links write corrupt.
@@ -545,12 +545,14 @@
     Load table from .tb bin file
 
     Params:
-    - path - path of file (Can be freed after function)
+    - path - path to table.tb file. (Should be NULL, if provided name).
+    - name - name of table. This function will try to load table by 
+             default path (Should be NULL, if provided path).
     Note: Don't forget about full path. Be sure that all code coreectly use paths
 
     Return allocated table from disk
     */
-    table_t* TBM_load_table(char* path);
+    table_t* TBM_load_table(char* path, char* name);
 
     /*
     Delete table from disk.

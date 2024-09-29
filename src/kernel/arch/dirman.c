@@ -39,9 +39,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             }
 
             // We load current page
-            char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(page_path);
+            page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
 
             // We check, that we don't return Page Empty, because
             // PE symbols != Content symbols.
@@ -81,17 +79,14 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         // TODO: We can have situation, when we have many full empty pages, but content larger then one page.
         if (data_lenght < PAGE_CONTENT_SIZE) {
             for (int i = 0; i < directory->header->page_count; i++) {
-                char page_path[DEFAULT_PATH_SIZE];
-                sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
-
-                page_t* page = PGM_load_page(page_path);
+                page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
                 if (index < 0) {
                     continue;
                 }
 
                 PGM_insert_content(page, index, data, data_lenght);
-                PGM_save_page(page, page_path);
+                PGM_save_page(page, NULL);
 
                 return 1;
             }
@@ -138,14 +133,12 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             }
 
             // We load current page to memory
-            char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(page_path);
+            page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page++]);
 
             // We insert current part of content with local offset
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2insert);
             PGM_insert_content(page, current_index, data_pointer, current_size);
-            PGM_save_page(page, page_path);
+            PGM_save_page(page, NULL);
 
             // We reload local index and update size2delete
             current_index = 0;
@@ -173,7 +166,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             // We load current page
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(page_path);
+            page_t* page = PGM_load_page(page_path, NULL);
             if (PGM_lock_page(page, omp_get_thread_num()) != 1) return -1;
 
             // We check, that we don't return Page Empty, because
@@ -231,9 +224,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             }
 
             // We load current page to memory
-            char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(page_path);
+            page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page]);
             if (page == NULL) return -2;
 
             // We search part of data in this page, save index and unload page.
@@ -277,9 +268,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             if (result != -1) continue; // Skip search if result is already found
 
             // Load current page
-            char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(page_path);
+            page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
 
             // Find the value in the page content
             int local_result = PGM_find_value(page, i == page_offset ? current_index : 0, value);
@@ -294,6 +283,35 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         }
 
         return result;
+    }
+
+    int DRM_link_page2dir(directory_t* directory, page_t* page) {
+        if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY)
+            return -1;
+
+        #pragma omp critical (link_page2dir)
+        memcpy(directory->names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
+        return 1;
+    }
+
+    int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
+        int status = 0;
+        #pragma omp critical (unlink_page_from_directory)
+        {
+            for (int i = 0; i < directory->header->page_count; i++) {
+                if (memcmp(directory->names[i], page_name, PAGE_NAME_SIZE) == 0) {
+                    for (int j = i; j < directory->header->page_count - 1; j++) {
+                        memcpy(directory->names[j], directory->names[j + 1], PAGE_NAME_SIZE);
+                    }
+
+                    directory->header->page_count--;
+                    status = 1;
+                    break;
+                }
+            }
+        }
+
+        return status;
     }
 
 #pragma endregion
@@ -340,35 +358,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         return DRM_create_directory(directory_name);
     }
 
-    int DRM_link_page2dir(directory_t* directory, page_t* page) {
-        if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY)
-            return -1;
-
-        #pragma omp critical (link_page2dir)
-        memcpy(directory->names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
-        return 1;
-    }
-
-    int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
-        int status = 0;
-        #pragma omp critical (unlink_page_from_directory)
-        {
-            for (int i = 0; i < directory->header->page_count; i++) {
-                if (memcmp(directory->names[i], page_name, PAGE_NAME_SIZE) == 0) {
-                    for (int j = i; j < directory->header->page_count - 1; j++) {
-                        memcpy(directory->names[j], directory->names[j + 1], PAGE_NAME_SIZE);
-                    }
-
-                    directory->header->page_count--;
-                    status = 1;
-                    break;
-                }
-            }
-        }
-
-        return status;
-    }
-
     int DRM_save_directory(directory_t* directory, char* path) {
         int status = 1;
         #pragma omp critical (directory_save)
@@ -407,25 +396,28 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         return status;
     }
 
-    directory_t* DRM_load_directory(char* path) {
-        char temp_path[DEFAULT_PATH_SIZE];
-        strncpy(temp_path, path, DEFAULT_PATH_SIZE);
-
+    directory_t* DRM_load_directory(char* path, char* name) {
         char buffer[512];
         char file_name[DIRECTORY_NAME_SIZE];
+        char load_path[DEFAULT_PATH_SIZE];
+        
+        char temp_path[DEFAULT_PATH_SIZE];
+        strcpy(temp_path, path);
+
+        if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, name, DIRECTORY_EXTENSION);
+        else strcpy(load_path, path);
 
         get_file_path_parts(temp_path, buffer, file_name, buffer);
-
         directory_t* loaded_directory = DRM_DDT_find_directory(file_name);
         if (loaded_directory != NULL) return loaded_directory;
 
         #pragma omp critical (directory_load)
         {
             // Open file directory
-            FILE* file = fopen(path, "rb");
+            FILE* file = fopen(load_path, "rb");
             if (file == NULL) {
                 loaded_directory = NULL;
-                print_error("Directory not found! Path: [%s]\n", path);
+                print_error("Directory not found! Path: [%s]\n", load_path);
             } else {
                 // Read header from file
                 directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
@@ -465,7 +457,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             for (int i = 0; i < directory->header->page_count; i++) {
                 char page_path[DEFAULT_PATH_SIZE];
                 sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
-                page_t* page = PGM_load_page(page_path);
+                page_t* page = PGM_load_page(page_path, NULL);
                 if (PGM_lock_page(page, omp_get_thread_num()) == 1) {
                     remove(page_path);
                     PGM_PDT_flush_page(page);
@@ -533,12 +525,9 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             #ifndef NO_DDT
                 for (int i = 0; i < DDT_SIZE; i++) {
                     if (DRM_DDT[i] == NULL) continue;
-                    char save_path[DEFAULT_PATH_SIZE];
-                    sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, DRM_DDT[i]->header->name, DIRECTORY_EXTENSION);
-
                     if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
                         DRM_DDT_flush_index(i);
-                        DRM_DDT[i] = DRM_load_directory(save_path);
+                        DRM_DDT[i] = DRM_load_directory(NULL, (char*)DRM_DDT[i]->header->name);
                     } else return -1;
                 }
             #endif

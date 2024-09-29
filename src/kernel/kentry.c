@@ -56,7 +56,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
 
     int current_start = 1;
 
-    database_t* database = DB_load_database(SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start));
+    database_t* database = DB_load_database(NULL, SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start));
     if (database == NULL) {
         print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
         current_start = 1;

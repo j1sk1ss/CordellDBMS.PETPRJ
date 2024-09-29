@@ -227,7 +227,7 @@
 
     Params:
     - page - pointer to page.
-    - path - path where save.
+    - path - path where save. If provided NULL, function try to save file by default path.
 
     Return -3 if content write corrupt.
     Return -2 if header write corrupt.
@@ -241,14 +241,16 @@
     Open file, load page, close file
 
     Params:
-    - name - page name (don`t forget path)
+    - path - path to page.pg file. (Should be NULL, if provided name).
+    - name - name of page. This function will try to load page by 
+             default path (Should be NULL, if provided path).
 
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* path);
+    page_t* PGM_load_page(char* path, char* name);
 
     /*
     Release page

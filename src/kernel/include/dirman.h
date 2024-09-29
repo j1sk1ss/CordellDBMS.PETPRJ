@@ -193,7 +193,7 @@
     Note 2: If you want update data on disk, just create same path with existed directory.
 
     directory - pointer to directory.
-    path - path where save.
+    path - path where save. If provided NULL, function try to save file by default path.
 
     Return -2 - if something goes wrong.
     Return -1 - if we can`t create file.
@@ -257,13 +257,16 @@
     Open file, load directory and page names, close file.
     Note: This function invoke create_directory function.
 
-    name - file name (don`t forget path).
+    Params:
+    - path - path to directory.dr file. (Should be NULL, if provided name).
+    - name - name of directory. This function will try to load dir by 
+             default path (Should be NULL, if provided path).
 
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
     Return directory pointer.
     */
-    directory_t* DRM_load_directory(char* path);
+    directory_t* DRM_load_directory(char* path, char* name);
 
     /*
     Delete directory from disk.

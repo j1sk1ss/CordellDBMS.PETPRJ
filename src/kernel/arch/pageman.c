@@ -218,15 +218,18 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         return status;
     }
 
-    page_t* PGM_load_page(char* path) {
-        char temp_path[DEFAULT_PATH_SIZE];
-        strncpy(temp_path, path, DEFAULT_PATH_SIZE);
-
+    page_t* PGM_load_page(char* path, char* name) {
         char buffer[512];
         char file_name[PAGE_NAME_SIZE];
+        char load_path[DEFAULT_PATH_SIZE];
+        
+        char temp_path[DEFAULT_PATH_SIZE];
+        strcpy(temp_path, path);
+
+        if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", PAGE_BASE_PATH, name, PAGE_EXTENSION);
+        else strcpy(load_path, path);
 
         get_file_path_parts(temp_path, buffer, file_name, buffer);
-
         page_t* loaded_page = PGM_PDT_find_page(file_name);
         if (loaded_page != NULL) return loaded_page;
 
@@ -324,12 +327,9 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             #ifndef NO_PDT
                 for (int i = 0; i < PDT_SIZE; i++) {
                     if (PGM_PDT[i] == NULL) continue;
-                    char save_path[DEFAULT_PATH_SIZE];
-                    sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, PGM_PDT[i]->header->name, PAGE_EXTENSION);
-
                     if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
                         PGM_PDT_flush_index(i);
-                        PGM_PDT[i] = PGM_load_page(save_path);
+                        PGM_PDT[i] = PGM_load_page(NULL, (char*)PGM_PDT[i]->header->name);
                     } else return -1;
                 }
             #endif

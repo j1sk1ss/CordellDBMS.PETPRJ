@@ -268,10 +268,6 @@
         }
     }
 
-#pragma endregion
-
-#pragma region [Database file]
-
     table_t* DB_get_table(database_t* database, char* table_name) {
         // If we already has cached table, we can think, that this is
         // table what we need.
@@ -284,10 +280,7 @@
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
             if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
-                char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, table_name, TABLE_EXTENSION);
-
-                database->cached_table = TBM_load_table(save_path);
+                database->cached_table = TBM_load_table(NULL, table_name);
                 return database->cached_table;
             }
         }
@@ -342,6 +335,10 @@
         return status;
     }
 
+#pragma endregion
+
+#pragma region [Database file]
+
     database_t* DB_create_database(char* name) {
         database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
         header->magic = DATABASE_MAGIC;
@@ -364,14 +361,18 @@
         return 1;
     }
 
-    database_t* DB_load_database(char* path) {
+    database_t* DB_load_database(char* path, char* name) {
+        char load_path[DEFAULT_PATH_SIZE];
+        if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", DATABASE_BASE_PATH, name, DATABASE_EXTENSION);
+        else strcpy(load_path, path);        
+        
         database_t* loaded_database = NULL;
         #pragma omp critical (load_database)
         {
-            FILE* file = fopen(path, "rb");
+            FILE* file = fopen(load_path, "rb");
             if (file == NULL) {
                 loaded_database = NULL;
-                print_error("Database file not found! [%s]", path);
+                print_error("Database file not found! [%s]", load_path);
             } else {
                 database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
                 fread(header, sizeof(database_header_t), 1, file);

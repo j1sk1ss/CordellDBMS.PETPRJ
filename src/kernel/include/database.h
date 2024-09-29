@@ -345,20 +345,22 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Load database from disk by provided path to *.db file.
 
     Params:
-    - path - path to *.db file
+    - path - path to database.db file. (Should be NULL, if provided name).
+    - name - name of database. This function will try to load database by 
+             default path (Should be NULL, if provided path).
 
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
     Return pointer to database if all was success.
     */
-    database_t* DB_load_database(char* path);
+    database_t* DB_load_database(char* path, char* name);
 
     /*
     Save database to disk
 
     Params:
     - database - pointer to database
-    - path - save path
+    - path - save path. If provided NULL, function try to save file by default path.
 
     Return -3 if table names write corrupt.
     Return -2 if header write corrupt.
