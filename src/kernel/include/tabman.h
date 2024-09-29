@@ -248,8 +248,8 @@
         // How much directories in this table
         uint8_t dir_count;
 
-        // TODO: Maybe add something like checksum?
-        //       For fast comparing tables
+        // Table checksum
+        uint32_t checksum;
     } typedef table_header_t;
 
     struct table {
@@ -584,6 +584,17 @@
     Return 1 - if Release was success
     */
     int TBM_free_table(table_t* table);
+
+    /*
+    Generate table checksum. Checksum is sum of all bytes of table name, 
+    all bytes of dir names, all bytes of columns and links.
+
+    Params:
+    - table - table pointer.
+
+    Return table checksum.
+    */
+    uint32_t TBM_get_checksum(table_t* table);
 
     #pragma region [TDT]
 

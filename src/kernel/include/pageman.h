@@ -65,8 +65,8 @@
         // With this name we can save pages / compare pages
         uint8_t name[PAGE_NAME_SIZE];
 
-        // TODO: Maybe add something like checksum?
-        //       For fast comparing pages
+        // Table checksum
+        uint32_t checksum;
     } typedef page_header_t;
 
     struct page {
@@ -162,6 +162,19 @@
     Return index of value in content
     */
     int PGM_find_value(page_t* page, int offset, uint8_t value);
+
+    /*
+    Function that set PE symbol in content in page. Main idea:
+    1) We find last not PAGE_EMPTY symbol.
+    2) Go to the end of page, and if we don`t get any not PAGE_EMPTY symbol, save start index.
+
+    Params:
+    - page - page pointer.
+    - offset - offset in page.
+
+    Return index of PAGE_END symbol in page. 
+    */
+    int PGM_set_pe_symbol(page_t* page, int offset);
 
     /*
     Return value in bytes of free page space
@@ -266,6 +279,16 @@
     Return 1 - if Release was success
     */
     int PGM_free_page(page_t* page);
+
+    /*
+    Generate page checksum.
+
+    Params:
+    - page - page pointer.
+
+    Return page checksum.
+    */
+    uint32_t PGM_get_checksum(page_t* page);
 
     #pragma region [PDT]
 

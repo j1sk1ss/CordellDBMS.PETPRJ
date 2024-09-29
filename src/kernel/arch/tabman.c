@@ -436,46 +436,52 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         int status = 1;
         #pragma omp critical (table_save)
         {
-            // We generate default path
-            char save_path[DEFAULT_PATH_SIZE];
-            if (path == NULL) {
-                sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, table->header->name, TABLE_EXTENSION);
-            }
-            else strcpy(save_path, path);
+            #ifndef NO_PAGE_SAVE_OPTIMIZATION
+            if (TBM_get_checksum(table) != table->header->checksum)
+            #endif
+            {
+                // We generate default path
+                char save_path[DEFAULT_PATH_SIZE];
+                if (path == NULL) {
+                    sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, table->header->name, TABLE_EXTENSION);
+                }
+                else strcpy(save_path, path);
 
-            // Open or create file
-            FILE* file = fopen(save_path, "wb");
-            if (file == NULL) {
-                status = -1;
-                print_error("Can't save or create table [%s] file", save_path);
-            } else {
-                // Write header
-                if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
+                // Open or create file
+                FILE* file = fopen(save_path, "wb");
+                if (file == NULL) {
+                    status = -1;
+                    print_error("Can't save or create table [%s] file", save_path);
+                } else {
+                    // Write header
+                    table->header->checksum = TBM_get_checksum(table);
+                    if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
 
-                // Write table data to open file
-                for (int i = 0; i < table->header->column_count; i++)
-                    if (fwrite(table->columns[i], sizeof(table_column_t), 1, file) != 1) {
-                        status = -3;
-                    }
+                    // Write table data to open file
+                    for (int i = 0; i < table->header->column_count; i++)
+                        if (fwrite(table->columns[i], sizeof(table_column_t), 1, file) != 1) {
+                            status = -3;
+                        }
 
-                for (int i = 0; i < table->header->column_link_count; i++)
-                    if (fwrite(table->column_links[i], sizeof(table_column_link_t), 1, file) != 1) {
-                        status = -4;
-                    }
+                    for (int i = 0; i < table->header->column_link_count; i++)
+                        if (fwrite(table->column_links[i], sizeof(table_column_link_t), 1, file) != 1) {
+                            status = -4;
+                        }
 
-                for (int i = 0; i < table->header->dir_count; i++)
-                    if (fwrite(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file) != DIRECTORY_NAME_SIZE) {
-                        status = -5;
-                    }
+                    for (int i = 0; i < table->header->dir_count; i++)
+                        if (fwrite(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file) != DIRECTORY_NAME_SIZE) {
+                            status = -5;
+                        }
 
-                // Close file and clear buffers
-                #ifndef _WIN32
-                fsync(fileno(file));
-                #else
-                fflush(file);
-                #endif
+                    // Close file and clear buffers
+                    #ifndef _WIN32
+                    fsync(fileno(file));
+                    #else
+                    fflush(file);
+                    #endif
 
-                fclose(file);
+                    fclose(file);
+                }
             }
         }
 
@@ -545,8 +551,6 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     }
 
     int TBM_delete_table(table_t* table, int full) {
-        char delete_path[DEFAULT_PATH_SIZE];
-        sprintf(delete_path, "%s%.8s.%s", TABLE_BASE_PATH, table->header->name, TABLE_EXTENSION);
         if (TBM_lock_table(table, omp_get_thread_num()) == 1) {
             #pragma omp parallel
             for (int i = 0; i < table->header->dir_count; i++) {
@@ -555,6 +559,8 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 DRM_delete_directory(directory, full);
             }
 
+            char delete_path[DEFAULT_PATH_SIZE];
+            sprintf(delete_path, "%s%.8s.%s", TABLE_BASE_PATH, table->header->name, TABLE_EXTENSION);
             remove(delete_path);
             TBM_TDT_flush_table(table);
         }
@@ -575,6 +581,41 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         SOFT_FREE(table);
 
         return 1;
+    }
+
+    uint32_t TBM_get_checksum(table_t* table) {
+        uint32_t checksum = 0;
+        for (int i = 0; i < TABLE_NAME_SIZE; i++) checksum += table->header->name[i];
+        checksum += strlen((char*)table->header->name);
+
+        for (int i = 0; i < table->header->dir_count; i++) 
+            for (int j = 0; j < DIRECTORY_NAME_SIZE; j++) {
+                checksum += table->dir_names[i][j];
+                checksum += strlen((char*)table->dir_names[i]);
+            }
+
+        for (int i = 0; i < table->header->column_count; i++) {
+            for (int j = 0; j < COLUMN_NAME_SIZE; j++) 
+                checksum += table->columns[i]->name[j];
+
+            checksum += strlen((char*)table->columns[i]->name);
+        }
+
+        for (int i = 0; i < table->header->column_link_count; i++) {
+            for (int j = 0; j < COLUMN_NAME_SIZE; j++) {
+                checksum += table->column_links[i]->master_column_name[j];
+                checksum += table->column_links[i]->slave_column_name[j];
+            }
+
+            for (int j = 0; j < TABLE_NAME_SIZE; j++) 
+                checksum += table->column_links[i]->slave_table_name[j];
+
+            checksum += strlen((char*)table->column_links[i]->master_column_name);
+            checksum += strlen((char*)table->column_links[i]->slave_column_name);
+            checksum += strlen((char*)table->column_links[i]->slave_table_name);
+        }
+
+        return checksum;
     }
 
     #pragma region [TDT]

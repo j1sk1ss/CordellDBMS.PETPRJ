@@ -12,9 +12,6 @@
 
 #include <stdint.h>
 
-#define LARGE_DATA_TEST
-#define NO_PRIMARY_CHECK
-
 int main() {
     TB_enable();
 

@@ -4,7 +4,7 @@
  *  We can:
  *      - Create new directory
  *      - Link pages to directory
- *      - Unlink pages from directory (TODO)
+ *      - Unlink pages from directory
  *      - Free directory
  *      - Append / delete / find content in assosiated pages
  *
@@ -63,8 +63,8 @@
         // Page count in directory
         uint8_t page_count;
 
-        // TODO: Maybe add something like checksum?
-        //       For fast comparing directories
+        // Directory checksum
+        uint32_t checksum;
     } typedef directory_header_t;
 
     struct directory {
@@ -297,6 +297,17 @@
     Return 1 - if Release was success.
     */
     int DRM_free_directory(directory_t* directory);
+
+    /*
+    Generate directory checksum. Checksum is sum of all bytes of directory name, 
+    all bytes of page names.
+
+    Params:
+    - directory - directory pointer.
+
+    Return directory checksum.
+    */
+    uint32_t DRM_get_checksum(directory_t* directory);
 
 #pragma region [DDT]
 

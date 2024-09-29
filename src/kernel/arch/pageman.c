@@ -22,18 +22,16 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 #pragma region [Content]
 
     int PGM_insert_value(page_t* page, int offset, uint8_t value) {
-        if (offset < PAGE_CONTENT_SIZE) page->content[offset] = value;
+        if (offset < PAGE_CONTENT_SIZE) { 
+            page->content[offset] = value;
+            return 1;
+        }
         else return -1;
-
-        return 1;
     }
 
     int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_length) {
         int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
-        for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) {
-            page->content[i] = data[j];
-        }
-
+        for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) page->content[i] = data[j];
         return (int)data_length - (end_index - offset);
     }
 
@@ -46,21 +44,18 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size) {
         if (offset >= PAGE_CONTENT_SIZE) return -2;
         for (int i = offset; i <= PAGE_CONTENT_SIZE - (int)data_size; i++) {
-            if (memcmp(&page->content[i], data, data_size) == 0)
-                return i;
+            if (memcmp(&page->content[i], data, data_size) == 0) return i;
         }
 
         return -1;
     }
 
     int PGM_find_value(page_t* page, int offset, uint8_t value) {
-        if (offset >= PAGE_CONTENT_SIZE) return -2;
-
         int index = offset;
+        if (index >= PAGE_CONTENT_SIZE) return -2;
         while (1) {
             if (page->content[index] == value) return index;
-            if (index >= PAGE_CONTENT_SIZE) return -1;
-            index++;
+            if (index++ >= PAGE_CONTENT_SIZE) return -1;
         }
 
         return -1;
@@ -94,7 +89,6 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_get_free_space(page_t* page, int offset) {
-        // We count empty symbols
         int count = 0;
         for (int i = offset; i < PAGE_CONTENT_SIZE; i++) {
             if (page->content[i] == PAGE_EMPTY) count++;
@@ -112,8 +106,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
         if (offset == -1) return index;
 
-        int is_reading = 0;
-        int free_index = index;
+        int is_reading   = 0;
+        int free_index   = index;
         int current_size = 0;
         for (int i = MAX(offset, index); i < PAGE_CONTENT_SIZE; i++) {
             if (page->content[i] == PAGE_EMPTY) {
@@ -150,11 +144,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     page_t* PGM_create_empty_page() {
-        char page_name[PAGE_NAME_SIZE];
-        char save_path[DEFAULT_PATH_SIZE];
-
-        rand_str(page_name, PAGE_NAME_SIZE);
-        sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
+        char page_name[PAGE_NAME_SIZE]    = { '\0' };
+        char save_path[DEFAULT_PATH_SIZE] = { '\0' };
 
         int delay = 1000;
         while (1) {
@@ -165,8 +156,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 rand_str(page_name, PAGE_NAME_SIZE);
                 sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
 
-                delay--;
-                if (delay <= 0) return NULL;
+                if (delay-- <= 0) return NULL;
             }
             else {
                 // File not found, no memory leak since 'file' == NULL
@@ -182,36 +172,42 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         int status = 1;
         #pragma omp critical (page_save)
         {
-            // We generate default path
-            char save_path[DEFAULT_PATH_SIZE];
-            if (path == NULL) {
-                sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
-            }
-            else strcpy(save_path, path);
+            #ifndef NO_PAGE_SAVE_OPTIMIZATION
+            if (PGM_get_checksum(page) != page->header->checksum)
+            #endif
+            {
+                // We generate default path
+                char save_path[DEFAULT_PATH_SIZE];
+                if (path == NULL) {
+                    sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
+                }
+                else strcpy(save_path, path);
 
-            // Open or create file
-            FILE* file = fopen(save_path, "wb");
-            if (file == NULL) {
-                status = -1;
-                print_error("Can't save or create [%s] file", save_path);
-            } else {
-                // Write data to disk
-                int eof = PGM_set_pe_symbol(page, PAGE_START);
-                int page_size = PGM_find_value(page, 0, PAGE_END);
-                if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
+                // Open or create file
+                FILE* file = fopen(save_path, "wb");
+                if (file == NULL) {
+                    status = -1;
+                    print_error("Can't save or create [%s] file", save_path);
+                } else {
+                    // Write data to disk
+                    int eof = PGM_set_pe_symbol(page, PAGE_START);
+                    int page_size = PGM_find_value(page, 0, PAGE_END);
+                    if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
 
-                if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
-                if (fwrite(page->content, sizeof(uint8_t), page_size, file) != (size_t)page_size) status = -3;
+                    page->header->checksum = PGM_get_checksum(page);
+                    if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
+                    if (fwrite(page->content, sizeof(uint8_t), page_size, file) != (size_t)page_size) status = -3;
 
-                // Close file
-                #ifndef _WIN32
+                    // Close file
+                    #ifndef _WIN32
                     fsync(fileno(file));
-                #else
+                    #else
                     fflush(file);
-                #endif
+                    #endif
 
-                fclose(file);
-                page->content[eof] = PAGE_EMPTY;
+                    fclose(file);
+                    page->content[eof] = PAGE_EMPTY;
+                }
             }
         }
 
@@ -280,6 +276,15 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         SOFT_FREE(page);
 
         return 1;
+    }
+
+    uint32_t PGM_get_checksum(page_t* page) {
+        uint32_t checksum = 0;
+        for (int i = 0; i < PAGE_NAME_SIZE; i++) checksum += page->header->name[i];
+        checksum += strlen((char*)page->header->name);
+
+        for (int i = 0; i < PAGE_CONTENT_SIZE; i++) checksum += page->content[i];
+        return checksum;
     }
 
     #pragma region [PDT]

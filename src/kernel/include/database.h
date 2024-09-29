@@ -58,9 +58,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
         // Table count in database
         uint8_t table_count;
-
-        // TODO: Maybe add something like checksum?
-        //       For fast comparing databases
     } typedef database_header_t;
 
     struct database {
