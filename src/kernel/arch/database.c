@@ -9,10 +9,8 @@
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return NULL;
-        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-            return NULL;
-        }
-
+        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return NULL;
+        
         int row_size = 0;
         for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
 
@@ -20,9 +18,7 @@
         int pages_offset  = row / rows_per_page;
         int page_offset   = row % rows_per_page;
         int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-
-        uint8_t* row_data = TBM_get_content(table, global_offset, row_size);
-        return row_data;
+        return TBM_get_content(table, global_offset, row_size);
     }
 
     int DB_append_row(
@@ -31,9 +27,7 @@
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -4;
-        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-            return -3;
-        }
+        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
 
         int result = TBM_check_signature(table, data);
         if (result != 1) return result - 10;
@@ -82,9 +76,10 @@
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
-        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-            return -3;
-        }
+        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
+
+        int result = TBM_check_signature(table, data);
+        if (result != 1) return result - 10;
 
         int row_size = 0;
         for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
@@ -93,9 +88,6 @@
         int pages_offset  = row / rows_per_page;
         int page_offset   = row % rows_per_page;
         int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-
-        int result = TBM_check_signature(table, data);
-        if (result != 1) return result - 10;
         return TBM_insert_content(table, global_offset, data, data_size);
     }
 
@@ -106,13 +98,11 @@
     ) { // TODO: Cascade Update (If updated linked column)
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
-        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-            return -3;
-        }
+        if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
 
-        int row_size        = 0;
-        int column_offset   = -1;
-        int column_size     = -1;
+        int row_size      = 0;
+        int column_offset = -1;
+        int column_size   = -1;
         for (int i = 0; i < table->header->column_count; i++) {
             if (column_name != NULL) {
                 if (strcmp((char*)table->columns[i]->name, column_name) == 0) {
@@ -124,9 +114,8 @@
             row_size += table->columns[i]->size;
         }
 
-        if (column_size == -1 && column_offset == -1) return TBM_insert_content(table, row_size * row, data, row_size);
         if ((int)data_size > column_size) return -1;
-
+        if (column_size == -1 && column_offset == -1) return TBM_insert_content(table, row_size * row, data, row_size);
         return TBM_insert_content(table, row_size * row + column_offset, data, column_size);
     }
 
@@ -136,17 +125,10 @@
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
-        if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) {
-            return -3;
-        }
+        if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) return -3;
 
         int row_size = 0;
         for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
-
-        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
-        int pages_offset  = row / rows_per_page;
-        int page_offset   = row % rows_per_page;
-        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
 
         #ifndef NO_CASCADE_DELETE
             #pragma omp parallel
@@ -189,6 +171,10 @@
             }
         #endif
 
+        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+        int pages_offset  = row / rows_per_page;
+        int page_offset   = row % rows_per_page;
+        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
         return TBM_delete_content(table, global_offset, row_size);
     }
 
@@ -199,13 +185,11 @@
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
-        if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
-            return -3;
-        }
+        if (CHECK_READ_ACCESS(access, table->header->access) == -1) return -3;
 
-        int row_size        = 0;
-        int column_offset   = -1;
-        int column_size     = -1;
+        int row_size      = 0;
+        int column_offset = -1;
+        int column_size   = -1;
         for (int i = 0; i < table->header->column_count; i++) {
             if (column != NULL) {
                 if (strcmp((char*)table->columns[i]->name, column) == 0) {
@@ -222,9 +206,9 @@
             if (global_offset == -1 || global_offset == -2) return -1;
 
             int row = global_offset / row_size;
-            int position_in_row = global_offset % row_size;
             if (column_offset == -1 && column_size == -1) return row;
 
+            int position_in_row = global_offset % row_size;
             if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
             else offset = global_offset + data_size;
         }
@@ -237,13 +221,11 @@
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
-        if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
-            return -3;
-        }
-
-        int row_size        = 0;
-        int column_offset   = -1;
-        int column_size     = -1;
+        if (CHECK_READ_ACCESS(access, table->header->access) == -1) return -3;
+        
+        int row_size      = 0;
+        int column_offset = -1;
+        int column_size   = -1;
         for (int i = 0; i < table->header->column_count; i++) {
             if (column != NULL) {
                 if (strcmp((char*)table->columns[i]->name, column) == 0) {
@@ -260,17 +242,13 @@
             if (global_offset == -1) return -1;
 
             int row = global_offset / row_size;
-            int position_in_row = global_offset % row_size;
             if (column_offset == -1 && column_size == -1) return row;
 
+            int position_in_row = global_offset % row_size;
             if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
             else offset = global_offset + 1;
         }
     }
-
-#pragma endregion
-
-#pragma region [Database file]
 
     table_t* DB_get_table(database_t* database, char* table_name) {
         // If we already has cached table, we can think, that this is
@@ -284,10 +262,7 @@
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
             if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
-                char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%.8s.%s", TABLE_BASE_PATH, table_name, TABLE_EXTENSION);
-
-                database->cached_table = TBM_load_table(save_path);
+                database->cached_table = TBM_load_table(NULL, table_name);
                 return database->cached_table;
             }
         }
@@ -307,8 +282,7 @@
     }
 
     int DB_link_table2database(database_t* database, table_t* table) {
-        if (database->header->table_count + 1 >= TABLES_PER_DATABASE)
-            return -1;
+        if (database->header->table_count + 1 >= TABLES_PER_DATABASE) return -1;
 
         #pragma omp critical (link_table2database)
         memcpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
@@ -342,6 +316,10 @@
         return status;
     }
 
+#pragma endregion
+
+#pragma region [Database file]
+
     database_t* DB_create_database(char* name) {
         database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
         header->magic = DATABASE_MAGIC;
@@ -364,14 +342,18 @@
         return 1;
     }
 
-    database_t* DB_load_database(char* path) {
+    database_t* DB_load_database(char* path, char* name) {
+        char load_path[DEFAULT_PATH_SIZE];
+        if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", DATABASE_BASE_PATH, name, DATABASE_EXTENSION);
+        else strcpy(load_path, path);        
+        
         database_t* loaded_database = NULL;
         #pragma omp critical (load_database)
         {
-            FILE* file = fopen(path, "rb");
+            FILE* file = fopen(load_path, "rb");
             if (file == NULL) {
+                print_error("Database file not found! [%s]", load_path);
                 loaded_database = NULL;
-                print_error("Database file not found! [%s]", path);
             } else {
                 database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
                 fread(header, sizeof(database_header_t), 1, file);
@@ -408,8 +390,8 @@
 
             FILE* file = fopen(save_path, "wb");
             if (file == NULL) {
-                status = -1;
                 print_error("Can`t create file: [%s]", save_path);
+                status = -1;
             } else {
                 if (fwrite(database->header, sizeof(database_header_t), 1, file) != 1) status = -2;
                 for (int i = 0; i < database->header->table_count; i++)

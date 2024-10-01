@@ -12,9 +12,6 @@
 
 #include <stdint.h>
 
-#define LARGE_DATA_TEST
-#define NO_PRIMARY_CHECK
-
 int main() {
     TB_enable();
 
@@ -37,8 +34,8 @@ int main() {
 
 #ifdef DIR_PAGE_LOAD_TEST  // Success
 
-    directory_t* dr = DRM_load_directory("directory.dr");
-    page_t* pg = PGM_load_page("page.pg");
+    directory_t* dr = DRM_load_directory("directory.dr", NULL);
+    page_t* pg = PGM_load_page("page.pg", NULL);
 
     // PGM_append_content(pg, "Hello there", 11);
     PGM_save_page(pg, "page.pg");
@@ -68,7 +65,7 @@ int main() {
 
 #ifdef TABLE_LOAD_TEST  // Success
 
-    table_t* tab1 = TBM_load_table("table.tb");
+    table_t* tab1 = TBM_load_table("table.tb", NULL);
     if (tab1 == NULL) {
         printf("Something wrong!\n");
     }

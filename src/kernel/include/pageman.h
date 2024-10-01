@@ -65,8 +65,8 @@
         // With this name we can save pages / compare pages
         uint8_t name[PAGE_NAME_SIZE];
 
-        // TODO: Maybe add something like checksum?
-        //       For fast comparing pages
+        // Table checksum
+        uint32_t checksum;
     } typedef page_header_t;
 
     struct page {
@@ -164,6 +164,19 @@
     int PGM_find_value(page_t* page, int offset, uint8_t value);
 
     /*
+    Function that set PE symbol in content in page. Main idea:
+    1) We find last not PAGE_EMPTY symbol.
+    2) Go to the end of page, and if we don`t get any not PAGE_EMPTY symbol, save start index.
+
+    Params:
+    - page - page pointer.
+    - offset - offset in page.
+
+    Return index of PAGE_END symbol in page. 
+    */
+    int PGM_set_pe_symbol(page_t* page, int offset);
+
+    /*
     Return value in bytes of free page space
     Note: Will return only block of free space. For examle if in page we have situation like below:
     NFREE -> SMALL FREE -> NFREE -> LARGE FREE -> ...
@@ -227,7 +240,7 @@
 
     Params:
     - page - pointer to page.
-    - path - path where save.
+    - path - path where save. If provided NULL, function try to save file by default path.
 
     Return -3 if content write corrupt.
     Return -2 if header write corrupt.
@@ -241,14 +254,16 @@
     Open file, load page, close file
 
     Params:
-    - name - page name (don`t forget path)
+    - path - path to page.pg file. (Should be NULL, if provided name).
+    - name - name of page. This function will try to load page by 
+             default path (Should be NULL, if provided path).
 
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* path);
+    page_t* PGM_load_page(char* path, char* name);
 
     /*
     Release page
@@ -264,6 +279,16 @@
     Return 1 - if Release was success
     */
     int PGM_free_page(page_t* page);
+
+    /*
+    Generate page checksum.
+
+    Params:
+    - page - page pointer.
+
+    Return page checksum.
+    */
+    uint32_t PGM_get_checksum(page_t* page);
 
     #pragma region [PDT]
 

@@ -27,7 +27,6 @@
 #ifdef _WIN32
     #include <winsock2.h>
     #include <ws2tcpip.h>
-    #pragma comment(lib, "ws2_32.lib")
 #else
     #include <unistd.h>
     #include <sys/socket.h>
@@ -52,12 +51,12 @@ void cleanup() {
 }
 
 /*
-This function takes source data and destination address for kernel answer.
-In source should be provided correct command for kernel.
-
-Params:
-- source - source FD with commands.
-- destination - destination FD for kernel answer.
+ * This function takes source data and destination address for kernel answer.
+ * In source should be provided correct command for kernel.
+ * 
+ * Params:
+ * - source - source FD with commands.
+ * - destination - destination FD for kernel answer.
 */
 void send2kernel(int source, int destination) {
     int count = 0;
@@ -131,7 +130,7 @@ void send2kernel(int source, int destination) {
 }
 
 /*
-Server setup function
+ * Server setup function
 */
 int main(int argc, char* argv[]) {
     int reciever        = -1;
