@@ -83,20 +83,20 @@ void send2kernel(int source, int destination) {
                 in_quotes = !in_quotes;
                 if (in_quotes) {
                     current_arg = p + 1;
-                } 
+                }
                 else {
                     *p = '\0';
                     argv[argc++] = current_arg;
                     current_arg  = NULL;
                 }
-            } 
+            }
             else if (!in_quotes && (*p == ' ' || *p == '\t')) {
                 *p = '\0';
                 if (current_arg) {
                     argv[argc++] = current_arg;
                     current_arg  = NULL;
                 }
-            } 
+            }
             else if (!current_arg) {
                 current_arg = p;
             }
@@ -119,7 +119,8 @@ void send2kernel(int source, int destination) {
                 uint8_t buffer[1] = { result->answer_code };
                 send(destination, (const char*)buffer, sizeof(uint8_t), 0);
             #else
-                write(destination, result->answer_code, sizeof(uint8_t));
+                uint8_t answer_code[1] = { result->answer_code };
+                write(destination, answer_code, sizeof(uint8_t));
             #endif
 
             print_log("Answer code: %i", result->answer_code);
