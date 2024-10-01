@@ -1,5 +1,4 @@
 #include "include/kentry.h"
-#include "include/database.h"
 
 
 int kmain(int argc, char* argv[]) {
@@ -7,11 +6,6 @@ int kmain(int argc, char* argv[]) {
         print_error("Too small argument count. Should be 1, but provided 0.");
         return -1;
     }
-
-    /*
-    Enable traceback for current session.
-    */
-    TB_enable();
 
     /*
     Check transaction status.
@@ -535,7 +529,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                     answer->answer_code = -5;
                     return answer;
                 }
-                
+
                 table_t* table = DB_get_table(database, table_name);
                 if (table == NULL) {
                     print_error("Table [%s] not found in database!", table_name);

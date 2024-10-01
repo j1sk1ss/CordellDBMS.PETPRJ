@@ -22,7 +22,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 #pragma region [Content]
 
     int PGM_insert_value(page_t* page, int offset, uint8_t value) {
-        if (offset < PAGE_CONTENT_SIZE) { 
+        if (offset < PAGE_CONTENT_SIZE) {
             page->content[offset] = value;
             return 1;
         }
@@ -137,7 +137,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         memcpy(header->name, name, PAGE_NAME_SIZE);
 
         page->header = header;
-        memcpy(page->content, buffer, data_size);
+        if (buffer != NULL)
+            memcpy(page->content, buffer, data_size);
 
         for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
         return page;
@@ -149,13 +150,12 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
         int delay = 1000;
         while (1) {
+            rand_str(page_name, PAGE_NAME_SIZE);
+            sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
+
             FILE* file;
-            if ((file = fopen(save_path,"r")) != NULL) {
+            if ((file = fopen(save_path, "r")) != NULL) {
                 fclose(file);
-
-                rand_str(page_name, PAGE_NAME_SIZE);
-                sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
-
                 if (delay-- <= 0) return NULL;
             }
             else {
@@ -218,14 +218,23 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         char buffer[512];
         char file_name[PAGE_NAME_SIZE];
         char load_path[DEFAULT_PATH_SIZE];
-        
-        char temp_path[DEFAULT_PATH_SIZE];
-        strcpy(temp_path, path);
 
         if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", PAGE_BASE_PATH, name, PAGE_EXTENSION);
         else strcpy(load_path, path);
 
-        get_file_path_parts(temp_path, buffer, file_name, buffer);
+        if (path != NULL) {
+            char temp_path[DEFAULT_PATH_SIZE];
+            strcpy(temp_path, path);
+            get_file_path_parts(temp_path, buffer, file_name, buffer);
+        }
+        else if (name != NULL) {
+            strncpy(file_name, name, PAGE_NAME_SIZE);
+        }
+        else {
+            print_error("No path or name provided!");
+            return NULL;
+        }
+
         page_t* loaded_page = PGM_PDT_find_page(file_name);
         if (loaded_page != NULL) return loaded_page;
 

@@ -492,14 +492,23 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         char buffer[512];
         char file_name[TABLE_NAME_SIZE];
         char load_path[DEFAULT_PATH_SIZE];
-        
-        char temp_path[DEFAULT_PATH_SIZE];
-        strcpy(temp_path, path);
 
         if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", TABLE_BASE_PATH, name, TABLE_EXTENSION);
         else strcpy(load_path, path);
 
-        get_file_path_parts(temp_path, buffer, file_name, buffer);
+        if (path != NULL) {
+            char temp_path[DEFAULT_PATH_SIZE];
+            strcpy(temp_path, path);
+            get_file_path_parts(temp_path, buffer, file_name, buffer);
+        }
+        else if (name != NULL) {
+            strncpy(file_name, name, TABLE_NAME_SIZE);
+        }
+        else {
+            print_error("No path or name provided!");
+            return NULL;
+        }
+
         table_t* loaded_table = TBM_TDT_find_table(file_name);
         if (loaded_table != NULL) return loaded_table;
 
@@ -588,14 +597,14 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
         for (int i = 0; i < TABLE_NAME_SIZE; i++) checksum += table->header->name[i];
         checksum += strlen((char*)table->header->name);
 
-        for (int i = 0; i < table->header->dir_count; i++) 
+        for (int i = 0; i < table->header->dir_count; i++)
             for (int j = 0; j < DIRECTORY_NAME_SIZE; j++) {
                 checksum += table->dir_names[i][j];
                 checksum += strlen((char*)table->dir_names[i]);
             }
 
         for (int i = 0; i < table->header->column_count; i++) {
-            for (int j = 0; j < COLUMN_NAME_SIZE; j++) 
+            for (int j = 0; j < COLUMN_NAME_SIZE; j++)
                 checksum += table->columns[i]->name[j];
 
             checksum += strlen((char*)table->columns[i]->name);
@@ -607,7 +616,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 checksum += table->column_links[i]->slave_column_name[j];
             }
 
-            for (int j = 0; j < TABLE_NAME_SIZE; j++) 
+            for (int j = 0; j < TABLE_NAME_SIZE; j++)
                 checksum += table->column_links[i]->slave_table_name[j];
 
             checksum += strlen((char*)table->column_links[i]->master_column_name);

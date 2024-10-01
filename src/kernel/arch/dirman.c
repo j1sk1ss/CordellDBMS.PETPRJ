@@ -79,7 +79,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
                 if (index < 0) continue;
-                
+
                 PGM_insert_content(page, index, data, data_lenght);
                 PGM_save_page(page, NULL);
 
@@ -104,7 +104,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             PGM_free_page(new_page);
 
             return 2;
-        } 
+        }
         else return -3;
     }
 
@@ -326,20 +326,15 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         char directory_name[DIRECTORY_NAME_SIZE];
         char save_path[DEFAULT_PATH_SIZE];
 
-        rand_str(directory_name, DIRECTORY_NAME_SIZE);
-        sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory_name, DIRECTORY_EXTENSION);
-
         int delay = 1000;
         while (1) {
+            rand_str(directory_name, DIRECTORY_NAME_SIZE);
+            sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory_name, DIRECTORY_EXTENSION);
+
             FILE* file;
             if ((file = fopen(save_path,"r")) != NULL) {
                 fclose(file);
-
-                rand_str(directory_name, DIRECTORY_NAME_SIZE);
-                sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory_name, DIRECTORY_EXTENSION);
-
-                delay--;
-                if (delay <= 0) return NULL;
+                if (--delay <= 0) return NULL;
             }
             else {
                 // File not found, no memory leak since 'file' == NULL
@@ -398,14 +393,23 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         char buffer[512];
         char file_name[DIRECTORY_NAME_SIZE];
         char load_path[DEFAULT_PATH_SIZE];
-        
-        char temp_path[DEFAULT_PATH_SIZE];
-        strcpy(temp_path, path);
 
         if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, name, DIRECTORY_EXTENSION);
         else strcpy(load_path, path);
 
-        get_file_path_parts(temp_path, buffer, file_name, buffer);
+        if (path != NULL) {
+            char temp_path[DEFAULT_PATH_SIZE];
+            strcpy(temp_path, path);
+            get_file_path_parts(temp_path, buffer, file_name, buffer);
+        }
+        else if (name != NULL) {
+            strncpy(file_name, name, DIRECTORY_NAME_SIZE);
+        }
+        else {
+            print_error("No path or name provided!");
+            return NULL;
+        }
+
         directory_t* loaded_directory = DRM_DDT_find_directory(file_name);
         if (loaded_directory != NULL) return loaded_directory;
 

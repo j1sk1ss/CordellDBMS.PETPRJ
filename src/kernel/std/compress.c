@@ -47,24 +47,24 @@ int UNZ_byte_by_bits(uint8_t* data, size_t data_size, uint8_t* output) {
     return current_index;
 }
 
-int main() {
-    const char* data = "This is a long message for you guys! I want to compress it! Hi :DDDD:";
-    uint8_t output[70];
-    uint8_t decompress[70];
+// int main() {
+//     const char* data = "This is a long message for you guys! I want to compress it! Hi :DDDD:";
+//     uint8_t output[70];
+//     uint8_t decompress[70];
 
-    int size = CMP_byte_by_bits((uint8_t*)data, strlen(data), output);
-    printf("Compressed: ");
-    for (int i = 0; i < size; i++) {
-        printf("%02X ", output[i]);
-    }
+//     int size = CMP_byte_by_bits((uint8_t*)data, strlen(data), output);
+//     printf("Compressed: ");
+//     for (int i = 0; i < size; i++) {
+//         printf("%02X ", output[i]);
+//     }
 
-    printf("\nSize: %i\n", size);
+//     printf("\nSize: %i\n", size);
 
-    int new_size = UNZ_byte_by_bits(output, size, decompress);
-    decompress[new_size] = '\0';
+//     int new_size = UNZ_byte_by_bits(output, size, decompress);
+//     decompress[new_size] = '\0';
 
-    printf("Decompressed: %s\n", decompress);
-    printf("Size: %i\n", new_size);
+//     printf("Decompressed: %s\n", decompress);
+//     printf("Size: %i\n", new_size);
 
-    return 0;
-}
+//     return 0;
+// }

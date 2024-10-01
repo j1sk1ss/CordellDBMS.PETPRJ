@@ -53,7 +53,7 @@ void cleanup() {
 /*
  * This function takes source data and destination address for kernel answer.
  * In source should be provided correct command for kernel.
- * 
+ *
  * Params:
  * - source - source FD with commands.
  * - destination - destination FD for kernel answer.
@@ -68,7 +68,6 @@ void send2kernel(int source, int destination) {
     while ((count = read(source, buffer, MESSAGE_BUFFER)) > 0)
     #endif
     {
-
         buffer[count - 1] = '\0';
 
         char* argv[COMMANDS_BUFFER];
@@ -133,6 +132,11 @@ void send2kernel(int source, int destination) {
  * Server setup function
 */
 int main(int argc, char* argv[]) {
+    /*
+    Enable traceback for current session.
+    */
+    TB_enable();
+
     int reciever        = -1;
     int server_socket   = -1;
     char server_message[MESSAGE_BUFFER];
