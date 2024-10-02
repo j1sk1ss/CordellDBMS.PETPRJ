@@ -1,5 +1,4 @@
 #include "../include/pageman.h"
-#include <stdio.h>
 
 /*
  *  Page destriptor table, is an a static array of pages indexes. Main idea in
@@ -241,10 +240,10 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         #pragma omp critical (page_load)
         {
             // Open file page
-            FILE* file = fopen(path, "rb");
+            FILE* file = fopen(load_path, "rb");
             if (file == NULL) {
                 loaded_page = NULL;
-                print_error("Page not found! Path: [%s]", path);
+                print_error("Page not found! Path: [%s]", load_path);
             } else {
                 // Read header from file
                 uint8_t* header_data = (uint8_t*)malloc(sizeof(page_header_t));
@@ -255,6 +254,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (header->magic != PAGE_MAGIC) {
                     free(header);
                     loaded_page = NULL;
+                    fclose(file);
                 } else {
                     // Allocate memory for page structure
                     page_t* page = (page_t*)malloc(sizeof(page_t));
@@ -270,6 +270,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     fflush(file);
                     #endif
 
+                    fclose(file);
                     PGM_PDT_add_page(page);
                     loaded_page = page;
                 }

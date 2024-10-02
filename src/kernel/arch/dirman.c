@@ -77,6 +77,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         if (data_lenght < PAGE_CONTENT_SIZE) {
             for (int i = 0; i < directory->header->page_count; i++) {
                 page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+                if (page == NULL) continue;
+
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
                 if (index < 0) continue;
 

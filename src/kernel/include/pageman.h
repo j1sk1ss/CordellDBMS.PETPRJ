@@ -43,7 +43,7 @@
 
     #define PAGE_EMPTY          0xEE
     #define PAGE_END            0xED
-    #define PAGE_CONTENT_SIZE   1024
+    #define PAGE_CONTENT_SIZE   4096
     #define PAGE_START          0x00
 
 #pragma endregion
@@ -172,7 +172,7 @@
     - page - page pointer.
     - offset - offset in page.
 
-    Return index of PAGE_END symbol in page. 
+    Return index of PAGE_END symbol in page.
     */
     int PGM_set_pe_symbol(page_t* page, int offset);
 
@@ -255,7 +255,7 @@
 
     Params:
     - path - path to page.pg file. (Should be NULL, if provided name).
-    - name - name of page. This function will try to load page by 
+    - name - name of page. This function will try to load page by
              default path (Should be NULL, if provided path).
 
     Return -2 if Magic is wrong. Check file.

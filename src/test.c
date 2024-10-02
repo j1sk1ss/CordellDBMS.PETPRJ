@@ -11,7 +11,7 @@
 #include "kernel/include/traceback.h"
 
 #include <stdint.h>
-
+#define LARGE_DATA_TEST
 int main() {
     TB_enable();
 
@@ -324,13 +324,13 @@ int main() {
     TBM_save_table(table, "table1.tb");
     TBM_free_table(table);
 
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 10000; i++) {
         int result = DB_append_row(database, "table1", (uint8_t*)"he11o 11111LOLLU  102000000000", 30,  CREATE_ACCESS_BYTE(0, 0, 0));
         printf("Append result %i\n", result);
     }
 
-    uint8_t* data = DB_get_row(database, "table1", 811, CREATE_ACCESS_BYTE(0, 0, 0));
-    printf("Row 811: %s\n", data);
+    uint8_t* data = DB_get_row(database, "table1", 8011, CREATE_ACCESS_BYTE(0, 0, 0));
+    printf("Row 8011: %s\n", data);
     free(data);
 
 #endif

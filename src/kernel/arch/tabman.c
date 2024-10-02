@@ -527,6 +527,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 if (header->magic != TABLE_MAGIC) {
                     free(header);
                     loaded_table = NULL;
+                    fclose(file);
                 } else {
                     // Read columns from file.
                     table_t* table = (table_t*)malloc(sizeof(table_t));
