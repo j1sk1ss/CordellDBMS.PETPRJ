@@ -34,7 +34,7 @@
     #include <arpa/inet.h>
 #endif
 
-#define DESKTOP
+
 #define CDBMS_SERVER_PORT   getenv("CDBMS_SERVER_PORT") == NULL ? 1010 : atoi(getenv("CDBMS_SERVER_PORT"))
 #define MESSAGE_BUFFER      2048
 #define COMMANDS_BUFFER     256
@@ -80,9 +80,7 @@ void send2kernel(int source, int destination) {
         for (char *p = (char *)buffer; *p != '\0'; p++) {
             if (*p == '"') {
                 in_quotes = !in_quotes;
-                if (in_quotes) {
-                    current_arg = p + 1;
-                }
+                if (in_quotes) current_arg = p + 1;
                 else {
                     *p = '\0';
                     argv[argc++] = current_arg;
@@ -118,8 +116,8 @@ void send2kernel(int source, int destination) {
                 uint8_t buffer[1] = { result->answer_code };
                 send(destination, (const char*)buffer, sizeof(uint8_t), 0);
             #else
-                uint8_t answer_code[1] = { result->answer_code };
-                write(destination, answer_code, sizeof(uint8_t));
+                uint8_t buffer[1] = { result->answer_code };
+                write(destination, buffer, sizeof(uint8_t));
             #endif
 
             print_log("Answer code: %i", result->answer_code);

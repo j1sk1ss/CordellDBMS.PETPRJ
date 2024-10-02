@@ -252,8 +252,9 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
-                    free(header);
                     loaded_page = NULL;
+
+                    free(header);
                     fclose(file);
                 } else {
                     // Allocate memory for page structure
@@ -261,16 +262,9 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
                     fread(page->content, sizeof(uint8_t), PAGE_CONTENT_SIZE, file);
 
-                    page->header = header;
-
-                    // Close and flush file page
-                    #ifndef _WIN32
-                    fsync(fileno(file));
-                    #else
-                    fflush(file);
-                    #endif
-
                     fclose(file);
+
+                    page->header = header;
                     PGM_PDT_add_page(page);
                     loaded_page = page;
                 }

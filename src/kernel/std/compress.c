@@ -17,7 +17,6 @@ int CMP_byte_by_bits(uint8_t* data, size_t data_size, uint8_t* output) {
         if (!compress_flag) continue;
 
         uint8_t target_byte = data[i + 8];
-
         for (size_t j = 0; j < 8; j++) {
             uint8_t source_byte = data[i + j];
             INSERT_BIT(source_byte, 7, GET_BIT(target_byte, j));
