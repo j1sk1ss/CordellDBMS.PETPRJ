@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -77,7 +76,7 @@ void send2kernel(int source, int destination) {
         int argc = 1;
         int in_quotes = 0;
 
-        for (char *p = (char *)buffer; *p != '\0'; p++) {
+        for (char *p = (char*)buffer; *p != '\0'; p++) {
             if (*p == '"') {
                 in_quotes = !in_quotes;
                 if (in_quotes) current_arg = p + 1;
@@ -94,9 +93,7 @@ void send2kernel(int source, int destination) {
                     current_arg  = NULL;
                 }
             }
-            else if (!current_arg) {
-                current_arg = p;
-            }
+            else if (!current_arg) current_arg = p;
         }
 
         if (current_arg) {
@@ -148,20 +145,15 @@ int main(int argc, char* argv[]) {
 
     #else
 
-        int reciever        = -1;
-        int server_socket   = -1;
-        char server_message[MESSAGE_BUFFER];
-
         #ifdef _WIN32
             WSADATA wsa_data;
-            reciever = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-            if (reciever != 0) {
+            if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) {
                 print_error("HH_ERROR: WSAStartup() failed");
                 return -1;
             }
         #endif
 
-        server_socket = socket(AF_INET, SOCK_STREAM, 0);
+        int server_socket = socket(AF_INET, SOCK_STREAM, 0);
         if (server_socket == -1) {
             print_error("HH_ERROR: error in calling socket()");
             return -1;
@@ -171,28 +163,23 @@ int main(int argc, char* argv[]) {
         struct sockaddr_in client_address;
 
         server_address.sin_family = AF_INET;
-        server_address.sin_port   = htons(CDBMS_SERVER_PORT);
+        server_address.sin_port = htons(CDBMS_SERVER_PORT);
         server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-        reciever = bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address));
-        if (reciever < 0) {
+        if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) < 0) {
             print_error("HH_ERROR: bind() call failed");
             return -1;
         }
 
-        reciever = listen(server_socket, 5);
-        if (reciever < 0) {
+        if (listen(server_socket, 5) < 0) {
             print_error("HH_ERROR: listen() call failed");
             return -1;
         }
 
-        char *server_ip = inet_ntoa(server_address.sin_addr);
-        int server_port = ntohs(server_address.sin_port);
-        print_info("DB server started on IP %s and port %d\n", server_ip, server_port);
+        print_info("DB server started on %s:%d", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
 
-        int keep_socket = 1;
-        while (keep_socket) {
-            int client_socket_fd = -1;
+        while (1) {
+            int client_socket_fd   = -1;
             int client_address_len = -1;
 
             client_address_len = sizeof(client_address);
@@ -202,12 +189,8 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            char* client_ip = inet_ntoa(client_address.sin_addr);
-            int client_port = ntohs(client_address.sin_port);
-            print_info("Client connected from IP %s and port %d\n", client_ip, client_port);
-
+            print_info("Client connected from %s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
             send2kernel(client_socket_fd, client_socket_fd);
-            send(client_socket_fd, server_message, sizeof(server_message), 0);
 
             #ifdef _WIN32
                 closesocket(client_socket_fd);

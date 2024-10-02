@@ -24,8 +24,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
         if (offset < PAGE_CONTENT_SIZE) {
             page->content[offset] = value;
             return 1;
-        }
-        else return -1;
+        } else return -1;
     }
 
     int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_length) {
@@ -179,8 +178,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 char save_path[DEFAULT_PATH_SIZE];
                 if (path == NULL) {
                     sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
-                }
-                else strcpy(save_path, path);
+                } else strcpy(save_path, path);
 
                 // Open or create file
                 FILE* file = fopen(save_path, "wb");
@@ -372,10 +370,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
             #ifndef NO_PDT
                 if (PGM_PDT[index] == NULL) return -1;
 
-                char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, PGM_PDT[index]->header->name, PAGE_EXTENSION);
-
-                PGM_save_page(PGM_PDT[index], save_path);
+                PGM_save_page(PGM_PDT[index], NULL);
                 PGM_free_page(PGM_PDT[index]);
 
                 PGM_PDT[index] = NULL;
@@ -397,8 +392,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     if (--delay <= 0) return -1;
                 }
 
-                page->lock          = LOCKED;
-                page->lock_owner    = owner;
+                page->lock       = LOCKED;
+                page->lock_owner = owner;
             #endif
 
             return 1;
@@ -406,7 +401,7 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
         int PGM_lock_test(page_t* page, uint8_t owner) {
             #ifndef NO_PDT
-                if (page->lock_owner != owner) return 0;
+                if (page->lock_owner != owner) return LOCKED;
                 return page->lock;
             #endif
 
@@ -419,8 +414,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (page->lock == UNLOCKED) return -1;
                 if (page->lock_owner != owner && page->lock_owner != NO_OWNER) return -2;
 
-                page->lock          = UNLOCKED;
-                page->lock_owner    = NO_OWNER;
+                page->lock       = UNLOCKED;
+                page->lock_owner = NO_OWNER;
             #endif
 
             return 1;

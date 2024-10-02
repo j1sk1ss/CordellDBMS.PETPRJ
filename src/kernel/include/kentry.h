@@ -32,9 +32,9 @@
 #define SAFE_GET_VALUE_PRE_INC(argv, max, index)    index + 1 >= max ? NULL : argv[++index]
 #define SAFE_GET_VALUE_POST_INC(argv, max, index)   index >= max ? NULL : argv[index++]
 
-#define SAFE_GET_VALUE_S(argv, max, index)            index >= max ? "SqwPP[=1-33\n\n]" : argv[index]
-#define SAFE_GET_VALUE_PRE_INC_S(argv, max, index)    index + 1 >= max ? "SqwPP[=1-33\n\n]" : argv[++index]
-#define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "SqwPP[=1-33\n\n]" : argv[index++]
+#define SAFE_GET_VALUE_S(argv, max, index)            index >= max ? "SqwPP\r\r\tyy[=1-33\n\n]" : argv[index]
+#define SAFE_GET_VALUE_PRE_INC_S(argv, max, index)    index + 1 >= max ? "S\r\r\tyyqwPP[=1-33\n\n]" : argv[++index]
+#define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "SqwPP\r\r\tyy[=1-33\n\n]" : argv[index++]
 
 #define MAX_COMMANDS    100
 
@@ -43,6 +43,7 @@
     #define HELP            "help"
     #define TRANSACTION     "transaction-start"
 
+    #define SELECT          "select"
     #define CREATE          "create"    // Example: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )
     #define LINK            "link"      // Example: db.db link master_table master_column slave_table slave_column ( cdel cupd capp cfnd )
     #define DELETE          "delete"    // Example: db.db delete table table_1
@@ -56,6 +57,7 @@
 
     #define COLUMNS         "columns"
     #define COLUMN          "column"
+    #define VALUES          "values"
     #define ROW             "row"
 
     #define BY_INDEX        "by_index"
