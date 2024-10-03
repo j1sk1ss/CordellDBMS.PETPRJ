@@ -388,7 +388,8 @@ page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (page == NULL) return -2;
 
                 int delay = 99999;
-                while (page->lock == LOCKED && (page->lock_owner != owner || page->lock_owner != NO_OWNER)) {
+                while (page->lock == LOCKED && page->lock_owner != owner) {
+                    if (page->lock_owner == NO_OWNER) break;
                     if (--delay <= 0) return -1;
                 }
 

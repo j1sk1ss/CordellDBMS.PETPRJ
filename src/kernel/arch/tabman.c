@@ -151,7 +151,6 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     }
 
     int TBM_delete_content(table_t* table, int offset, size_t size) {
-        if (table->header->dir_count == 0) return -3;
         int size4delete = (int)size;
 
         // Iterate existed directories. Maybe we can insert data here?
@@ -525,7 +524,7 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 fread(header, sizeof(table_header_t), 1, file);
                 if (header->magic != TABLE_MAGIC) {
                     loaded_table = NULL;
-                    
+
                     free(header);
                     fclose(file);
                 } else {
@@ -729,7 +728,8 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 if (table == NULL) return -2;
 
                 int delay = 99999;
-                while (table->lock == LOCKED && (table->lock_owner != owner || table->lock_owner != NO_OWNER)) {
+                while (table->lock == LOCKED && table->lock_owner != owner) {
+                    if (table->lock_owner == NO_OWNER) break;
                     if (--delay <= 0) return -1;
                 }
 

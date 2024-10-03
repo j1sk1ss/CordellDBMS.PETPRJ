@@ -183,8 +183,9 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
                 DRM_unlink_page_from_directory(directory, (char*)page->header->name);
                 PGM_PDT_flush_page(page);
-                remove(page_path);
                 current_page--;
+
+                print_log("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
             }
             // In other hand, if page not empty after this operation,
             // we just update it on the disk.
@@ -266,7 +267,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
             // Load current page
             page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
-            if (page == NULL) { 
+            if (page == NULL) {
                 break_flag = -1;
                 continue;
             }
@@ -434,14 +435,14 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 // Check directory magic
                 if (header->magic != DIRECTORY_MAGIC) {
                     loaded_directory = NULL;
-                    
+
                     free(header);
                     fclose(file);
                 } else {
                     // First we allocate memory for directory struct
                     // Then we read page names
                     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-                    for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) 
+                    for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
                         fread(directory->names[i], sizeof(uint8_t), PAGE_NAME_SIZE, file);
 
                     // Close file directory
@@ -465,15 +466,21 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
                 page_t* page = PGM_load_page(page_path, NULL);
                 if (PGM_lock_page(page, omp_get_thread_num()) == 1) {
-                    remove(page_path);
                     PGM_PDT_flush_page(page);
+                    print_log("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
+                }
+                else {
+                    print_error("Can't lock page [%s]", page_path);
                 }
             }
 
             char delete_path[DEFAULT_PATH_SIZE];
             sprintf(delete_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory->header->name, DIRECTORY_EXTENSION);
-            remove(delete_path);
             DRM_DDT_flush_directory(directory);
+            print_log("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
+        }
+        else {
+            print_error("Can't lock directory [%s]", directory->header->name);
         }
 
         return 1;
@@ -602,7 +609,8 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 if (directory == NULL) return -2;
 
                 int delay = 99999;
-                while (directory->lock == LOCKED && (directory->lock_owner != owner || directory->lock_owner != NO_OWNER)) {
+                while (directory->lock == LOCKED && directory->lock_owner != owner) {
+                    if (directory->lock_owner == NO_OWNER) break;
                     if (--delay <= 0) return -1;
                 }
 
