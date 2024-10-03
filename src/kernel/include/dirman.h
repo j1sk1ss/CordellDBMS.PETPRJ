@@ -157,6 +157,7 @@
 
     Note 2: For avoiding situations, where function return part of word, add space to target data (Don't forget to encrease size).
     Note 3: Don't use CD and RD symbols in data. (Optionaly). If you want find row, use find row function. <DEPRECATED>
+    Note 4: This function is sungle thread, because we should be sure, that data sequence is correct.
 
     Params:
     - directory - pointer to directory.
@@ -259,7 +260,7 @@
 
     Params:
     - path - path to directory.dr file. (Should be NULL, if provided name).
-    - name - name of directory. This function will try to load dir by 
+    - name - name of directory. This function will try to load dir by
              default path (Should be NULL, if provided path).
 
     Return -2 if Magic is wrong. Check file.
@@ -299,7 +300,7 @@
     int DRM_free_directory(directory_t* directory);
 
     /*
-    Generate directory checksum. Checksum is sum of all bytes of directory name, 
+    Generate directory checksum. Checksum is sum of all bytes of directory name,
     all bytes of page names.
 
     Params:

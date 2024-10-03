@@ -232,7 +232,6 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
     }
 
     int TBM_find_value(table_t* table, int offset, uint8_t value) {
-        if (table->header->dir_count == 0) return -3;
         int final_result = -1;
 
         #pragma omp parallel for shared(final_result)

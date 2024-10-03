@@ -199,8 +199,6 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size) {
-        if (directory->header->page_count < (offset / PAGE_CONTENT_SIZE) + 1) return -1;
-
         int page_offset         = offset / PAGE_CONTENT_SIZE;
         int current_index       = offset % PAGE_CONTENT_SIZE;
         int size4seach          = (int)data_size;

@@ -361,6 +361,7 @@
 
     Note 2: For avoiding situations, where function return part of word, add space to target data (Don't forget to encrease size).
     Note 3: Don't use CD and RD symbols in data. (Optionaly). If you want find row, use find row function.
+    Note 4: This function is sungle thread, because we should be sure, that data sequence is correct.
 
     Params:
     - table - pointer to table.
@@ -546,7 +547,7 @@
 
     Params:
     - path - path to table.tb file. (Should be NULL, if provided name).
-    - name - name of table. This function will try to load table by 
+    - name - name of table. This function will try to load table by
              default path (Should be NULL, if provided path).
     Note: Don't forget about full path. Be sure that all code coreectly use paths
 
@@ -586,7 +587,7 @@
     int TBM_free_table(table_t* table);
 
     /*
-    Generate table checksum. Checksum is sum of all bytes of table name, 
+    Generate table checksum. Checksum is sum of all bytes of table name,
     all bytes of dir names, all bytes of columns and links.
 
     Params:
