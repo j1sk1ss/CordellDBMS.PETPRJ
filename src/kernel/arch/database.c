@@ -359,13 +359,16 @@
                 fread(header, sizeof(database_header_t), 1, file);
 
                 if (header->magic != DATABASE_MAGIC) {
-                    free(header);
                     loaded_database = NULL;
+
+                    free(header);
+                    fclose(file);
                 } else {
                     database_t* database = (database_t*)malloc(sizeof(database_t));
-                    for (int i = 0; i < header->table_count; i++) {
+                    for (int i = 0; i < header->table_count; i++) 
                         fread(database->table_names[i], sizeof(uint8_t), TABLE_NAME_SIZE, file);
-                    }
+
+                    fclose(file);
 
                     database->header        = header;
                     database->cached_table  = NULL;

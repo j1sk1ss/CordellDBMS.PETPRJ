@@ -38,6 +38,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
             // We load current page
             page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+            if (page == NULL) continue;
 
             // We check, that we don't return Page Empty, because
             // PE symbols != Content symbols.
@@ -77,7 +78,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         if (data_lenght < PAGE_CONTENT_SIZE) {
             for (int i = 0; i < directory->header->page_count; i++) {
                 page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
-                if (page == NULL) continue;
+                if (page == NULL) return -1;
 
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
                 if (index < 0) continue;
@@ -129,6 +130,7 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
             // We load current page to memory
             page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page++]);
+            if (page == NULL) return -1;
 
             // We insert current part of content with local offset
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2insert);
@@ -255,22 +257,26 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         int page_offset   = offset / PAGE_CONTENT_SIZE;
         int current_index = offset % PAGE_CONTENT_SIZE;
         int result = -1; // Shared result across threads
+        int break_flag = 0;
 
         #pragma omp parallel for shared(result)
         for (int i = page_offset; i < directory->header->page_count; i++) {
             if (result != -1) continue; // Skip search if result is already found
+            if (break_flag == -1) continue;
 
             // Load current page
             page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+            if (page == NULL) { 
+                break_flag = -1;
+                continue;
+            }
 
             // Find the value in the page content
             int local_result = PGM_find_value(page, i == page_offset ? current_index : 0, value);
             if (local_result != -1) {
                 #pragma omp critical (local_result2global)  // Ensure only one thread updates the result
                 {
-                    if (result == -1) {
-                        result = local_result + i * PAGE_CONTENT_SIZE;
-                    }
+                    if (result == -1) result = local_result + i * PAGE_CONTENT_SIZE;
                 }
             }
         }
@@ -427,21 +433,21 @@ directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
                 // Check directory magic
                 if (header->magic != DIRECTORY_MAGIC) {
-                    free(header);
                     loaded_directory = NULL;
+                    
+                    free(header);
+                    fclose(file);
                 } else {
                     // First we allocate memory for directory struct
                     // Then we read page names
                     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-                    for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
+                    for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) 
                         fread(directory->names[i], sizeof(uint8_t), PAGE_NAME_SIZE, file);
-                    }
-
-                    directory->header = header;
 
                     // Close file directory
                     fclose(file);
 
+                    directory->header = header;
                     DRM_DDT_add_directory(directory);
                     loaded_directory = directory;
                 }
