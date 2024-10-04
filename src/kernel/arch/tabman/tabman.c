@@ -1,21 +1,5 @@
-#include "../include/tabman.h"
+#include "../../include/tabman.h"
 
-/*
- *  Table destriptor table, is an a static array of table indexes. Main idea in
- *  saving tables temporary in static table somewhere in memory. Max size of this
- *  table equals 2072 * 10 = 20.72Kb.
- *
- *  For working with table we have table struct, that have index of table in TDT. If
- *  we access to tables with full TBM_TDT, we also unload old tables and load new tables.
- *  (Stack)
- *
- *  Main problem in parallel work. If we have threads, they can try to access this
- *  table at one time. If you use OMP parallel libs, or something like this, please,
- *  define NO_TDT flag (For avoiding deadlocks), or use locks to tables.
- *
- *  Why we need TDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
-*/
-table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
 #pragma region [Directory files]
 
@@ -320,7 +304,11 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
     int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name) {
         for (int i = 0; i < master->header->column_link_count; i++) {
-            if (memcmp(master->column_links[i]->slave_column_name, slave_column_name, COLUMN_NAME_SIZE) == 0) {
+            if (
+                memcmp(master->column_links[i]->master_column_name, master_column_name, COLUMN_NAME_SIZE) == 0 &&
+                memcmp(master->column_links[i]->slave_column_name, slave_column_name, COLUMN_NAME_SIZE) == 0 &&
+                memcmp(master->column_links[i]->slave_table_name, slave->header->name, TABLE_NAME_SIZE) == 0
+            ) {
                 free(master->column_links[i]);
 
                 for (int j = i; j < master->header->column_link_count - 1; j++) {
@@ -410,6 +398,12 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 #pragma region [Table file]
 
     table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access) {
+        int row_size = 0;
+        for (int i = 0; i < col_count; i++) {
+            row_size += columns[i]->size;
+        }
+
+        if (row_size >= PAGE_CONTENT_SIZE) return NULL;
         table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
 
         header->access  = access;
@@ -628,139 +622,5 @@ table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
         return checksum;
     }
-
-    #pragma region [TDT]
-
-        int TBM_TDT_add_table(table_t* table) {
-            #ifndef NO_TDT
-                int current = 0;
-                for (int i = 0; i < TDT_SIZE; i++) {
-                    if (TBM_TDT[i] == NULL) {
-                        current = i;
-                        break;
-                    }
-
-                    if (TBM_TDT[i]->lock == LOCKED) continue;
-                    current = i;
-                    break;
-                }
-
-                if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
-                    if (TBM_TDT[current] == NULL) return -1;
-                    if (memcmp(table->header->name, TBM_TDT[current]->header->name, TABLE_NAME_SIZE) != 0) {
-                        TBM_TDT_flush_index(current);
-                        TBM_TDT[current] = table;
-                    }
-                }
-            #endif
-
-            return 1;
-        }
-
-        table_t* TBM_TDT_find_table(char* name) {
-            #ifndef NO_TDT
-                if (name == NULL) return NULL;
-                for (int i = 0; i < TDT_SIZE; i++) {
-                    if (TBM_TDT[i] == NULL) continue;
-                    if (strncmp((char*)TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0) {
-                        return TBM_TDT[i];
-                    }
-                }
-            #endif
-
-            return NULL;
-        }
-
-        int TBM_TDT_sync() {
-            #ifndef NO_TDT
-                for (int i = 0; i < TDT_SIZE; i++) {
-                    if (TBM_TDT[i] == NULL) continue;
-                    if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) {
-                        TBM_TDT_flush_index(i);
-                        TBM_TDT[i] = TBM_load_table(NULL, (char*)TBM_TDT[i]->header->name);
-                    } else return -1;
-                }
-            #endif
-
-            return 1;
-        }
-
-        int TBM_TDT_flush_table(table_t* table) {
-            #ifndef NO_TDT
-                if (table == NULL) return -1;
-
-                int index = -1;
-                for (int i = 0; i < TDT_SIZE; i++) {
-                    if (TBM_TDT[i] == NULL) continue;
-                    if (table == TBM_TDT[i]) {
-                        index = i;
-                        break;
-                    }
-                }
-
-                if (index != -1) TBM_TDT_flush_index(index);
-                else TBM_free_table(table);
-            #else
-                TBM_free_table(directory);
-            #endif
-
-            return 1;
-        }
-
-        int TBM_TDT_flush_index(int index) {
-            #ifndef NO_TDT
-                if (TBM_TDT[index] == NULL) return -1;
-                TBM_save_table(TBM_TDT[index], NULL);
-                TBM_free_table(TBM_TDT[index]);
-
-                TBM_TDT[index] = NULL;
-            #endif
-
-            return 1;
-        }
-
-    #pragma endregion
-
-    #pragma region [Lock]
-
-        int TBM_lock_table(table_t* table, uint8_t owner) {
-            #ifndef NO_TDT
-                if (table == NULL) return -2;
-
-                int delay = 99999;
-                while (table->lock == LOCKED && table->lock_owner != owner) {
-                    if (table->lock_owner == NO_OWNER) break;
-                    if (--delay <= 0) return -1;
-                }
-
-                table->lock = LOCKED;
-                table->lock_owner = owner;
-            #endif
-
-            return 1;
-        }
-
-        int TBM_lock_test(table_t* table, uint8_t owner) {
-            #ifndef NO_TDT
-                if (table->lock_owner != owner) return 0;
-                return table->lock;
-            #endif
-
-            return UNLOCKED;
-        }
-
-        int TBM_release_table(table_t* table, uint8_t owner) {
-            #ifndef NO_TDT
-                if (table->lock == UNLOCKED) return -1;
-                if (table->lock_owner != owner && table->lock_owner != NO_OWNER) return -2;
-
-                table->lock = UNLOCKED;
-                table->lock_owner = NO_OWNER;
-            #endif
-
-            return 1;
-        }
-
-    #pragma endregion
 
 #pragma endregion

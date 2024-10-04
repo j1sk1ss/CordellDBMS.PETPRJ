@@ -175,7 +175,7 @@
 // HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) -> | LINKS -> | DIR_NAMES -> dyn. -> end |
 //========================================================================================================================================
 
-    struct table_column_link {
+    typedef struct table_column_link {
         // Source name of column in source table
         uint8_t master_column_name[COLUMN_NAME_SIZE];
 
@@ -187,9 +187,9 @@
 
         // Link type
         uint8_t type;
-    } typedef table_column_link_t;
+    } table_column_link_t;
 
-    struct table_column {
+    typedef struct table_column {
         // Column magic byte
         uint8_t magic;
 
@@ -212,9 +212,9 @@
         // Column name with fixed size
         // Column name
         uint8_t name[COLUMN_NAME_SIZE];
-    } typedef table_column_t;
+    } table_column_t;
 
-    struct table_header {
+    typedef struct table_header {
         // Table magic
         uint8_t magic;
 
@@ -250,9 +250,9 @@
 
         // Table checksum
         uint32_t checksum;
-    } typedef table_header_t;
+    } table_header_t;
 
-    struct table {
+    typedef struct table {
         // Table header
         table_header_t* header;
 
@@ -268,7 +268,7 @@
 
         // Table directories
         uint8_t dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
-    } typedef table_t;
+    } table_t;
 
 
 #pragma region [Directories]
@@ -631,6 +631,14 @@
         Return 1 if sync success.
         */
         int TBM_TDT_sync();
+
+        /*
+        Clear TDT table by flushing all entries.
+        Note: Be sure, that TDT links are not used.
+
+        Return -1 if function can't lock table from TDT;
+        */
+        int TBM_TDT_clear();
 
         /*
         Hard cleanup of TDT. Really not recomment for use!

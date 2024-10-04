@@ -49,7 +49,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 // HEADER (MAGIC | NAME) -> | TABLE_NAMES -> ... -> end |
 //=======================================================
 
-    struct database_header {
+    typedef struct database_header {
         // Database header magic
         uint8_t magic;
 
@@ -58,9 +58,9 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
         // Table count in database
         uint8_t table_count;
-    } typedef database_header_t;
+    } database_header_t;
 
-    struct database {
+    typedef struct database {
         // Database header
         database_header_t* header;
 
@@ -70,7 +70,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
         // Database linked tables
         uint8_t table_names[TABLES_PER_DATABASE][TABLE_NAME_SIZE];
-    } typedef database_t;
+    } database_t;
 
 
 #pragma region [Table]

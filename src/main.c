@@ -5,9 +5,10 @@
  * Cordell DBMS is a light weight data base manager studio. Main idea
  * that we can work with big data by using very light weighten app.
  *
+ * <DEPRECATED | USE MAKEFILE INSTEAD MANUAL COMMAND BUILD>
  * Unix:
- * building without OMP: gcc-14 -Wall main.c kernel\kentry.c kernel\std\* kernel\arch\* -Wunknown-pragmas -fpermissive -o cdbms.bin
- * building with OMP: gcc-14 -Wall main.c kernel\kentry.c kernel\std\* kernel\arch\* -fopenmp -fpermissive -o cdbms.bin
+ * building without OMP: gcc-14 -Wall main.c kernel/kentry.c kernel/std/* kernel/arch/* -Wunknown-pragmas -fpermissive -o cdbms.bin
+ * building with OMP: gcc-14 -Wall main.c kernel/kentry.c kernel/std/* kernel/arch/* -fopenmp -fpermissive -o cdbms.bin
  *
  * Win10/Win11:
  * building without OMP: .\main.c .\kernel\kentry.c .\kernel\std\* .\kernel\arch\* -Wunknown-pragmas -lws2_32 -fopenmp -fpermissive -o cdbms_win_x86-64_omp.exe

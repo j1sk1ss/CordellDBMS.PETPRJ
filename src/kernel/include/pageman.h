@@ -56,7 +56,7 @@
 // INDEX | CONTENT_SIZE | CONTENT -> size -> end |
 //================================================
 
-    struct page_header {
+    typedef struct page_header {
         // Magic namber for check
         // If number nq magic, we know that this file broken
         uint8_t magic;
@@ -67,9 +67,9 @@
 
         // Table checksum
         uint32_t checksum;
-    } typedef page_header_t;
+    } page_header_t;
 
-    struct page {
+    typedef struct page {
         // Page header with all special information
         page_header_t* header;
 
@@ -79,7 +79,7 @@
 
         // Page content
         uint8_t content[PAGE_CONTENT_SIZE];
-    } typedef page_t;
+    } page_t;
 
 
 #pragma region [Content]
@@ -322,6 +322,14 @@
         Return 1 if sync success.
         */
         int PGM_PDT_sync();
+
+        /*
+        Clear PDT table by flushing all entries.
+        Note: Be sure, that PDT links are not used.
+
+        Return -1 if function can't lock page from PDT;
+        */
+        int PGM_PDT_clear();
 
         /*
         Hard cleanup of PDT. Really not recomment for use!

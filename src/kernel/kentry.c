@@ -1,3 +1,6 @@
+// Loader for .csv .txt .json
+// Don't create new table
+// Transactions?
 #include "include/kentry.h"
 
 
@@ -186,6 +189,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 }
 
                 table_t* new_table = TBM_create_table(table_name, columns, column_count, CREATE_ACCESS_BYTE(rd, wr, del));
+                if (new_table == NULL) {
+                    answer->answer_code = 6;
+                    return answer;
+                }
+
                 DB_link_table2database(database, new_table);
 
                 TBM_save_table(new_table, NULL);

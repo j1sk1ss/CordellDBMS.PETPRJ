@@ -25,7 +25,7 @@
 
 #include "common.h"
 #include "traceback.h"
-#include "database.h"
+#include "dataman.h"
 
 
 #define SAFE_GET_VALUE(argv, max, index)            index >= max ? NULL : argv[index]
@@ -88,12 +88,12 @@
 #pragma endregion
 
 
-struct kernel_answer {
+typedef struct kernel_answer {
     uint16_t commands_processed;
     uint8_t answer_code;
     uint16_t answer_size;
     uint8_t* answer_body;
-} typedef kernel_answer_t;
+} kernel_answer_t;
 
 
 /*

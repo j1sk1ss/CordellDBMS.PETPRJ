@@ -52,7 +52,7 @@
 // HEADER (MAGIC | NAME | PAGE_COUNT | COLUMN_COUNT) -> | COLUMNS (TYPE | NAME, ... ) | PAGE_NAMES -> 8 * 256 -> end |
 //====================================================================================================================
 
-    struct directory_header {
+    typedef struct directory_header {
         // Magic namber for check
         uint8_t magic;
 
@@ -65,9 +65,9 @@
 
         // Directory checksum
         uint32_t checksum;
-    } typedef directory_header_t;
+    } directory_header_t;
 
-    struct directory {
+    typedef struct directory {
         // Directory header
         directory_header_t* header;
 
@@ -77,7 +77,7 @@
 
         // Page file names
         uint8_t names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
-    } typedef directory_t;
+    } directory_t;
 
 
 #pragma region [Pages]
@@ -344,6 +344,14 @@
         Return 1 if sync success.
         */
         int DRM_DDT_sync();
+
+        /*
+        Clear DDT table by flushing all entries.
+        Note: Be sure, that DDT links are not used.
+
+        Return -1 if function can't lock directory from DDT;
+        */
+        int DRM_DDT_clear();
 
         /*
         Hard cleanup of DDT. Really not recomment for use!

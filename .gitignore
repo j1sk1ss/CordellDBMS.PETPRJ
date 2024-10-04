@@ -4,5 +4,4 @@ builds/*
 *.db
 *.dr
 *.tb
-*.clangd
 .DS_Store
