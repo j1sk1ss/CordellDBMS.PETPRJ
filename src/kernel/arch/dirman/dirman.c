@@ -67,8 +67,6 @@
                 if (index < 0) continue;
 
                 PGM_insert_content(page, index, data, data_lenght);
-                PGM_save_page(page, NULL);
-
                 return 1;
             }
 
@@ -81,13 +79,9 @@
             // Insert new content to page and mark end
             PGM_insert_content(new_page, 0, data, data_lenght);
 
-            char page_save_path[DEFAULT_PATH_SIZE];
-            sprintf(page_save_path, "%s%.8s.%s", PAGE_BASE_PATH, new_page->header->name, PAGE_EXTENSION);
-            PGM_save_page(new_page, page_save_path);
-
             // We link page to directory
             DRM_link_page2dir(directory, new_page);
-            PGM_free_page(new_page);
+            PGM_PDT_add_page(new_page);
 
             return 2;
         }
@@ -118,7 +112,6 @@
             // We insert current part of content with local offset
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2insert);
             PGM_insert_content(page, current_index, data_pointer, current_size);
-            PGM_save_page(page, NULL);
 
             // We reload local index and update size2delete
             current_index = 0;
@@ -144,9 +137,7 @@
             }
 
             // We load current page
-            char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[current_page++], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(page_path, NULL);
+            page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page++]);
             if (PGM_lock_page(page, omp_get_thread_num()) != 1) return -1;
 
             // We check, that we don't return Page Empty, because
@@ -161,24 +152,29 @@
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2delete);
             PGM_delete_content(page, current_index, current_size);
 
-            // If page, after delete operation, full empty, we delete page.
-            // Also we realise page pointer in RAM.
-            if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
-                DRM_unlink_page_from_directory(directory, (char*)page->header->name);
-                PGM_PDT_flush_page(page);
-                current_page--;
-
-                print_log("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
-            }
-            // In other hand, if page not empty after this operation,
-            // we just update it on the disk.
-            else PGM_save_page(page, page_path);
-
             // We reload local index and update size2delete
             current_index = 0;
             size2delete -= current_size;
 
             PGM_release_page(page, omp_get_thread_num());
+        }
+
+        return 1;
+    }
+
+    int DRM_cleanup_pages(directory_t* directory) {
+        for (int i = 0; i < directory->header->page_count; i++) {
+            char page_path[DEFAULT_PATH_SIZE];
+            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
+            page_t* page = PGM_load_page(NULL, directory->names[i]);
+
+            // If page, after delete operation, full empty, we delete page.
+            // Also we realise page pointer in RAM.
+            if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
+                DRM_unlink_page_from_directory(directory, (char*)page->header->name);
+                PGM_PDT_flush_page(page);
+                print_log("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
+            }
         }
 
         return 1;

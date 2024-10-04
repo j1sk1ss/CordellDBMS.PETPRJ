@@ -350,6 +350,17 @@
     int TBM_delete_content(table_t* table, int offset, size_t size);
 
     /*
+    Cleanup empty directories in table.
+
+    Params:
+    - table - pointer to table.
+
+    Return 1 if cleanup success.
+    Return -1 if something goes wrong.
+    */
+    int TBM_cleanup_dirs(table_t* table);
+
+    /*
     Find data function return global index in table of provided data. (Will return first entry of data).
     Note: Will return index, if we have perfect fit. That's means:
     Will return:
@@ -633,12 +644,13 @@
         int TBM_TDT_sync();
 
         /*
-        Clear TDT table by flushing all entries.
-        Note: Be sure, that TDT links are not used.
+        Free TDT table. In difference with clear function, this will avoid
+        working with disk. That's why this function used in DB rollback.
 
-        Return -1 if function can't lock table from TDT;
+        Return 1 if free was correct.
+        Return -1 if function can't lock any table from TTD.
         */
-        int TBM_TDT_clear();
+        int TBM_TDT_free();
 
         /*
         Hard cleanup of TDT. Really not recomment for use!

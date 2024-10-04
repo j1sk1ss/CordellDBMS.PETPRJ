@@ -79,7 +79,6 @@
             int result = DRM_append_content(directory, data_pointer, size4append);
             if (result < 0) return result - 10;
             else if (result == 0 || result == 1 || result == 2) {
-                DRM_save_directory(directory, NULL);
                 return 1;
             }
         }
@@ -97,11 +96,8 @@
 
         TBM_link_dir2table(table, new_directory);
 
-        // Save directory to disk
-        DRM_save_directory(new_directory, NULL);
-
-        // Realise directory
-        DRM_free_directory(new_directory);
+        // Save directory to DTD
+        DRM_DDT_add_directory(new_directory);
         return 1;
     }
 
@@ -144,16 +140,6 @@
             if (DRM_lock_directory(directory, omp_get_thread_num()) != 1) return -1;
 
             size4delete = DRM_delete_content(directory, offset, size4delete);
-            // If directory, after delete operation, full empty, we delete directory.
-            // Also we realise directory pointer in RAM.
-            if (directory->header->page_count == 0) {
-                DRM_delete_directory(directory, 1);
-                i--;
-            }
-            // In other hand, if directory not empty after this operation,
-            // we just update it on the disk.
-            else DRM_save_directory(directory, NULL);
-
             DRM_release_directory(directory, omp_get_thread_num());
             if (size4delete == -1) return -1;
             else if (size4delete == 1 || size4delete == 2) {
@@ -163,6 +149,19 @@
 
         // If we reach end, return error code.
         return -2;
+    }
+
+    int TBM_cleanup_dirs(table_t* table) {
+        for (int i = 0; i < table->header->dir_count; i++) {
+            directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+            DRM_cleanup_pages(directory);
+            if (directory->header->page_count == 0) {
+                TBM_unlink_dir_from_table(table, (char*)directory->header->name);
+                DRM_delete_directory(directory, 0);
+            }
+        }
+
+        return 1;
     }
 
     int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size) {

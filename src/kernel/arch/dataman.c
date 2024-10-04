@@ -63,10 +63,7 @@
             }
         #endif
 
-        int append_result = TBM_append_content(table, data, data_size);
-        TBM_save_table(table, NULL);
-
-        return append_result;
+        return TBM_append_content(table, data, data_size);
     }
 
     int DB_insert_row(
@@ -176,6 +173,25 @@
         int page_offset   = row % rows_per_page;
         int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
         return TBM_delete_content(table, global_offset, row_size);
+    }
+
+    int DB_cleanup_tables(database_t* database) {
+        for (int i = 0; i < database->header->table_count; i++) {
+            table_t* table = DB_get_table(database, (char*)database->table_names[i]);
+            TBM_cleanup_dirs(table);
+        }
+
+        int result = 1;
+        result = TBM_TDT_sync();
+        if (result != 1) return -1;
+
+        result = DRM_DDT_sync();
+        if (result != 1) return -2;
+
+        result = PGM_PDT_sync();
+        if (result != 1) return -3;
+
+        return 1;
     }
 
     int DB_find_data_row(
@@ -413,6 +429,38 @@
         }
 
         return status;
+    }
+
+#pragma endregion
+
+#pragma region [Transaction]
+
+    int DB_init_transaction(database_t* database) {
+        int result = 1;
+        result = TBM_TDT_sync();
+        if (result != 1) return -1;
+
+        result = DRM_DDT_sync();
+        if (result != 1) return -2;
+
+        result = PGM_PDT_sync();
+        if (result != 1) return -3;
+
+        return DB_cleanup_tables(database);
+    }
+
+    int DB_rollback() {
+        int result = 1;
+        result = TBM_TDT_free();
+        if (result != 1) return -1;
+
+        result = DRM_DDT_free();
+        if (result != 1) return -2;
+
+        result = PGM_PDT_free();
+        if (result != 1) return -3;
+
+        return 1;
     }
 
 #pragma endregion

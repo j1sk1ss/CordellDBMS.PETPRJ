@@ -95,6 +95,20 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             return answer;
         }
         /*
+        Handle flush command. Init transaction start. Check docs.
+        Command syntax: flush
+        */
+        else if (strcmp(command, SYNC) == 0) {
+            DB_init_transaction(database);
+        }
+        /*
+        Handle rollback command.
+        Command syntax: rollback
+        */
+        else if (strcmp(command, ROLLBACK) == 0) {
+            DB_rollback();
+        }
+        /*
         Handle creation.
         Command syntax: create <option>
         */
@@ -109,9 +123,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 if (database_name == NULL) {
                     return answer;
                 }
-
-                char save_path[DEFAULT_PATH_SIZE];
-                sprintf(save_path, "%s%.8s.%s", DATABASE_BASE_PATH, database_name, DATABASE_EXTENSION);
 
                 database_t* new_database = DB_create_database(database_name);
                 DB_save_database(new_database, NULL);
@@ -637,7 +648,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
             );
 
-            TBM_save_table(master, NULL);
             print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
 
             answer->answer_size = -1;

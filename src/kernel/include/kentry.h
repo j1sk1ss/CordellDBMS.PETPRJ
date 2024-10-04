@@ -42,6 +42,8 @@
 
     #define HELP            "help"
     #define TRANSACTION     "transaction-start"
+    #define ROLLBACK        "rollback"
+    #define SYNC            "sync"
 
     #define SELECT          "select"
     #define CREATE          "create"    // Example: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )

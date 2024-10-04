@@ -36,11 +36,16 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
             }
 
             if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
-                if (PGM_PDT[current] == NULL) return -1;
-                if (memcmp(page->header->name, PGM_PDT[current]->header->name, PAGE_NAME_SIZE) != 0) {
-                    PGM_PDT_flush_index(current);
-                    PGM_PDT[current] = page;
+                if (PGM_PDT[current] != NULL) {
+                    if (memcmp(page->header->name, PGM_PDT[current]->header->name, PAGE_NAME_SIZE) != 0) {
+                        PGM_PDT_flush_index(current);
+                    }
                 }
+
+                PGM_PDT[current] = page;
+            } else {
+                print_error("Can't lock page [%s] for flushing!", PGM_PDT[current]->header->name);
+                return -1;
             }
         #endif
 
@@ -51,7 +56,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
         #ifndef NO_PDT
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_PDT[i] == NULL) continue;
-                if (strncmp((char*)PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0) {
+                if (memcmp(PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0) {
                     return PGM_PDT[i];
                 }
             }
@@ -65,20 +70,21 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_PDT[i] == NULL) continue;
                 if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
-                    PGM_PDT_flush_index(i);
-                    PGM_PDT[i] = PGM_load_page(NULL, (char*)PGM_PDT[i]->header->name);
-                } else return -1;
+                    PGM_save_page(PGM_PDT[i], NULL);
+                } 
+                else return -1;
             }
         #endif
 
         return 1;
     }
 
-    int PGM_PDT_clear() {
+    int PGM_PDT_free() {
         #ifndef NO_PDT
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
-                    PGM_PDT_flush_index(i);
+                    PGM_free_page(PGM_PDT[i]);
+                    PGM_PDT[i] = NULL;
                 }
                 else {
                     return -1;

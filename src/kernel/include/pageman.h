@@ -299,7 +299,8 @@
         Params:
         - page - pointer to page (Be sure that you don't realise this page. We save link in PDT)
 
-        Return struct page_t pointer
+        Return 1 if add was success
+        Return -1 if something goes wrong
         */
         int PGM_PDT_add_page(page_t* page);
 
@@ -324,12 +325,13 @@
         int PGM_PDT_sync();
 
         /*
-        Clear PDT table by flushing all entries.
-        Note: Be sure, that PDT links are not used.
+        Free PDT table. In difference with clear function, this will avoid
+        working with disk. That's why this function used in DB rollback.
 
-        Return -1 if function can't lock page from PDT;
+        Return 1 if free was correct.
+        Return -1 if function can't lock any page from PTD.
         */
-        int PGM_PDT_clear();
+        int PGM_PDT_free();
 
         /*
         Hard cleanup of PDT. Really not recomment for use!

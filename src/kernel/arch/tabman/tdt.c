@@ -36,11 +36,13 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
             }
 
             if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
-                if (TBM_TDT[current] == NULL) return -1;
-                if (memcmp(table->header->name, TBM_TDT[current]->header->name, TABLE_NAME_SIZE) != 0) {
-                    TBM_TDT_flush_index(current);
-                    TBM_TDT[current] = table;
+                if (TBM_TDT[current] != NULL) {
+                    if (memcmp(table->header->name, TBM_TDT[current]->header->name, TABLE_NAME_SIZE) != 0) {
+                        TBM_TDT_flush_index(current);
+                    }
                 }
+
+                TBM_TDT[current] = table;
             }
         #endif
 
@@ -52,7 +54,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
             if (name == NULL) return NULL;
             for (int i = 0; i < TDT_SIZE; i++) {
                 if (TBM_TDT[i] == NULL) continue;
-                if (strncmp((char*)TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0) {
+                if (memcmp(TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0) {
                     return TBM_TDT[i];
                 }
             }
@@ -66,20 +68,21 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
             for (int i = 0; i < TDT_SIZE; i++) {
                 if (TBM_TDT[i] == NULL) continue;
                 if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) {
-                    TBM_TDT_flush_index(i);
-                    TBM_TDT[i] = TBM_load_table(NULL, (char*)TBM_TDT[i]->header->name);
-                } else return -1;
+                    TBM_save_table(TBM_TDT[i], NULL);
+                } 
+                else return -1;
             }
         #endif
 
         return 1;
     }
 
-    int TBM_TDT_clear() {
+    int TBM_TDT_free() {
         #ifndef NO_TDT
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) {
-                    TBM_TDT_flush_index(i);
+                    TBM_free_table(TBM_TDT[i]);
+                    TBM_TDT[i] = NULL;
                 }
                 else {
                     return -1;

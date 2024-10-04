@@ -197,6 +197,17 @@ we use cache in pages (lowest level) and table cache at the highest level.
     int DB_delete_row(database_t* database, char* table_name, int row, uint8_t access);
 
     /*
+    Init cascade cleanup of empty directories and empty pages in all table in database.
+    Note: This function, also, call sync fuinction like init_transaction method.
+
+    Params:
+    - database - pointer to database.
+
+    Return 1 if cleanup was success.
+    */
+    int DB_cleanup_tables(database_t* database);
+
+    /*
     Find data row function return global index in databse of provided row.
     Note: Will return row, if we have perfect fit. That's means:
     Will return:
@@ -365,6 +376,36 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if save was success
     */
     int DB_save_database(database_t* database, char* path);
+
+#pragma endregion
+
+#pragma region [Transaction]
+
+    /*
+    Init transaction method prepare DBMS for transaction by flush all buffers.
+    Note: Be sure, that transaction will work with:
+    - 10 or less tables
+    - 10 or less directories
+    - 10 or less pages
+    In few words, that means, that you can input data with 40960KB (40MB) size to 10 directories at one time.
+
+    Return 1 if transaction init success.
+    Return -1 if we can't free TDT
+    Return -2 if we can't free DTD
+    Return -3 if we can't free PDT
+    */
+    int DB_init_transaction(database_t* database);
+
+    /*
+    When we init transaction with flushing buffers, we prepare space for all pages, dirs and tabs that will be used
+    in future transactions. If something goes wrong during transaction, we can just vipe all buffers before it will be written to disk.
+
+    Return 1 if rollback success.
+    Return -1 if we can't free TDT
+    Return -2 if we can't free DTD
+    Return -3 if we can't free PDT
+    */
+    int DB_rollback();
 
 #pragma endregion
 

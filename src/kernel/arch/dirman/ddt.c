@@ -36,11 +36,17 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             }
 
             if (DRM_lock_directory(DRM_DDT[current], omp_get_thread_num()) != -1) {
-                if (DRM_DDT[current] == NULL) return -1;
-                if (memcmp(directory->header->name, DRM_DDT[current]->header->name, DIRECTORY_NAME_SIZE) != 0) {
-                    DRM_DDT_flush_index(current);
-                    DRM_DDT[current] = directory;
+                if (DRM_DDT[current] != NULL) {
+                    if (memcmp(directory->header->name, DRM_DDT[current]->header->name, DIRECTORY_NAME_SIZE) != 0) {
+                        DRM_DDT_flush_index(current);
+                    }
                 }
+
+                DRM_DDT[current] = directory;
+            }
+            else {
+                print_error("Can't lock directory [%s] for flushing!", DRM_DDT[current]->header->name);
+                return -1;
             }
         #endif
 
@@ -52,7 +58,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             if (name == NULL) return NULL;
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_DDT[i] == NULL) continue;
-                if (strncmp((char*)DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
+                if (memcmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
                     return DRM_DDT[i];
                 }
             }
@@ -66,20 +72,21 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_DDT[i] == NULL) continue;
                 if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
-                    DRM_DDT_flush_index(i);
-                    DRM_DDT[i] = DRM_load_directory(NULL, (char*)DRM_DDT[i]->header->name);
-                } else return -1;
+                    DRM_save_directory(DRM_DDT[i], NULL);
+                } 
+                else return -1;
             }
         #endif
 
         return 1;
     }
 
-    int DRM_DDT_clear() {
+    int DRM_DDT_free() {
         #ifndef NO_DDT
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
-                    DRM_DDT_flush_index(i);
+                    DRM_free_directory(DRM_DDT[i]);
+                    DRM_DDT[i] = NULL;
                 }
                 else {
                     return -1;

@@ -109,6 +109,17 @@
     int DRM_delete_content(directory_t* directory, int offset, size_t length);
 
     /*
+    Cleanup empty pages in directory.
+
+    Params:
+    - directory - pointer to directory.
+
+    Return 1 if cleanup success.
+    Return -1 if something goes wrong.
+    */
+    int DRM_cleanup_pages(directory_t* directory);
+
+    /*
     Append content to directory. This function move page_end symbol to new location.
     Note: If it can't append to existed pages, it creates new one.
     Note 2: This function not guarantees that content will be append to last page.
@@ -321,7 +332,8 @@
         Params:
         - directory - pointer to directory (Be sure that you don't realise this directory. We save link in DDT).
 
-        Return struct directory pointer
+        Return 1 if add was success
+        Return -1 if something goes wrong
         */
         int DRM_DDT_add_directory(directory_t* directory);
 
@@ -346,12 +358,13 @@
         int DRM_DDT_sync();
 
         /*
-        Clear DDT table by flushing all entries.
-        Note: Be sure, that DDT links are not used.
+        Free DDT table. In difference with clear function, this will avoid
+        working with disk. That's why this function used in DB rollback.
 
-        Return -1 if function can't lock directory from DDT;
+        Return 1 if free was correct.
+        Return -1 if function can't lock any directory from DTD.
         */
-        int DRM_DDT_clear();
+        int DRM_DDT_free();
 
         /*
         Hard cleanup of DDT. Really not recomment for use!
