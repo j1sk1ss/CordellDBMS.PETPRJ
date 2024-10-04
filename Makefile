@@ -1,5 +1,5 @@
 CC = gcc-14
-CFLAGS = -Wall -Wextra -Ikernel/include -fopenmp
+CFLAGS = -Wall -Wextra -Ikernel/include -fopenmp -Wcomment
 
 KERNEL_DIR = src/kernel
 STD_DIR = $(KERNEL_DIR)/std

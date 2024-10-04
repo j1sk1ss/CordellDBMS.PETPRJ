@@ -118,7 +118,7 @@ Params:
 
 Return NULL or answer.
 */
-kernel_answer_t* kernel_process_command(int argc, char* argv[]);
+kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop);
 
 /*
 Free answer structure.

@@ -81,8 +81,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
         #ifndef NO_TDT
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) {
-                    TBM_free_table(TBM_TDT[i]);
-                    TBM_TDT[i] = NULL;
+                    TBM_TDT_flush_index(i);
                 }
                 else {
                     return -1;
@@ -118,9 +117,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
     int TBM_TDT_flush_index(int index) {
         #ifndef NO_TDT
             if (TBM_TDT[index] == NULL) return -1;
-            TBM_save_table(TBM_TDT[index], NULL);
             TBM_free_table(TBM_TDT[index]);
-
             TBM_TDT[index] = NULL;
         #endif
 

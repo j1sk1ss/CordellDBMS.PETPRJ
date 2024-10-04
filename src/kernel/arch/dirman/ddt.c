@@ -85,8 +85,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         #ifndef NO_DDT
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
-                    DRM_free_directory(DRM_DDT[i]);
-                    DRM_DDT[i] = NULL;
+                    DRM_DDT_flush_index(i);
                 }
                 else {
                     return -1;
@@ -122,9 +121,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     int DRM_DDT_flush_index(int index) {
         #ifndef NO_DDT
             if (DRM_DDT[index] == NULL) return -1;
-            DRM_save_directory(DRM_DDT[index], NULL);
             DRM_free_directory(DRM_DDT[index]);
-
             DRM_DDT[index] = NULL;
         #endif
 

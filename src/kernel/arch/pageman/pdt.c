@@ -4,7 +4,7 @@
 /*
  *  Page destriptor table, is an a static array of pages indexes. Main idea in
  *  saving pages temporary in static table somewhere in memory. Max size of this
- *  table equals 1024 * 10 = 10Kb.
+ *  table equals 4096 * 10 = 41Kb.
  *
  *  For working with table we have PAGE struct, that have index of table in PDT. If
  *  we access to pages with full PGM_PDT, we also unload old page and load new page.
@@ -83,8 +83,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
         #ifndef NO_PDT
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
-                    PGM_free_page(PGM_PDT[i]);
-                    PGM_PDT[i] = NULL;
+                    PGM_PDT_flush_index(i);
                 }
                 else {
                     return -1;
@@ -120,10 +119,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
     int PGM_PDT_flush_index(int index) {
         #ifndef NO_PDT
             if (PGM_PDT[index] == NULL) return -1;
-
-            PGM_save_page(PGM_PDT[index], NULL);
             PGM_free_page(PGM_PDT[index]);
-
             PGM_PDT[index] = NULL;
         #endif
 

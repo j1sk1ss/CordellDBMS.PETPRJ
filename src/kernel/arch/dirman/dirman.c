@@ -166,7 +166,7 @@
         for (int i = 0; i < directory->header->page_count; i++) {
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
-            page_t* page = PGM_load_page(NULL, directory->names[i]);
+            page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
 
             // If page, after delete operation, full empty, we delete page.
             // Also we realise page pointer in RAM.

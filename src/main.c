@@ -7,12 +7,12 @@
  *
  * <DEPRECATED | USE MAKEFILE INSTEAD MANUAL COMMAND BUILD>
  * Unix:
- * building without OMP: gcc-14 -Wall main.c kernel/kentry.c kernel/std/* kernel/arch/* -Wunknown-pragmas -fpermissive -o cdbms.bin
- * building with OMP: gcc-14 -Wall main.c kernel/kentry.c kernel/std/* kernel/arch/* -fopenmp -fpermissive -o cdbms.bin
+ * building without OMP: ...
+ * building with OMP: ...
  *
  * Win10/Win11:
- * building without OMP: .\main.c .\kernel\kentry.c .\kernel\std\* .\kernel\arch\* -Wunknown-pragmas -lws2_32 -fopenmp -fpermissive -o cdbms_win_x86-64_omp.exe
- * building with OMP: .\main.c .\kernel\kentry.c .\kernel\std\* .\kernel\arch\* -Wunknown-pragmas -lws2_32 -fpermissive -o cdbms_win_x86-64_omp.exe
+ * building without OMP: ...
+ * building with OMP: ...
  *
  * Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
@@ -101,13 +101,15 @@ void send2kernel(int source, int destination) {
             argv[argc++] = current_arg;
         }
 
-        kernel_answer_t* result = kernel_process_command(argc, argv);
+        kernel_answer_t* result = kernel_process_command(argc, argv, 0);
         if (result->answer_body != NULL) {
             #ifdef _WIN32
                 send(destination, (const char*)result->answer_body, result->answer_size, 0);
             #else
                 write(destination, result->answer_body, result->answer_size);
             #endif
+
+            print_log("Answer body: [%s]", result->answer_body);
         }
         else {
             #ifdef _WIN32
@@ -128,7 +130,7 @@ void send2kernel(int source, int destination) {
 /*
  * Server setup function
 */
-int main(int argc, char* argv[]) {
+int main() {
     /*
     Enable traceback for current session.
     */
@@ -136,7 +138,7 @@ int main(int argc, char* argv[]) {
 
     #ifdef DESKTOP
 
-        kernel_answer_t* result = kernel_process_command(argc, argv);
+        kernel_answer_t* result = kernel_process_command(argc, argv, 1);
         if (result->answer_body != NULL) {
             printf("%s\nCode: %i\n", result->answer_body, result->answer_code);
         }

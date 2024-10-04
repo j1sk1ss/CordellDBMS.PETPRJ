@@ -32,7 +32,7 @@ int kmain(int argc, char* argv[]) {
     int arg_count = 0;
     commands_pointer += 1;
     for (int i = 0; i < transaction_size; i++) {
-        kernel_answer_t* answer = kernel_process_command(argc - arg_count, commands_pointer);
+        kernel_answer_t* answer = kernel_process_command(argc - arg_count, commands_pointer, 1);
         arg_count += answer->commands_processed;
         commands_pointer += answer->commands_processed;
 
@@ -43,7 +43,7 @@ int kmain(int argc, char* argv[]) {
     return 1;
 }
 
-kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
+kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
 
     answer->answer_body = NULL;
@@ -125,11 +125,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
                 }
 
                 database_t* new_database = DB_create_database(database_name);
-                DB_save_database(new_database, NULL);
+                int result = DB_save_database(new_database, NULL);
 
                 print_log("Database [%s.%s] create succes!", new_database->header->name, DATABASE_EXTENSION);
 
-                answer->answer_code = 1;
+                answer->answer_code = result;
                 answer->answer_size = -1;
                 answer->commands_processed = command_index;
 
@@ -676,6 +676,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             printf("\tExample: update row table_1 by_index 0 'goodbye   hello  bye' 000\n");
             printf("\tExample: update row table_1 by_value value column col1 'goodbye   hello  bye' 000\n");
 
+            printf("- SYNC:\n");
+            printf("\tExample: sync\n");
+
+            printf("- ROLLBACK:\n");
+            printf("\tExample: rollback\n");
+
             printf("- GET:\n");
             printf("\tExample: get row table_1 by_value hello column col2 000\n");
             printf("\tExample: get row table_1 by_index 0 000\n");
@@ -700,6 +706,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
             answer->commands_processed = command_index;
             return answer;
         }
+    }
+
+    if (desktop == 1) {
+        DB_init_transaction(database);
     }
 
     answer->commands_processed = 0;
