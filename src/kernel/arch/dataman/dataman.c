@@ -267,19 +267,10 @@
     }
 
     table_t* DB_get_table(database_t* database, char* table_name) {
-        // If we already has cached table, we can think, that this is
-        // table what we need.
-        if (database->cached_table != NULL) {
-            if (strncmp((char*)database->cached_table->header->name, table_name, TABLE_NAME_SIZE) == 0) {
-                return database->cached_table;
-            }
-        }
-
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
             if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
-                database->cached_table = TBM_load_table(NULL, table_name);
-                return database->cached_table;
+                return TBM_load_table(NULL, table_name);
             }
         }
 
@@ -309,13 +300,6 @@
         int status = 0;
         #pragma omp critical (unlink_table_from_database)
         {
-            // If table for unlink in cache, mark it NULL
-            if (database->cached_table != NULL) {
-                if (strncmp((char*)database->cached_table->header->name, name, TABLE_NAME_SIZE) == 0) {
-                    database->cached_table = NULL;
-                }
-            }
-
             for (int i = 0; i < database->header->table_count; i++) {
                 if (strncmp((char*)database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
                     for (int j = i; j < database->header->table_count - 1; j++) {
@@ -330,38 +314,6 @@
         }
 
         return status;
-    }
-
-#pragma endregion
-
-#pragma region [Transaction]
-
-    int DB_init_transaction(database_t* database) {
-        int result = 1;
-        result = TBM_TDT_sync();
-        if (result != 1) return -1;
-
-        result = DRM_DDT_sync();
-        if (result != 1) return -2;
-
-        result = PGM_PDT_sync();
-        if (result != 1) return -3;
-
-        return DB_cleanup_tables(database);
-    }
-
-    int DB_rollback() {
-        int result = 1;
-        result = TBM_TDT_free();
-        if (result != 1) return -1;
-
-        result = DRM_DDT_free();
-        if (result != 1) return -2;
-
-        result = PGM_PDT_free();
-        if (result != 1) return -3;
-
-        return 1;
     }
 
 #pragma endregion

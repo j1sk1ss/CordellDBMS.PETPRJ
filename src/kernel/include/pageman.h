@@ -32,10 +32,10 @@
 #include "common.h"
 
 
-#define PAGE_EXTENSION getenv("PAGE_EXTENSION") == NULL ? "pg" : getenv("PAGE_EXTENSION")
+#define PAGE_EXTENSION  getenv("PAGE_EXTENSION") == NULL ? "pg" : getenv("PAGE_EXTENSION")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL pages
-#define PAGE_BASE_PATH getenv("PAGE_BASE_PATH") == NULL ? "" : getenv("PAGE_BASE_PATH")
+#define PAGE_BASE_PATH  getenv("PAGE_BASE_PATH") == NULL ? "" : getenv("PAGE_BASE_PATH")
 
 #define PDT_SIZE        10
 

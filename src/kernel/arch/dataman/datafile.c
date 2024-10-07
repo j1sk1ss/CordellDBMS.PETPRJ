@@ -11,7 +11,6 @@
 
         database_t* database = (database_t*)malloc(sizeof(database_t));
         database->header        = header;
-        database->cached_table  = NULL;
 
         return database;
     }
@@ -54,7 +53,6 @@
                     fclose(file);
 
                     database->header        = header;
-                    database->cached_table  = NULL;
                     loaded_database = database;
                 }
             }

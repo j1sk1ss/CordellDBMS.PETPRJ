@@ -64,10 +64,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
         // Database header
         database_header_t* header;
 
-        // Table cache for faster access without checking
-        // and iteration throw all tables
-        table_t* cached_table;
-
         // Database linked tables
         uint8_t table_names[TABLES_PER_DATABASE][TABLE_NAME_SIZE];
     } database_t;
@@ -354,7 +350,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     Params:
     - path - path to database.db file. (Should be NULL, if provided name).
-    - name - name of database. This function will try to load database by 
+    - name - name of database. This function will try to load database by
              default path (Should be NULL, if provided path).
 
     Return -2 if Magic is wrong. Check file.

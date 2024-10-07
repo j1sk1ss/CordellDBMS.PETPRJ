@@ -39,21 +39,38 @@
 #define CDBMS_SERVER_PORT   getenv("CDBMS_SERVER_PORT") == NULL ? 1010 : atoi(getenv("CDBMS_SERVER_PORT"))
 #define MESSAGE_BUFFER      2048
 #define COMMANDS_BUFFER     256
-// #define USER_DEBUG
 
 
 user_t* user = NULL;
 
 
 void cleanup();
-int setup_server();
+int send2destination_pointer(int destination, uint8_t* data, size_t data_size);
+int send2destination_byte(int destination, uint8_t data);
 void send2kernel(int source, int destination);
+int setup_server();
 
 
 void cleanup() {
     #ifdef _WIN32
         WSACleanup();
     #endif
+}
+
+int send2destination_pointer(int destination, uint8_t* data, size_t data_size) {
+    #ifdef _WIN32
+        send(destination, (const char*)data, data_size, 0);
+    #else
+        write(destination, data, data_size);
+    #endif
+
+    return 1;
+}
+
+int send2destination_byte(int destination, uint8_t data) {
+    uint8_t buffer[1] = { data };
+    send2destination_pointer(destination, buffer, sizeof(uint8_t));
+    return 1;
 }
 
 /*
@@ -82,11 +99,12 @@ void send2kernel(int source, int destination) {
 
             #ifndef USER_DEBUG
                 user = USR_auth(username, password);
-                if (user == NULL) print_info("Wrong password or username!");
-                else print_info("Logging to [%s] success!", username);
+                if (user == NULL) send2destination_byte(destination, 0);
+                else send2destination_byte(destination, 1);
             #else
                 user = USR_create(username, password, CREATE_ACCESS_BYTE(0, 0, 0));
                 USR_save(user, NULL);
+                send2destination_byte(destination, 1);
             #endif
             continue;
         }
@@ -123,23 +141,11 @@ void send2kernel(int source, int destination) {
 
         kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access);
         if (result->answer_body != NULL) {
-            #ifdef _WIN32
-                send(destination, (const char*)result->answer_body, result->answer_size, 0);
-            #else
-                write(destination, result->answer_body, result->answer_size);
-            #endif
-
+            send2destination_pointer(destination, result->answer_body, result->answer_size);
             print_log("Answer body: [%s]", result->answer_body);
         }
         else {
-            #ifdef _WIN32
-                uint8_t buffer[1] = { result->answer_code };
-                send(destination, (const char*)buffer, sizeof(uint8_t), 0);
-            #else
-                uint8_t buffer[1] = { result->answer_code };
-                write(destination, buffer, sizeof(uint8_t));
-            #endif
-
+            send2destination_byte(destination, result->answer_code);
             print_log("Answer code: %i", result->answer_code);
         }
 
@@ -159,12 +165,8 @@ int main() {
     #ifdef DESKTOP
 
         kernel_answer_t* result = kernel_process_command(argc, argv, 1);
-        if (result->answer_body != NULL) {
-            printf("%s\nCode: %i\n", result->answer_body, result->answer_code);
-        }
-        else {
-            printf("Code: %i\n", result->answer_code);
-        }
+        if (result->answer_body != NULL) printf("%s\nCode: %i\n", result->answer_body, result->answer_code);
+        else printf("Code: %i\n", result->answer_code);
 
     #else
 
