@@ -2,16 +2,9 @@
 
 
 user_t* USR_create(char* name, char* password, uint8_t access) {
-    uint8_t hash[SHA256_BLOCK_SIZE];
-
-    sha256_ctx ctx;
-    CRT_sha256_init(&ctx);
-    CRT_sha256_update(&ctx, (uint8_t*)password, strlen(password));
-    CRT_sha256_final(&ctx, hash);
-
     user_t* user = (user_t*)malloc(sizeof(user_t));
     user->access = access;
-    memcpy(user->pass_hash, hash, SHA256_BLOCK_SIZE);
+    user->pass_hash = HASH_str2hash(password);
     memcpy(user->name, name, USERNAME_SIZE);
 
     return user;
@@ -21,7 +14,7 @@ user_t* USR_auth(char* name, char* password) {
     user_t* user = USR_load(NULL, name);
     if (user == NULL) return NULL;
 
-    if (CRT_compare_hash(password, user->pass_hash) == 0) return NULL;
+    if (HASH_str2hash(password) != user->pass_hash) return NULL;
     return user;
 }
 

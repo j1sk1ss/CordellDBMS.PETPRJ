@@ -17,7 +17,6 @@
  * Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
 
-#include "kernel/include/tabman.h"
 #include "userland/include/user.h"
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
@@ -40,6 +39,7 @@
 #define CDBMS_SERVER_PORT   getenv("CDBMS_SERVER_PORT") == NULL ? 1010 : atoi(getenv("CDBMS_SERVER_PORT"))
 #define MESSAGE_BUFFER      2048
 #define COMMANDS_BUFFER     256
+// #define USER_DEBUG
 
 
 user_t* user = NULL;
@@ -76,18 +76,15 @@ void send2kernel(int source, int destination) {
     {
         buffer[count - 1] = '\0';
         if (user == NULL) {
+            char username[USERNAME_SIZE];
+            char password[128];
+            sscanf((char*)buffer, "%[^:]:%s", username, password);
+
             #ifndef USER_DEBUG
-                print_info("Authorization required!");
-                char username[USERNAME_SIZE];
-                char password[128];
-
-                sscanf((char*)buffer, "%[^:]:%s", username, password);
                 user = USR_auth(username, password);
+                if (user == NULL) print_info("Wrong password or username!");
+                else print_info("Logging to [%s] success!", username);
             #else
-                char username[USERNAME_SIZE];
-                char password[128];
-
-                sscanf((char*)buffer, "%[^:]:%s", username, password);
                 user = USR_create(username, password, CREATE_ACCESS_BYTE(0, 0, 0));
                 USR_save(user, NULL);
             #endif
