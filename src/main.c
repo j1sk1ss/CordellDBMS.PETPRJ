@@ -156,7 +156,12 @@ void send2kernel(int source, int destination) {
 /*
  * Server setup function
 */
-int main() {
+#ifdef DESKTOP
+int main(int argc, char* argv[])
+#else
+int main()
+#endif
+{
     /*
     Enable traceback for current session.
     */
@@ -164,7 +169,7 @@ int main() {
 
     #ifdef DESKTOP
 
-        kernel_answer_t* result = kernel_process_command(argc, argv, 1);
+        kernel_answer_t* result = kernel_process_command(argc, argv, 1, CREATE_ACCESS_BYTE(3, 3, 3));
         if (result->answer_body != NULL) printf("%s\nCode: %i\n", result->answer_body, result->answer_code);
         else printf("Code: %i\n", result->answer_code);
 

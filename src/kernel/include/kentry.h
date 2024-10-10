@@ -60,6 +60,7 @@
     #define COLUMNS         "columns"
     #define COLUMN          "column"
     #define VALUES          "values"
+    #define VALUE           "value"
     #define ROW             "row"
 
     #define BY_INDEX        "by_index"
