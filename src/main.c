@@ -47,7 +47,7 @@ user_t* user = NULL;
 void cleanup();
 int send2destination_pointer(int destination, uint8_t* data, size_t data_size);
 int send2destination_byte(int destination, uint8_t data);
-void send2kernel(int source, int destination);
+void start_kernel_session(int source, int destination);
 int setup_server();
 
 
@@ -81,7 +81,7 @@ int send2destination_byte(int destination, uint8_t data) {
  * - source - source FD with commands.
  * - destination - destination FD for kernel answer.
 */
-void send2kernel(int source, int destination) {
+void start_kernel_session(int source, int destination) {
     int count = 0;
     uint8_t buffer[MESSAGE_BUFFER];
 
@@ -220,13 +220,16 @@ int main()
             }
 
             print_info("Client connected from %s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-            send2kernel(client_socket_fd, client_socket_fd);
+            start_kernel_session(client_socket_fd, client_socket_fd);
 
             #ifdef _WIN32
                 closesocket(client_socket_fd);
             #else
                 close(client_socket_fd);
             #endif
+
+            print_info("Client %s:%d disconnected", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+            user = NULL;
         }
 
         cleanup();

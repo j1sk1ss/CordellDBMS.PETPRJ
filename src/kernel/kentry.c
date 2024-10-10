@@ -388,7 +388,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
                 /*
                 Note: Will get entire row. (If table has links, it will cause CASCADE operations).
-                Command syntax: get row <table_name> by_index <index> <rwd>
+                Command syntax: get row <table_name> by_index <index>
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
@@ -413,7 +413,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
                 /*
                 Note: will get first row, where will find value in provided column.
-                Command syntax: get row <table_name> by_value column <column_name> value <value>
+                Command syntax: get row table <table_name> by_value column <column_name> value <value>
                 */
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
@@ -430,25 +430,40 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                                 return answer;
                             }
 
-                            int row2get = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), access);
-                            if (row2get == -1) {
-                                print_error("Value not presented in table [%s].", table_name);
-                                return NULL;
-                            }
-
-                            uint8_t* data = DB_get_row(database, table_name, row2get, access);
-                            if (data == NULL) {
-                                print_error("Something goes wrong!");
-                                return NULL;
-                            }
-
                             int row_size = 0;
                             table_t* table = DB_get_table(database, table_name);
                             for (int j = 0; j < table->header->column_count; j++) row_size += table->columns[j]->size;
 
+                            int offset    = 0;
+                            int row2get   = 0;
+                            int data_size = 0;
+                            uint8_t* data = NULL;
+                            while (row2get != -1) {
+                                row2get = DB_find_data_row(database, table_name, column_name, offset, (uint8_t*)value, strlen(value), access);
+                                if (row2get == -1) {
+                                    print_error("Value not presented in table [%s].", table_name);
+                                    return NULL;
+                                }
+
+                                uint8_t* row_data = DB_get_row(database, table_name, row2get, access);
+                                if (row_data == NULL) {
+                                    print_error("Something goes wrong!");
+                                    return NULL;
+                                }
+
+                                int data_start = data_size;
+                                data_size += row_size;
+                                offset += (row2get + 1) * row_size;
+
+                                data = (uint8_t*)realloc(data, data_size);
+                                uint8_t* copy_pointer = data + data_start;
+
+                                memcpy(copy_pointer, row_data, row_size);
+                            }
+
                             answer->answer_code = 1;
                             answer->answer_body = data;
-                            answer->answer_size = row_size;
+                            answer->answer_size = data_size;
                             answer->commands_processed = command_index;
 
                             return answer;
@@ -477,7 +492,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                 command_index++;
 
                 /*
-                Command syntax: update row <table_name> by_index <index> <new_data> <rwd>
+                Command syntax: update row <table_name> by_index <index> <new_data>
                 */
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     int index    = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
