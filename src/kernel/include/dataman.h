@@ -401,7 +401,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -2 if we can't free DTD
     Return -3 if we can't free PDT
     */
-    int DB_rollback();
+    int DB_rollback(database_t* database);
 
 #pragma endregion
 

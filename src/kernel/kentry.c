@@ -108,7 +108,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
         Command syntax: rollback
         */
         else if (strcmp(command, ROLLBACK) == 0) {
-            DB_rollback();
+            DB_rollback(database);
         }
         /*
         Handle creation.
@@ -149,7 +149,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                     return answer;
                 }
 
-                if (DB_get_table(database, table_name) != NULL) return answer;
+                if (TBM_release_table(DB_get_table(database, table_name), omp_get_thread_num()) != -3) return answer;
                 char* table_access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_access == NULL) {
                     answer->answer_code = 5;
@@ -213,15 +213,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                 }
 
                 DB_link_table2database(database, new_table);
+                TBM_TDT_add_table(new_table);
 
-                TBM_save_table(new_table, NULL);
-                TBM_free_table(new_table);
-
-                int result = DB_save_database(database, NULL);
-                print_log("Table [%s] create success!", table_name);
+                print_log("Table [%s] create success!", new_table->header->name);
 
                 answer->answer_size = -1;
-                answer->answer_code = result;
+                answer->answer_code = 1;
                 answer->commands_processed = command_index;
 
                 return answer;
@@ -395,19 +392,17 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                     int index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
                     uint8_t* data = DB_get_row(database, table_name, index, access);
                     if (data == NULL) {
-                        print_error("Something goes wrong!");
+                        print_error("Something goes wrong! Params: [%s] [%s] [%i] [%i]", database->header->name, table_name, index, access);
                         return NULL;
                     }
 
-                    int row_size = 0;
                     table_t* table = DB_get_table(database, table_name);
-                    for (int j = 0; j < table->header->column_count; j++) row_size += table->columns[j]->size;
-
                     answer->answer_body = data;
                     answer->answer_code = index;
-                    answer->answer_size = row_size;
+                    answer->answer_size = table->row_size;
                     answer->commands_processed = command_index;
 
+                    TBM_release_table(table, omp_get_thread_num());
                     return answer;
                 }
 
@@ -430,9 +425,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                                 return answer;
                             }
 
-                            int row_size = 0;
                             table_t* table = DB_get_table(database, table_name);
-                            for (int j = 0; j < table->header->column_count; j++) row_size += table->columns[j]->size;
 
                             int offset    = 0;
                             int row2get   = 0;
@@ -447,24 +440,26 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
                                 uint8_t* row_data = DB_get_row(database, table_name, row2get, access);
                                 if (row_data == NULL) {
-                                    print_error("Something goes wrong!");
+                                    print_error("Something goes wrong! Params: [%s] [%s] [%i] [%i]", database->header->name, table_name, row2get, access);
                                     return NULL;
                                 }
 
                                 int data_start = data_size;
-                                data_size += row_size;
-                                offset += (row2get + 1) * row_size;
+                                data_size += table->row_size;
+                                offset += (row2get + 1) * table->row_size;
 
                                 data = (uint8_t*)realloc(data, data_size);
                                 uint8_t* copy_pointer = data + data_start;
 
-                                memcpy(copy_pointer, row_data, row_size);
+                                memcpy(copy_pointer, row_data, table->row_size);
                             }
 
                             answer->answer_code = 1;
                             answer->answer_body = data;
                             answer->answer_size = data_size;
                             answer->commands_processed = command_index;
+
+                            TBM_release_table(table, omp_get_thread_num());
 
                             return answer;
                         }
@@ -598,12 +593,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                     );
 
                 answer->answer_code = 1;
+                TBM_release_table(table, omp_get_thread_num());
                 return answer;
             }
         }
         /*
         Handle info command.
-        Command syntax: link <master_table> <naster_column> <slave_table> <slave_volumn> ( flags )
+        Command syntax: link <master_table> <master_column> <slave_table> <slave_column> ( flags )
         */
         else if (strcmp(command, LINK) == 0) {
             char* master_table  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
@@ -626,9 +622,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                 return answer;
             }
 
-            table_t* slave  = DB_get_table(database, slave_table);
+            table_t* slave = DB_get_table(database, slave_table);
             if (slave == NULL) {
                 print_error("Table [%s] not found in database!", slave_table);
+                TBM_release_table(master, omp_get_thread_num());
                 return answer;
             }
 
@@ -647,6 +644,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
             );
 
             print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
+            TBM_release_table(master, omp_get_thread_num());
+            TBM_release_table(slave, omp_get_thread_num());
 
             answer->answer_size = -1;
             answer->answer_code = result;

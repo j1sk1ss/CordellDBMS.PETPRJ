@@ -23,18 +23,25 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
     int DRM_DDT_add_directory(directory_t* directory) {
         #ifndef NO_DDT
-            int current = 0;
+            int current = -1;
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_DDT[i] == NULL) {
                     current = i;
                     break;
                 }
-
-                if (DRM_DDT[i]->lock == LOCKED) continue;
-                current = i;
-                break;
             }
 
+            if (current == -1) {
+                for (int i = 0; i < DDT_SIZE; i++) {
+                    if (DRM_DDT[i]->lock == LOCKED) continue;
+                    else {
+                        current = i;
+                        break;
+                    }
+                }
+            }
+
+            if (current == -1) return -1;
             if (DRM_lock_directory(DRM_DDT[current], omp_get_thread_num()) != -1) {
                 if (DRM_DDT[current] != NULL) {
                     if (memcmp(directory->header->name, DRM_DDT[current]->header->name, DIRECTORY_NAME_SIZE) != 0) {
@@ -42,6 +49,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     }
                 }
 
+                print_log("Adding to DDT directory [%s] at index [%i]", directory->header->name, current);
                 DRM_DDT[current] = directory;
             }
             else {
@@ -73,6 +81,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                 if (DRM_DDT[i] == NULL) continue;
                 if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
                     DRM_save_directory(DRM_DDT[i], NULL);
+                    DRM_release_directory(DRM_DDT[i], omp_get_thread_num());
                 } 
                 else return -1;
             }
@@ -119,6 +128,8 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_DDT_flush_index(int index) {
+        print_log("Flushed DDT directory in [%i] index", index);
+
         #ifndef NO_DDT
             if (DRM_DDT[index] == NULL) return -1;
             DRM_free_directory(DRM_DDT[index]);

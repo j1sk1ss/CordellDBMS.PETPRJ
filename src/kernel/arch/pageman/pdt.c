@@ -23,18 +23,25 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
     int PGM_PDT_add_page(page_t* page) {
         #ifndef NO_PDT
-            int current = 0;
+            int current = -1;
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_PDT[i] == NULL) {
                     current = i;
                     break;
                 }
-
-                if (PGM_PDT[i]->lock == LOCKED) continue;
-                current = i;
-                break;
             }
 
+            if (current == -1) {
+                for (int i = 0; i < PDT_SIZE; i++) {
+                    if (PGM_PDT[i]->lock == LOCKED) continue;
+                    else {
+                        current = i;
+                        break;
+                    }
+                }
+            }
+
+            if (current == -1) return -1;
             if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
                 if (PGM_PDT[current] != NULL) {
                     if (memcmp(page->header->name, PGM_PDT[current]->header->name, PAGE_NAME_SIZE) != 0) {
@@ -42,6 +49,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     }
                 }
 
+                print_log("Adding to PDT page [%s] at index [%i]", page->header->name, current);
                 PGM_PDT[current] = page;
             } else {
                 print_error("Can't lock page [%s] for flushing!", PGM_PDT[current]->header->name);
@@ -84,6 +92,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
                     PGM_PDT_flush_index(i);
+                    PGM_release_page(PGM_PDT[i], omp_get_thread_num());
                 }
                 else {
                     return -1;
@@ -117,6 +126,8 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_PDT_flush_index(int index) {
+        print_log("Flushed PDT page in [%i] index", index);
+
         #ifndef NO_PDT
             if (PGM_PDT[index] == NULL) return -1;
             PGM_free_page(PGM_PDT[index]);

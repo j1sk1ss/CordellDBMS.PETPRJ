@@ -95,56 +95,61 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
                 lenFullPath = strlen(path);
                 if (path[lenFullPath - 1] != iDelim) {
                     strcat(path, sDelim);
-                    path_[0] = 0;
-                    base_[0] = 0;
-                    ext_[0]  = 0;
+                    if (path_ != NULL) path_[0] = 0;
+                    if (base_ != NULL) base_[0] = 0;
+                    if (ext_ != NULL) ext_[0]  = 0;
                 }
             }
             else {
-              nameKeep[0]   = 0; // works with C:\\dir1\file.txt
-              pathKeep[0]   = 0;
-              pathKeep2[0]  = 0; // preserves *path
-              File_Ext[0]   = 0;
-              baseK[0]      = 0;
+                nameKeep[0]   = 0; // works with C:\\dir1\file.txt
+                pathKeep[0]   = 0;
+                pathKeep2[0]  = 0; // preserves *path
+                File_Ext[0]   = 0;
+                baseK[0]      = 0;
 
-              // Get lenth of full path
-              lenFullPath = strlen(path);
+                // Get lenth of full path
+                lenFullPath = strlen(path);
 
-              strcpy(nameKeep, path);
-              strcpy(pathKeep, path);
-              strcpy(pathKeep2, path);
-              strcpy(path_, path); // capture path
+                strcpy(nameKeep, path);
+                strcpy(pathKeep, path);
+                strcpy(pathKeep2, path);
+                if (path_ != NULL) strcpy(path_, path); // capture path
 
-              // Get length of extension:
-              for (i = lenFullPath - 1; i >= 0; i--) {
-                  if (pathKeep[i] == '.') break; 
-              }
+                // Get length of extension:
+                for (i = lenFullPath - 1; i >= 0; i--) {
+                    if (pathKeep[i] == '.') break; 
+                }
 
-              lenExt_ = (lenFullPath - i) - 1;
-              base = strtok(path, sDelim);
-              while (base) {
-                  strcpy(File_Ext, base);
-                  base = strtok(NULL, sDelim);
-              }
+                lenExt_ = (lenFullPath - i) - 1;
+                base = strtok(path, sDelim);
+                while (base) {
+                    strcpy(File_Ext, base);
+                    base = strtok(NULL, sDelim);
+                }
 
 
-              strcpy(baseK, File_Ext);
-              lenBase_ = strlen(baseK) - lenExt_;
-              baseK[lenBase_-1]=0;
-              strcpy(base_, baseK);
+                strcpy(baseK, File_Ext);
+                lenBase_ = strlen(baseK) - lenExt_;
+                baseK[lenBase_-1]=0;
+                if (base_ != NULL) strcpy(base_, baseK);
 
-              path_[lenFullPath -lenExt_ -lenBase_ -1] = 0;
+                if (path_ != NULL) path_[lenFullPath -lenExt_ -lenBase_ -1] = 0;
 
-              ext = strtok(File_Ext, ".");
-              ext = strtok(NULL, ".");
-              if (ext) strcpy(ext_, ext);
-              else strcpy(ext_, "");
+                ext = strtok(File_Ext, ".");
+                ext = strtok(NULL, ".");
+                if (ext_ != NULL) {
+                    if (ext) strcpy(ext_, ext);
+                    else strcpy(ext_, "");
+                }
             }
 
             memset(path, 0, lenFullPath);
             strcpy(path, pathKeep2);
 
-            if (rel) path_[0] = '.'; // replace first "." for relative path
+            if (path_ != NULL) {
+                if (rel) path_[0] = '.'; 
+            } // replace first "." for relative path
+
             free(sDelim);
         }
     }

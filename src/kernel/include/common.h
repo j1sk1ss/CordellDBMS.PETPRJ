@@ -17,6 +17,7 @@
 
 
 #define DEFAULT_PATH_SIZE 100
+#define DEFAULT_DELAY     99999999
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))

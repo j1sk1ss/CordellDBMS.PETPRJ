@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <zlib.h>
 
 #ifndef _WIN32
     #include <unistd.h>
@@ -275,7 +276,7 @@
 
     Return -2 if Magic is wrong. Check file.
     Return -1 if file nfound. Check path.
-    Return directory pointer.
+    Return locked directory pointer.
     */
     directory_t* DRM_load_directory(char* path, char* name);
 

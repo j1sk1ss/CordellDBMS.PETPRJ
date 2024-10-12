@@ -4,9 +4,9 @@
  *  of row. Only whole row. This is important point, that guarantee data strength.
  *  Pageman - list of functions for working with pages and low-level content presentation in files:
  *  We can:
- *   - Create new pages
- *   - Free pages
- *   - Append / delete / find content in files
+ *      - Create new pages
+ *      - Free pages
+ *      - Append / delete / find content in files
  *
  *  Pageman abstraction level responsible for working with data. Read, save and insert data directly
  *  to content in pages. Also pageman don`t check data signature. This is work of database level. Also pageman
@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <zlib.h>
 
 #ifndef _WIN32
     #include <unistd.h>

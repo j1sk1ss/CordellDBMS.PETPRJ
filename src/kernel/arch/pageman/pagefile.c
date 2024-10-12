@@ -43,7 +43,7 @@
     }
 
     int PGM_save_page(page_t* page, char* path) {
-        int status = 1;
+        int status = -1;
         #pragma omp critical (page_save)
         {
             #ifndef NO_PAGE_SAVE_OPTIMIZATION
@@ -52,17 +52,15 @@
             {
                 // We generate default path
                 char save_path[DEFAULT_PATH_SIZE];
-                if (path == NULL) {
-                    sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
-                } else strcpy(save_path, path);
+                if (path == NULL) sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
+                else strcpy(save_path, path);
 
                 // Open or create file
                 FILE* file = fopen(save_path, "wb");
-                if (file == NULL) {
-                    status = -1;
-                    print_error("Can't save or create [%s] file", save_path);
-                } else {
+                if (file == NULL) print_error("Can't save or create [%s] file", save_path);
+                else {
                     // Write data to disk
+                    status = 1;
                     int eof = PGM_set_pe_symbol(page, PAGE_START);
                     int page_size = PGM_find_value(page, 0, PAGE_END);
                     if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
@@ -88,24 +86,22 @@
     }
 
     page_t* PGM_load_page(char* path, char* name) {
-        char buffer[512];
-        char file_name[PAGE_NAME_SIZE];
         char load_path[DEFAULT_PATH_SIZE];
-
         if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", PAGE_BASE_PATH, name, PAGE_EXTENSION);
-        else strcpy(load_path, path);
+        else if (path != NULL) strcpy(load_path, path);
+        else {
+            print_error("Path or name should be provided!");
+            return NULL;
+        }
 
+        char file_name[PAGE_NAME_SIZE];
         if (path != NULL) {
             char temp_path[DEFAULT_PATH_SIZE];
             strcpy(temp_path, path);
-            get_file_path_parts(temp_path, buffer, file_name, buffer);
+            get_file_path_parts(temp_path, NULL, file_name, NULL);
         }
         else if (name != NULL) {
             strncpy(file_name, name, PAGE_NAME_SIZE);
-        }
-        else {
-            print_error("No path or name provided!");
-            return NULL;
         }
 
         page_t* loaded_page = PGM_PDT_find_page(file_name);
@@ -115,10 +111,8 @@
         {
             // Open file page
             FILE* file = fopen(load_path, "rb");
-            if (file == NULL) {
-                loaded_page = NULL;
-                print_error("Page not found! Path: [%s]", load_path);
-            } else {
+            if (file == NULL) print_error("Page not found! Path: [%s]", load_path);
+            else {
                 // Read header from file
                 uint8_t* header_data = (uint8_t*)malloc(sizeof(page_header_t));
                 fread(header_data, sizeof(page_header_t), 1, file);
@@ -126,8 +120,7 @@
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
-                    loaded_page = NULL;
-
+                    print_error("Page file wrong magic for [%s]", load_path);
                     free(header);
                     fclose(file);
                 } else {

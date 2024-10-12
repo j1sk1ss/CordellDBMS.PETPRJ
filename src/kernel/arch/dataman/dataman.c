@@ -4,26 +4,24 @@
 #pragma region [Table files]
 
     uint8_t* DB_get_row(
-        database_t* database, char* table_name,
-        int row, uint8_t access
+        database_t* database, char* table_name, int row, uint8_t access
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return NULL;
         if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return NULL;
 
-        int row_size = 0;
-        for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
-
-        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+        int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
         int pages_offset  = row / rows_per_page;
         int page_offset   = row % rows_per_page;
-        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-        return TBM_get_content(table, global_offset, row_size);
+        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
+
+        uint8_t* content = TBM_get_content(table, global_offset, table->row_size);
+        TBM_release_table(table, omp_get_thread_num());
+        return content;
     }
 
     int DB_append_row(
-        database_t* database, char* table_name,
-        uint8_t* data, size_t data_size, uint8_t access
+        database_t* database, char* table_name, uint8_t* data, size_t data_size, uint8_t access
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -4;
@@ -51,8 +49,7 @@
                 data_pointer += column_offset;
 
                 int row = DB_find_data_row(
-                    database, table_name, (char*)primary_column_name->name,
-                    0, data_pointer, primary_column_name->size, access
+                    database, table_name, (char*)primary_column_name->name, 0, data_pointer, primary_column_name->size, access
                 );
 
                 // If in table already presented this value.
@@ -63,13 +60,13 @@
             }
         #endif
 
-        return TBM_append_content(table, data, data_size);
+        result = TBM_append_content(table, data, data_size);
+        TBM_release_table(table, omp_get_thread_num());
+        return result;
     }
 
     int DB_insert_row(
-        database_t* database, char* table_name,
-        int row, uint8_t* data, size_t data_size,
-        uint8_t access
+        database_t* database, char* table_name, int row, uint8_t* data, size_t data_size, uint8_t access
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
@@ -78,20 +75,18 @@
         int result = TBM_check_signature(table, data);
         if (result != 1) return result - 10;
 
-        int row_size = 0;
-        for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
-
-        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+        int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
         int pages_offset  = row / rows_per_page;
         int page_offset   = row % rows_per_page;
-        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-        return TBM_insert_content(table, global_offset, data, data_size);
+        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
+
+        result = TBM_insert_content(table, global_offset, data, data_size);
+        TBM_release_table(table, omp_get_thread_num());
+        return result;
     }
 
     int DB_update_row(
-        database_t* database, char* table_name,
-        int row, char* column_name, uint8_t* data,
-        size_t data_size, uint8_t access
+        database_t* database, char* table_name, int row, char* column_name, uint8_t* data, size_t data_size, uint8_t access
     ) { // TODO: Cascade Update (If updated linked column)
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
@@ -106,98 +101,99 @@
                     column_offset = row_size;
                     column_size = table->columns[i]->size;
                 }
-            }
 
-            row_size += table->columns[i]->size;
+                row_size += table->columns[i]->size;
+            }
+            else {
+                int result = TBM_insert_content(table, table->row_size * row, data, table->row_size);
+                TBM_release_table(table, omp_get_thread_num());
+                return result;
+            }
         }
 
-        if ((int)data_size > column_size) return -1;
-        if (column_size == -1 && column_offset == -1) return TBM_insert_content(table, row_size * row, data, row_size);
-        return TBM_insert_content(table, row_size * row + column_offset, data, column_size);
+        int result = 0;
+        if ((int)data_size > column_size) result = -1;
+        result = TBM_insert_content(table, row_size * row + column_offset, data, column_size);
+        TBM_release_table(table, omp_get_thread_num());
+        return result;
     }
 
     int DB_delete_row(
-        database_t* database, char* table_name,
-        int row, uint8_t access
+        database_t* database, char* table_name, int row, uint8_t access
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
         if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) return -3;
 
-        int row_size = 0;
-        for (int i = 0; i < table->header->column_count; i++) row_size += table->columns[i]->size;
-
         #ifndef NO_CASCADE_DELETE
-            #pragma omp parallel
+            #pragma omp parallel 
             for (int i = 0; i < table->header->column_link_count; i++) {
                 // Load slave table from disk
                 table_t* slave_table = DB_get_table(database, (char*)table->column_links[i]->slave_table_name);
                 if (slave_table == NULL) continue;
-                if (CHECK_DELETE_ACCESS(access, slave_table->header->access) == -1) continue;
+                if (CHECK_DELETE_ACCESS(access, slave_table->header->access) == -1) {
+                    TBM_release_table(slave_table, omp_get_thread_num());
+                    continue;
+                }
 
                 // Get master column data and offset
                 int master_column_offset = 0;
                 table_column_t* master_column = NULL;
                 for (int j = 0; j < table->header->column_count; j++) {
-                    master_column_offset += table->columns[j]->size;
                     if (memcmp(table->columns[j]->name, table->column_links[i]->master_column_name, COLUMN_NAME_SIZE) == 0) {
                         master_column = table->columns[j];
                         break;
                     }
-                }
 
-                // Get slave column
-                table_column_t* slave_column = NULL;
-                for (int j = 0; j < table->header->column_count; j++) {
-                    if (memcmp(slave_table->columns[j]->name, table->column_links[i]->slave_column_name, COLUMN_NAME_SIZE) == 0) {
-                        slave_column = table->columns[j];
-                        break;
-                    }
+                    master_column_offset += table->columns[j]->size;
                 }
 
                 // Get row by provided index
-                if (master_column == NULL || slave_column == NULL) continue;
-                char* master_row = (char*)DB_get_row(database, table_name, row, access);
-                char* master_row_pointer = master_row;
-                master_row_pointer += master_column_offset;
+                if (master_column == NULL) {
+                    TBM_release_table(slave_table, omp_get_thread_num());
+                    continue;
+                }
+
+                uint8_t* master_row = DB_get_row(database, table_name, row, access);
+                uint8_t* master_row_pointer = master_row + master_column_offset;
 
                 // Find row in slave table with same key on linked column
-                int slave_row = DB_find_data_row(database, (char*)slave_table->header->name, (char*)slave_column->name, 0, (uint8_t*)master_row_pointer, master_column->size, access);
+                int slave_row = DB_find_data_row(
+                    database, (char*)slave_table->header->name, (char*)table->column_links[i]->slave_column_name, 
+                    0, master_row_pointer, master_column->size, access
+                );
+
                 free(master_row);
                 DB_delete_row(database, (char*)slave_table->header->name, slave_row, access);
+                TBM_release_table(slave_table, omp_get_thread_num());
             }
         #endif
 
-        int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+        int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
         int pages_offset  = row / rows_per_page;
         int page_offset   = row % rows_per_page;
-        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-        return TBM_delete_content(table, global_offset, row_size);
+        int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
+
+        int result = TBM_delete_content(table, global_offset, table->row_size);
+        TBM_release_table(table, omp_get_thread_num());
+        return result;
     }
 
     int DB_cleanup_tables(database_t* database) {
         for (int i = 0; i < database->header->table_count; i++) {
             table_t* table = DB_get_table(database, (char*)database->table_names[i]);
             TBM_cleanup_dirs(table);
+            TBM_release_table(table, omp_get_thread_num());
         }
-
-        int result = 1;
-        result = TBM_TDT_sync();
-        if (result != 1) return -1;
-
-        result = DRM_DDT_sync();
-        if (result != 1) return -2;
-
-        result = PGM_PDT_sync();
-        if (result != 1) return -3;
-
+        
+        if (TBM_TDT_sync() != 1) return -1;
+        if (DRM_DDT_sync() != 1) return -2;
+        if (PGM_PDT_sync() != 1) return -3;
         return 1;
     }
 
     int DB_find_data_row(
-        database_t* database, char* table_name,
-        char* column, int offset, uint8_t* data,
-        size_t data_size, uint8_t access
+        database_t* database, char* table_name, char* column, int offset, uint8_t* data, size_t data_size, uint8_t access
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
@@ -212,28 +208,39 @@
                     column_offset = row_size;
                     column_size = table->columns[i]->size;
                 }
-            }
 
-            row_size += table->columns[i]->size;
+                row_size += table->columns[i]->size;
+            }
+            else {
+                row_size = table->row_size;
+                break;
+            }
         }
 
         while (1) {
             int global_offset = TBM_find_content(table, offset, data, data_size);
-            if (global_offset == -1 || global_offset == -2) return -1;
+            if (global_offset < 0) {
+                TBM_release_table(table, omp_get_thread_num());
+                return -1;
+            }
 
             int row = global_offset / row_size;
-            if (column_offset == -1 && column_size == -1) return row;
+            if (column_offset == -1 && column_size == -1) {
+                TBM_release_table(table, omp_get_thread_num());
+                return row;
+            }
 
             int position_in_row = global_offset % row_size;
-            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
+            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
+                TBM_release_table(table, omp_get_thread_num());
+                return row;
+            }
             else offset = global_offset + data_size;
         }
     }
 
     int DB_find_value_row(
-        database_t* database, char* table_name,
-        char* column, int offset, uint8_t value,
-        uint8_t access
+        database_t* database, char* table_name, char* column, int offset, uint8_t value, uint8_t access
     ) {
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return -1;
@@ -248,25 +255,41 @@
                     column_offset = row_size;
                     column_size = table->columns[i]->size;
                 }
-            }
 
-            row_size += table->columns[i]->size;
+                row_size += table->columns[i]->size;
+            }
+            else {
+                row_size = table->row_size;
+                break;
+            }
         }
 
         while (1) {
             int global_offset = TBM_find_value(table, offset, value);
-            if (global_offset == -1) return -1;
+            if (global_offset < 0) {
+                TBM_release_table(table, omp_get_thread_num());
+                return -1;
+            }
 
             int row = global_offset / row_size;
-            if (column_offset == -1 && column_size == -1) return row;
+            if (column_offset == -1 && column_size == -1) {
+                TBM_release_table(table, omp_get_thread_num());
+                return row;
+            }
 
             int position_in_row = global_offset % row_size;
-            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
+            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
+                TBM_release_table(table, omp_get_thread_num());
+                return row;
+            }
             else offset = global_offset + 1;
         }
     }
 
     table_t* DB_get_table(database_t* database, char* table_name) {
+        if (database == NULL) return NULL;
+        if (table_name == NULL) return NULL;
+
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
             if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {

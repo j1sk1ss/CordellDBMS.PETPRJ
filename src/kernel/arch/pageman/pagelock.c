@@ -30,8 +30,9 @@
     }
 
     int PGM_release_page(page_t* page, uint8_t owner) {
+        if (page == NULL) return -3;
+
         #ifndef NO_PDT
-            if (page == NULL) return -3;
             if (page->lock == UNLOCKED) return -1;
             if (page->lock_owner != owner && page->lock_owner != NO_OWNER) return -2;
 

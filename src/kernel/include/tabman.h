@@ -1,8 +1,14 @@
 /*
  *  Table operator is a simple functions to work with OS filesystem.
- *  Main idea that we have files with sizes near 1 KB for pages, dirs and tables.
+ *  Main idea that we have files with sizes near 4 KB for pages, 2 KB dirs and 13 KB tables.
  *  Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
- *
+ *  We can:
+ *      - Create new tables
+ *      - Delete tables
+ *      - Link dirs to tables
+ *      - Unlink dirs from tables
+ *      - Append / delete / insert and find data in tables
+ * 
  *  Tabman abstraction level responsible for working with directories. It send requests and earns data from lower
  *  abstraction level. Also tabman don't check data signature. This is work of database level.
  *  Note: Tabman don't work directly with pages. It can work only with directories.
@@ -17,6 +23,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <zlib.h>
 
 #ifndef _WIN32
     #include <unistd.h>
@@ -258,6 +265,7 @@
 
         // Column names
         table_column_t** columns;
+        uint16_t row_size;
 
         // Column links
         table_column_link_t** column_links;

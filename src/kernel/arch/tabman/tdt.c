@@ -23,18 +23,25 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
     int TBM_TDT_add_table(table_t* table) {
         #ifndef NO_TDT
-            int current = 0;
+            int current = -1;
             for (int i = 0; i < TDT_SIZE; i++) {
                 if (TBM_TDT[i] == NULL) {
                     current = i;
                     break;
                 }
-
-                if (TBM_TDT[i]->lock == LOCKED) continue;
-                current = i;
-                break;
             }
 
+            if (current == -1) {
+                for (int i = 0; i < TDT_SIZE; i++) {
+                    if (TBM_TDT[i]->lock == LOCKED) continue;
+                    else {
+                        current = i;
+                        break;
+                    }
+                }
+            }
+
+            if (current == -1) return -1;
             if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
                 if (TBM_TDT[current] != NULL) {
                     if (memcmp(table->header->name, TBM_TDT[current]->header->name, TABLE_NAME_SIZE) != 0) {
@@ -42,6 +49,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
                     }
                 }
 
+                print_log("Adding to TDT table [%s] at index [%i]", table->header->name, current);
                 TBM_TDT[current] = table;
             }
         #endif
@@ -69,6 +77,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
                 if (TBM_TDT[i] == NULL) continue;
                 if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) {
                     TBM_save_table(TBM_TDT[i], NULL);
+                    TBM_release_table(TBM_TDT[i], omp_get_thread_num());
                 } 
                 else return -1;
             }
@@ -115,6 +124,8 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
     }
 
     int TBM_TDT_flush_index(int index) {
+        print_log("Flushed TDT table in [%i] index", index);
+
         #ifndef NO_TDT
             if (TBM_TDT[index] == NULL) return -1;
             TBM_free_table(TBM_TDT[index]);
