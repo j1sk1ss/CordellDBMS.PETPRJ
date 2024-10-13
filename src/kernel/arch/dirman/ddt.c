@@ -67,6 +67,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_DDT[i] == NULL) continue;
                 if (memcmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
+                    DRM_lock_directory(DRM_DDT[i], omp_get_thread_num());
                     return DRM_DDT[i];
                 }
             }

@@ -50,6 +50,8 @@
                 size2get        -= current_size;
                 content_pointer += current_size;
             }
+
+            PGM_release_page(page, omp_get_thread_num());
         }
 
         return content;
@@ -64,9 +66,13 @@
                 if (page == NULL) return -1;
 
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
-                if (index < 0) continue;
+                if (index < 0) {
+                    PGM_release_page(page, omp_get_thread_num());
+                    continue;
+                }
 
                 PGM_insert_content(page, index, data, data_lenght);
+                PGM_release_page(page, omp_get_thread_num());
                 return 1;
             }
 
@@ -112,6 +118,7 @@
             // We insert current part of content with local offset
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2insert);
             PGM_insert_content(page, current_index, data_pointer, current_size);
+            PGM_release_page(page, omp_get_thread_num());
 
             // We reload local index and update size2delete
             current_index = 0;
@@ -138,12 +145,12 @@
 
             // We load current page
             page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page++]);
-            if (PGM_lock_page(page, omp_get_thread_num()) != 1) return -1;
 
             // We check, that we don't return Page Empty, because
             // PE symbols != Content symbols.
             while (page->content[current_index] == PAGE_EMPTY) {
                 if (++current_index >= PAGE_CONTENT_SIZE) {
+                    PGM_release_page(page, omp_get_thread_num());
                     return -1;
                 }
             }
@@ -181,11 +188,11 @@
     }
 
     int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size) {
-        int page_offset         = offset / PAGE_CONTENT_SIZE;
-        int current_index       = offset % PAGE_CONTENT_SIZE;
-        int size4seach          = (int)data_size;
-        int pages4search        = directory->header->page_count - page_offset;
-        int current_page        = page_offset;
+        int page_offset   = offset / PAGE_CONTENT_SIZE;
+        int pages4search  = directory->header->page_count - page_offset;
+        int current_page  = page_offset;
+        int current_index = offset % PAGE_CONTENT_SIZE;
+        int size4seach    = (int)data_size;
         int target_global_index = -1;
 
         uint8_t* data_pointer = data;
@@ -205,6 +212,7 @@
             // We search part of data in this page, save index and unload page.
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size4seach);
             int result = PGM_find_content(page, current_index, data_pointer, current_size);
+            PGM_release_page(page, omp_get_thread_num());
 
             // If TGI is -1, we know that we start seacrhing from start.
             // Save current TGI of find part of data.
@@ -247,6 +255,7 @@
             // Load current page
             page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
             if (page == NULL) {
+                PGM_release_page(page, omp_get_thread_num());
                 break_flag = -1;
                 continue;
             }
@@ -259,6 +268,8 @@
                     if (result == -1) result = local_result + i * PAGE_CONTENT_SIZE;
                 }
             }
+
+            PGM_release_page(page, omp_get_thread_num());
         }
 
         return result;
@@ -279,9 +290,8 @@
         {
             for (int i = 0; i < directory->header->page_count; i++) {
                 if (memcmp(directory->names[i], page_name, PAGE_NAME_SIZE) == 0) {
-                    for (int j = i; j < directory->header->page_count - 1; j++) {
+                    for (int j = i; j < directory->header->page_count - 1; j++)
                         memcpy(directory->names[j], directory->names[j + 1], PAGE_NAME_SIZE);
-                    }
 
                     directory->header->page_count--;
                     status = 1;

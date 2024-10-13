@@ -54,9 +54,7 @@
 
                 // If in table already presented this value.
                 // That means, that this data not uniqe.
-                if (row >= 0) {
-                    return -1;
-                }
+                if (row >= 0) return -1;
             }
         #endif
 

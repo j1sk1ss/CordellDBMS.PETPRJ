@@ -22,7 +22,7 @@
         char page_name[PAGE_NAME_SIZE]    = { '\0' };
         char save_path[DEFAULT_PATH_SIZE] = { '\0' };
 
-        int delay = 1000;
+        int delay = DEFAULT_DELAY;
         while (1) {
             rand_str(page_name, PAGE_NAME_SIZE);
             sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page_name, PAGE_EXTENSION);
@@ -60,7 +60,7 @@
                 if (file == NULL) print_error("Can't save or create [%s] file", save_path);
                 else {
                     // Write data to disk
-                    status = 1;
+                    status  = 1;
                     int eof = PGM_set_pe_symbol(page, PAGE_START);
                     int page_size = PGM_find_value(page, 0, PAGE_END);
                     if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
@@ -151,10 +151,10 @@
 
     uint32_t PGM_get_checksum(page_t* page) {
         uint32_t checksum = 0;
-        for (int i = 0; i < PAGE_NAME_SIZE; i++) checksum += page->header->name[i];
-        checksum += strlen((char*)page->header->name);
-
-        for (int i = 0; i < PAGE_CONTENT_SIZE; i++) checksum += page->content[i];
+        if (page->header != NULL)
+            checksum = crc32(checksum, (const uint8_t*)page->header, sizeof(page_header_t));
+            
+        checksum = crc32(checksum, (const uint8_t*)page->content, sizeof(page->content));
         return checksum;
     }
 

@@ -7,10 +7,9 @@
         #ifndef NO_DDT
             if (directory == NULL) return -2;
 
-            int delay = 99999;
-            while (DRM_lock_test(directory, omp_get_thread_num()) == LOCKED) {
+            int delay = DEFAULT_DELAY;
+            while (DRM_lock_test(directory, owner) == LOCKED)
                 if (--delay <= 0) return -1;
-            }
 
             directory->lock = LOCKED;
             directory->lock_owner = owner;

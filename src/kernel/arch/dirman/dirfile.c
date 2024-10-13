@@ -15,10 +15,10 @@
     }
 
     directory_t* DRM_create_empty_directory() {
-        char directory_name[DIRECTORY_NAME_SIZE];
-        char save_path[DEFAULT_PATH_SIZE];
+        char directory_name[DIRECTORY_NAME_SIZE] = { '\0' };
+        char save_path[DEFAULT_PATH_SIZE]        = { '\0' };
 
-        int delay = 1000;
+        int delay = DEFAULT_DELAY;
         while (1) {
             rand_str(directory_name, DIRECTORY_NAME_SIZE);
             sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory_name, DIRECTORY_EXTENSION);
@@ -142,16 +142,10 @@
             for (int i = 0; i < directory->header->page_count && full == 1; i++) {
                 char page_path[DEFAULT_PATH_SIZE];
                 sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
-                page_t* page = PGM_load_page(page_path, NULL);
-                if (PGM_lock_page(page, omp_get_thread_num()) == 1) {
-                    print_log(
-                        "Page [%s] was deleted and flushed with results [%i | %i]", 
-                        page_path, PGM_PDT_flush_page(page), remove(page_path)
-                    );
-                }
-                else {
-                    print_error("Can't lock page [%s]", page_path);
-                }
+                print_log(
+                    "Page [%s] was deleted and flushed with results [%i | %i]", 
+                    page_path, PGM_PDT_flush_page(PGM_load_page(page_path, NULL)), remove(page_path)
+                );
             }
 
             char delete_path[DEFAULT_PATH_SIZE];

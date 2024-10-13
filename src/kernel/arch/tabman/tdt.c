@@ -63,6 +63,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
             for (int i = 0; i < TDT_SIZE; i++) {
                 if (TBM_TDT[i] == NULL) continue;
                 if (memcmp(TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0) {
+                    TBM_lock_table(TBM_TDT[i], omp_get_thread_num());
                     return TBM_TDT[i];
                 }
             }

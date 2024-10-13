@@ -7,11 +7,9 @@
         #ifndef NO_PDT
             if (page == NULL) return -2;
 
-            int delay = 99999;
-            while (page->lock == LOCKED && page->lock_owner != owner) {
-                if (page->lock_owner == NO_OWNER) break;
+            int delay = DEFAULT_DELAY;
+            while (PGM_lock_test(page, owner) == LOCKED)
                 if (--delay <= 0) return -1;
-            }
 
             page->lock       = LOCKED;
             page->lock_owner = owner;
@@ -22,8 +20,9 @@
 
     int PGM_lock_test(page_t* page, uint8_t owner) {
         #ifndef NO_PDT
+            if (page->lock_owner == NO_OWNER) return UNLOCKED;
             if (page->lock_owner != owner) return LOCKED;
-            return page->lock;
+            else return UNLOCKED;
         #endif
 
         return UNLOCKED;
@@ -34,7 +33,7 @@
 
         #ifndef NO_PDT
             if (page->lock == UNLOCKED) return -1;
-            if (page->lock_owner != owner && page->lock_owner != NO_OWNER) return -2;
+            if (PGM_lock_test(page, owner) == LOCKED) return -2;
 
             page->lock       = UNLOCKED;
             page->lock_owner = NO_OWNER;

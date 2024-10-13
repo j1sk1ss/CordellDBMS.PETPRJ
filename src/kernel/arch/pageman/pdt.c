@@ -65,6 +65,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_PDT[i] == NULL) continue;
                 if (memcmp(PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0) {
+                    PGM_lock_page(PGM_PDT[i], omp_get_thread_num());
                     return PGM_PDT[i];
                 }
             }
@@ -79,6 +80,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
                 if (PGM_PDT[i] == NULL) continue;
                 if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
                     PGM_save_page(PGM_PDT[i], NULL);
+                    PGM_release_page(PGM_PDT[i], omp_get_thread_num());
                 } 
                 else return -1;
             }
@@ -92,7 +94,6 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
                     PGM_PDT_flush_index(i);
-                    PGM_release_page(PGM_PDT[i], omp_get_thread_num());
                 }
                 else {
                     return -1;
