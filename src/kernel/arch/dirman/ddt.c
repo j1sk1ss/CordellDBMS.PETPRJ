@@ -25,7 +25,13 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         #ifndef NO_DDT
             int current = -1;
             for (int i = 0; i < DDT_SIZE; i++) {
-                if (DRM_DDT[i] == NULL) {
+                if (DRM_DDT[i] != NULL) {
+                    if (DRM_get_checksum(directory) == DRM_get_checksum(DRM_DDT[i])) {
+                        current = i;
+                        break;
+                    }
+                }
+                else if (DRM_DDT[i] == NULL) {
                     current = i;
                     break;
                 }
@@ -44,9 +50,8 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             if (current == -1) return -1;
             if (DRM_lock_directory(DRM_DDT[current], omp_get_thread_num()) != -1) {
                 if (DRM_DDT[current] != NULL) {
-                    if (memcmp(directory->header->name, DRM_DDT[current]->header->name, DIRECTORY_NAME_SIZE) != 0) {
-                        DRM_DDT_flush_index(current);
-                    }
+                    DRM_save_directory(DRM_DDT[current], NULL);
+                    DRM_DDT_flush_index(current);
                 }
 
                 print_log("Adding to DDT directory [%s] at index [%i]", directory->header->name, current);

@@ -170,11 +170,18 @@
     }
 
     uint32_t DRM_get_checksum(directory_t* directory) {
+        DRM_lock_directory(directory, omp_get_thread_num());
+        uint32_t prev_checksum = directory->header->checksum;
+        directory->header->checksum = 0;
+        
         uint32_t checksum = 0;
         if (directory->header != NULL)
             checksum = crc32(checksum, (const uint8_t*)directory->header, sizeof(directory_header_t));
 
+        directory->header->checksum = prev_checksum;
         checksum = crc32(checksum, (const uint8_t*)directory->names, sizeof(directory->names));
+        DRM_release_directory(directory, omp_get_thread_num());
+
         return checksum;
     }
 

@@ -197,6 +197,10 @@
     }
 
     uint32_t TBM_get_checksum(table_t* table) {
+        TBM_lock_table(table, omp_get_thread_num());
+        uint32_t prev_checksum = table->header->checksum;
+        table->header->checksum = 0;
+        
         uint32_t checksum = 0;
         if (table->header != NULL)
             checksum = crc32(checksum, (const uint8_t*)table->header, sizeof(table_header_t));
@@ -217,7 +221,10 @@
             }
         }
         
+        table->header->checksum = prev_checksum;
         checksum = crc32(checksum, (const uint8_t*)table->dir_names, sizeof(table->dir_names));
+        TBM_release_table(table, omp_get_thread_num());
+
         return checksum;
     }
 

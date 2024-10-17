@@ -3,48 +3,6 @@
 #include "include/kentry.h"
 
 
-database_t* selected_database = NULL;
-
-
-int kmain(int argc, char* argv[]) {
-    if (argc <= 1) {
-        print_error("Too small argument count. Should be 1, but provided 0.");
-        return -1;
-    }
-
-    /*
-    Check transaction status.
-    Syntax: <db path> transaction-start <command count>
-    */
-    int transaction_size = 1;
-    char** commands_pointer = argv;
-    if (strcmp(argv[1], TRANSACTION) == 0) {
-        if (argc >= 3) transaction_size = atoi(argv[2]);
-        print_error(
-            "Too small argument count. Should be 3, but provided 2.\nExample: transaction-start <transaction size>"
-        );
-    }
-
-    /*
-    Commands executing and pointer moving.
-    */
-    int arg_count = 0;
-    commands_pointer += 1;
-    for (int i = 0; i < transaction_size; i++) {
-        kernel_answer_t* answer = kernel_process_command(
-            argc - arg_count, commands_pointer, 1, CREATE_ACCESS_BYTE(3, 3, 3)
-        );
-
-        arg_count += answer->commands_processed;
-        commands_pointer += answer->commands_processed;
-
-        if (answer->answer_body != NULL) print_log("Answer body: [%s]", (char*)answer->answer_body);
-        kernel_free_answer(answer);
-    }
-
-    return 1;
-}
-
 kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uint8_t access) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
 
@@ -55,16 +13,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
     int current_start = 1;
 
-    database_t* database;
-    if (selected_database == NULL) {
-        database = DB_load_database(NULL, SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start));
-        if (database == NULL) {
-            print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
-            current_start = 1;
-        }
-    }
-    else {
-        database = selected_database;
+    database_t* database = DB_load_database(NULL, SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start));
+    if (database == NULL) {
+        print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
+        current_start = 1;
     }
 
     /*
@@ -82,25 +34,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
         int command_index = i;
         /*
-        Handle select for database.
-        Command syntax: select <database_name>
-        */
-        if (strcmp(command, SELECT) == 0) {
-            char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-            if (database_name == NULL) {
-                answer->answer_code = 5;
-                return answer;
-            }
-
-            selected_database = DB_load_database(NULL, database_name);
-            answer->answer_code = 1;
-            return answer;
-        }
-        /*
         Handle flush command. Init transaction start. Check docs.
         Command syntax: flush
         */
-        else if (strcmp(command, SYNC) == 0) {
+        if (strcmp(command, SYNC) == 0) {
             DB_init_transaction(database);
         }
         /*
@@ -518,7 +455,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                             answer->answer_code = 5;
                             return answer;
                         }
-                    
+
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                             if (value == NULL) {
@@ -552,50 +489,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                 }
             }
 
-        }
-        /*
-        Handle info command.
-        Command syntax: info table
-        */
-        else if (strcmp(command, GET_INFO) == 0) {
-            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), TABLE) == 0) {
-                char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (table_name == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
-                }
-
-                table_t* table = DB_get_table(database, table_name);
-                if (table == NULL) {
-                    print_error("Table [%s] not found in database!", table_name);
-                    return answer;
-                }
-
-                printf("Table [%s]:\n", table_name);
-                printf("Table CC [%i].\n", table->header->column_count);
-                printf("Table DC [%i].\n", table->header->dir_count);
-                printf("Table M [%i].\n", table->header->magic);
-                printf("Table CLC [%i].\n", table->header->column_link_count);
-
-                printf("\n");
-                printf("- COLUMNS: \n");
-                for (int i = 0; i < table->header->column_count; i++)
-                    printf("\tColumn [%s], type [%i], size [%i].\n", table->columns[i]->name, table->columns[i]->type, table->columns[i]->size);
-
-                printf("\n");
-                printf("- LINKS: \n");
-                for (int i = 0; i < table->header->column_link_count; i++)
-                    printf(
-                        "\tLink [%s] column with [%s] column from [%s] table.\n",
-                        table->column_links[i]->master_column_name,
-                        table->column_links[i]->slave_column_name,
-                        table->column_links[i]->slave_table_name
-                    );
-
-                answer->answer_code = 1;
-                TBM_release_table(table, omp_get_thread_num());
-                return answer;
-            }
         }
         /*
         Handle info command.
@@ -658,48 +551,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
         Command syntax: help
         */
         else if (strcmp(command, HELP) == 0) {
-            printf("Examples:\n");
-            printf("- SELECT:\n");
-            printf("\tExample: select database db.db\n");
-
-            printf("- CREATE:\n");
-            printf("\tExample: create database db1\n");
-            printf("\tExample: create table table_1 000 columns ( col1 10 str is_primary na col2 10 any np na )\n");
-
-            printf("- APPEND:\n");
-            printf("\tExample: append row table_1 values 'hello     second col'\n");
-
-            printf("- UPDATE:\n");
-            printf("\tExample: update row table_1 by_index 0 'goodbye   hello  bye'\n");
-            printf("\tExample: update row table_1 by_value column col1 value 'goodbye   hello  bye'\n");
-
-            printf("- SYNC:\n");
-            printf("\tExample: sync\n");
-
-            printf("- ROLLBACK:\n");
-            printf("\tExample: rollback\n");
-
-            printf("- GET:\n");
-            printf("\tExample: get row table_1 by_value column col2 value 'value'\n");
-            printf("\tExample: get row table_1 by_index 0\n");
-
-            printf("- DELETE:\n");
-            printf("\tExample: delete table table_1\n");
-            printf("\tExample: delete row table_1 by_index 0\n");
-            printf("\tExample: delete row table_1 by_value column col1 value 'data'\n");
-
-            printf("- LINK:\n");
-            printf("\tExample: link table1 col1 table2 col1 ( capp cdel )\n");
-
-            printf("- INFO:\n");
-            printf("\tExample: info table table_1\n");
-
-            printf("- HELP:\n");
-            printf("\tExample: help\n");
-
-            printf("P.S.:\n");
-            printf("\tYou can select database, or use database path before all commands.\n");
-
             answer->commands_processed = command_index;
             return answer;
         }

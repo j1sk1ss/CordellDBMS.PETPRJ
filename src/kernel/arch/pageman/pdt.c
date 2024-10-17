@@ -25,7 +25,13 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
         #ifndef NO_PDT
             int current = -1;
             for (int i = 0; i < PDT_SIZE; i++) {
-                if (PGM_PDT[i] == NULL) {
+                if (PGM_PDT[i] != NULL) {
+                    if (PGM_get_checksum(page) == PGM_get_checksum(PGM_PDT[i])) {
+                        current = i;
+                        break;
+                    }
+                }
+                else if (PGM_PDT[i] == NULL) {
                     current = i;
                     break;
                 }
@@ -44,11 +50,10 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
             if (current == -1) return -1;
             if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
                 if (PGM_PDT[current] != NULL) {
-                    if (memcmp(page->header->name, PGM_PDT[current]->header->name, PAGE_NAME_SIZE) != 0) {
-                        PGM_PDT_flush_index(current);
-                    }
+                    PGM_save_page(PGM_PDT[current], NULL);
+                    PGM_PDT_flush_index(current);
                 }
-
+                
                 print_log("Adding to PDT page [%s] at index [%i]", page->header->name, current);
                 PGM_PDT[current] = page;
             } else {

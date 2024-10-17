@@ -11,6 +11,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "logging.h"
 #include "threading.h"

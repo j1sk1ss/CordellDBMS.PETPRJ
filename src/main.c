@@ -28,11 +28,13 @@
 #ifdef _WIN32
     #include <winsock2.h>
     #include <ws2tcpip.h>
+    #include <windows.h>
 #else
     #include <unistd.h>
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
+    #include <pthread.h>
 #endif
 
 
@@ -41,12 +43,10 @@
 #define COMMANDS_BUFFER     256
 
 
-user_t* user = NULL;
-
-
 void cleanup();
 int send2destination_pointer(int destination, uint8_t* data, size_t data_size);
 int send2destination_byte(int destination, uint8_t data);
+void* handle_client(void* client_socket_fd);
 void start_kernel_session(int source, int destination);
 int setup_server();
 
@@ -73,6 +73,21 @@ int send2destination_byte(int destination, uint8_t data) {
     return 1;
 }
 
+void* handle_client(void* client_socket_fd) {
+    int socket_fd = *(int*)client_socket_fd;
+    start_kernel_session(socket_fd, socket_fd);
+    close(socket_fd);
+
+    #ifndef _WIN32
+    pthread_exit(NULL);
+    close(socket_fd);
+    #else
+    closesocket(client_socket_fd);
+    #endif
+
+    return NULL;
+}
+
 /*
  * This function takes source data and destination address for kernel answer.
  * In source should be provided correct command for kernel.
@@ -82,6 +97,7 @@ int send2destination_byte(int destination, uint8_t data) {
  * - destination - destination FD for kernel answer.
 */
 void start_kernel_session(int source, int destination) {
+    user_t* user = NULL;
     int count = 0;
     uint8_t buffer[MESSAGE_BUFFER];
 
@@ -151,6 +167,9 @@ void start_kernel_session(int source, int destination) {
 
         kernel_free_answer(result);
     }
+
+    free(user);
+    user = NULL;
 }
 
 /*
@@ -178,14 +197,14 @@ int main()
         #ifdef _WIN32
             WSADATA wsa_data;
             if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) {
-                print_error("HH_ERROR: WSAStartup() failed");
+                print_error("WSAStartup() failed");
                 return -1;
             }
         #endif
 
         int server_socket = socket(AF_INET, SOCK_STREAM, 0);
         if (server_socket == -1) {
-            print_error("HH_ERROR: error in calling socket()");
+            print_error("Error in calling socket()");
             return -1;
         }
 
@@ -197,12 +216,12 @@ int main()
         server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
         if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) < 0) {
-            print_error("HH_ERROR: bind() call failed");
+            print_error("bind() call failed");
             return -1;
         }
 
         if (listen(server_socket, 5) < 0) {
-            print_error("HH_ERROR: listen() call failed");
+            print_error("listen() call failed");
             return -1;
         }
 
@@ -215,21 +234,32 @@ int main()
             client_address_len = sizeof(client_address);
             client_socket_fd   = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t*)&client_address_len);
             if (client_socket_fd < 0) {
-                print_error("HH_ERROR: accept() call failed");
+                print_error("accept() call failed");
                 continue;
             }
 
+            int* client_socket_fd_ptr = malloc(sizeof(int));
+            *client_socket_fd_ptr = client_socket_fd;
+
             print_info("Client connected from %s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-            start_kernel_session(client_socket_fd, client_socket_fd);
-
             #ifdef _WIN32
-                closesocket(client_socket_fd);
-            #else
-                close(client_socket_fd);
-            #endif
+                HANDLE client_thread = CreateThread(NULL, 0, handle_client, client_socket_fd, 0, NULL);
+                if (client_thread == NULL) {
+                    print_error("Failed to create thread");
+                    free(client_socket_fd);
+                    continue;
+                }
 
-            print_info("Client %s:%d disconnected", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-            user = NULL;
+                CloseHandle(client_thread);
+            #else
+                pthread_t client_thread;
+                if (pthread_create(&client_thread, NULL, handle_client, client_socket_fd_ptr) != 0) {
+                    print_error("Failed to create thread");
+                    continue;
+                }
+
+                pthread_detach(client_thread);
+            #endif
         }
 
         cleanup();

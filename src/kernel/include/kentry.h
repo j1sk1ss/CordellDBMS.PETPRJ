@@ -32,26 +32,23 @@
 #define SAFE_GET_VALUE_PRE_INC(argv, max, index)    index + 1 >= max ? NULL : argv[++index]
 #define SAFE_GET_VALUE_POST_INC(argv, max, index)   index >= max ? NULL : argv[index++]
 
-#define SAFE_GET_VALUE_S(argv, max, index)            index >= max ? "SqwPP\r\r\tyy[=1-33\n\n]" : argv[index]
-#define SAFE_GET_VALUE_PRE_INC_S(argv, max, index)    index + 1 >= max ? "S\r\r\tyyqwPP[=1-33\n\n]" : argv[++index]
-#define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "SqwPP\r\r\tyy[=1-33\n\n]" : argv[index++]
+#define SAFE_GET_VALUE_S(argv, max, index)            index >= max ? "SqwPP\r\r\tty[=1-33CRDL]" : argv[index]
+#define SAFE_GET_VALUE_PRE_INC_S(argv, max, index)    index + 1 >= max ? "S1COS\ttyqwPP[=1-33\n\n]" : argv[++index]
+#define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "SqwPP12CRTS=1-33\n\n]" : argv[index++]
 
 #define MAX_COMMANDS    100
 
 #pragma region [Commands]
 
     #define HELP            "help"
-    #define TRANSACTION     "transaction-start"
     #define ROLLBACK        "rollback"
     #define SYNC            "sync"
 
-    #define SELECT          "select"
     #define CREATE          "create"    // Example: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )
     #define LINK            "link"      // Example: db.db link master_table master_column slave_table slave_column ( cdel cupd capp cfnd )
     #define DELETE          "delete"    // Example: db.db delete table table_1
     #define APPEND          "append"    // Example: db.db append table_1 columns "hello     second col" 000
     #define UPDATE          "update"    // Example: db.db update row table_1 by_index 0 "goodbye   hello  bye" 000
-    #define GET_INFO        "info"      // Example: db.db info table table_1
     #define GET             "get"       // Example: db.db get row table_1 by_value "hello" column "col2" 000
 
     #define TABLE           "table"
@@ -71,15 +68,15 @@
 
     #pragma region [Types]
 
-        #define TYPE_INT        "int"
-        #define TYPE_DOUBLE     "dob"
-        #define TYPE_STRING     "str"
-        #define TYPE_ANY        "any"
+        #define TYPE_INT    "int"
+        #define TYPE_DOUBLE "dob"
+        #define TYPE_STRING "str"
+        #define TYPE_ANY    "any"
 
-        #define CASCADE_DEL     "cdel"
-        #define CASCADE_UPD     "cupd"
-        #define CASCADE_APP     "capp"
-        #define CASCADE_FND     "cfnd"
+        #define CASCADE_DEL "cdel"
+        #define CASCADE_UPD "cupd"
+        #define CASCADE_APP "capp"
+        #define CASCADE_FND "cfnd"
 
     #pragma endregion
 
@@ -98,17 +95,6 @@ typedef struct kernel_answer {
     uint8_t* answer_body;
 } kernel_answer_t;
 
-
-/*
-Entry syntax: data_base_path<*.db> <commands>.
-
-Params:
-- argc - args count.
-- argv - args body.
-
-Return -1 or 1.
-*/
-int kmain(int argc, char* argv[]);
 
 /*
 Process commands and return answer structure.

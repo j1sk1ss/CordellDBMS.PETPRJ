@@ -25,7 +25,13 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
         #ifndef NO_TDT
             int current = -1;
             for (int i = 0; i < TDT_SIZE; i++) {
-                if (TBM_TDT[i] == NULL) {
+                if (TBM_TDT[i] != NULL) {
+                    if (TBM_get_checksum(table) == TBM_get_checksum(TBM_TDT[i])) {
+                        current = i;
+                        break;
+                    }
+                }
+                else if (TBM_TDT[i] == NULL) {
                     current = i;
                     break;
                 }
@@ -44,9 +50,8 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
             if (current == -1) return -1;
             if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
                 if (TBM_TDT[current] != NULL) {
-                    if (memcmp(table->header->name, TBM_TDT[current]->header->name, TABLE_NAME_SIZE) != 0) {
-                        TBM_TDT_flush_index(current);
-                    }
+                    TBM_save_table(TBM_TDT[current], NULL);
+                    TBM_TDT_flush_index(current);
                 }
 
                 print_log("Adding to TDT table [%s] at index [%i]", table->header->name, current);
