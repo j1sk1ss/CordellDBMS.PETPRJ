@@ -183,18 +183,6 @@
     */
     int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size);
 
-    /*
-    Find value in assosiatet pages.
-
-    directory - pointer to directory.
-    offset - offset in bytes.
-    value - value that we want to find.
-
-    Return -1 - if not found.
-    Return index of value in page with offset.
-    */
-    int DRM_find_value(directory_t* directory, int offset, uint8_t value);
-
 #pragma endregion
 
 #pragma region [Directory]

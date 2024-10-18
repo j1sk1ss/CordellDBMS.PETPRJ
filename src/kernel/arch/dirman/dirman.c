@@ -6,7 +6,6 @@
     uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
         uint8_t* content = (uint8_t*)malloc(size);
         uint8_t* content_pointer = content;
-        memset(content, '\0', size);
 
         int pages4work    = (int)size / PAGE_CONTENT_SIZE;
         int page_offset   = offset / PAGE_CONTENT_SIZE;
@@ -239,40 +238,6 @@
         }
 
         return target_global_index;
-    }
-
-    int DRM_find_value(directory_t* directory, int offset, uint8_t value) {
-        int page_offset   = offset / PAGE_CONTENT_SIZE;
-        int current_index = offset % PAGE_CONTENT_SIZE;
-        int result = -1; // Shared result across threads
-        int break_flag = 0;
-
-        #pragma omp parallel for shared(result)
-        for (int i = page_offset; i < directory->header->page_count; i++) {
-            if (result != -1) continue; // Skip search if result is already found
-            if (break_flag == -1) continue;
-
-            // Load current page
-            page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
-            if (page == NULL) {
-                PGM_release_page(page, omp_get_thread_num());
-                break_flag = -1;
-                continue;
-            }
-
-            // Find the value in the page content
-            int local_result = PGM_find_value(page, i == page_offset ? current_index : 0, value);
-            if (local_result != -1) {
-                #pragma omp critical (local_result2global)  // Ensure only one thread updates the result
-                {
-                    if (result == -1) result = local_result + i * PAGE_CONTENT_SIZE;
-                }
-            }
-
-            PGM_release_page(page, omp_get_thread_num());
-        }
-
-        return result;
     }
 
     int DRM_link_page2dir(directory_t* directory, page_t* page) {

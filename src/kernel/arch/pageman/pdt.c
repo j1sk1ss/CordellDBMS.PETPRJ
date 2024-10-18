@@ -26,24 +26,14 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
             int current = -1;
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_PDT[i] != NULL) {
-                    if (PGM_get_checksum(page) == PGM_get_checksum(PGM_PDT[i])) {
+                    if (PGM_get_checksum(page) == PGM_get_checksum(PGM_PDT[i]) || PGM_PDT[i]->lock == UNLOCKED) {
                         current = i;
                         break;
                     }
                 }
-                else if (PGM_PDT[i] == NULL) {
+                else {
                     current = i;
                     break;
-                }
-            }
-
-            if (current == -1) {
-                for (int i = 0; i < PDT_SIZE; i++) {
-                    if (PGM_PDT[i]->lock == LOCKED) continue;
-                    else {
-                        current = i;
-                        break;
-                    }
                 }
             }
 
@@ -97,12 +87,8 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
     int PGM_PDT_free() {
         #ifndef NO_PDT
             for (int i = 0; i < PDT_SIZE; i++) {
-                if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
-                    PGM_PDT_flush_index(i);
-                }
-                else {
-                    return -1;
-                }
+                if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) PGM_PDT_flush_index(i);
+                else return -1;
             }
         #endif
 

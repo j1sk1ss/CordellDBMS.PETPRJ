@@ -215,7 +215,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                 }
 
                 if (DB_delete_table(database, table_name, atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index))) != 1) print_error("Error code 1 during deleting %s", table_name);
-                else print_log("Table [%s] was delete successfully.", table_name);
+                else {
+                    print_log("Table [%s] was delete successfully.", table_name);
+                }
 
                 answer->answer_code = 1;
                 answer->answer_size = -1;
@@ -236,23 +238,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
                 /*
                 Note: Will delete entire row. (If table has links, it will cause CASCADE operations).
-                Command syntax: delete row <table_name> by_index <index> <rwd>
+                Command syntax: delete row <table_name> by_index <index>
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     int index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
-                    char* access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    if (access == NULL) {
-                        answer->answer_code = 5;
-                        return answer;
-                    }
-
-                    uint8_t rd  = access[0] - '0';
-                    uint8_t wr  = access[1] - '0';
-                    uint8_t del = access[2] - '0';
-
-                    int result = DB_delete_row(database, table_name, index, CREATE_ACCESS_BYTE(rd, wr, del));
-
+                    int result = DB_delete_row(database, table_name, index, access);
                     answer->answer_size = -1;
                     answer->answer_code = result;
                     answer->commands_processed = command_index;
@@ -364,10 +355,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
                             table_t* table = DB_get_table(database, table_name);
 
-                            int offset    = 0;
-                            int row2get   = 0;
-                            int data_size = 0;
                             uint8_t* data = NULL;
+                            int offset    = 0;
+                            int data_size = 0;
+                            int row2get   = 0;
                             while (row2get != -1) {
                                 row2get = DB_find_data_row(database, table_name, column_name, offset, (uint8_t*)value, strlen(value), access);
                                 if (row2get == -1) {
@@ -407,7 +398,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
             return answer;
         }
         /*
-        Handle info command.
+        Handle update command.
         Command syntax: update <option>
         */
         else if (strcmp(command, UPDATE) == 0) {
@@ -427,8 +418,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                 Command syntax: update row <table_name> by_index <index> <new_data>
                 */
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    int index    = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
-                    char* data   = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    int index  = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                    char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                     if (data == NULL) {
                         answer->answer_code = 5;
                         return answer;
@@ -491,7 +482,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
         }
         /*
-        Handle info command.
+        Handle link command.
         Command syntax: link <master_table> <master_column> <slave_table> <slave_column> ( flags )
         */
         else if (strcmp(command, LINK) == 0) {
@@ -532,8 +523,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
             }
 
             int result = TBM_link_column2column(
-                master, master_column, slave, slave_column,
-                CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
+                master, master_column, slave, slave_column, CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
             );
 
             print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
@@ -565,7 +555,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 }
 
 int kernel_free_answer(kernel_answer_t* answer) {
-    free(answer->answer_body);
+    if (answer->answer_body != NULL) free(answer->answer_body);
     free(answer);
 
     return 1;

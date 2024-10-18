@@ -208,29 +208,6 @@
         return target_global_index;
     }
 
-    int TBM_find_value(table_t* table, int offset, uint8_t value) {
-        int final_result = -1;
-
-        #pragma omp parallel for shared(final_result)
-        for (int i = 0; i < table->header->dir_count; i++) {
-            // Load directory to memory
-            directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
-            int result = DRM_find_value(directory, offset, value);
-            DRM_release_directory(directory, omp_get_thread_num());
-            if (result != -1) {
-                #pragma omp critical (final_result2result)
-                {
-                    if (final_result == -1)
-                        final_result = result;
-                }
-            }
-
-            offset = 0;
-        }
-
-        return final_result;
-    }
-
     int TBM_link_dir2table(table_t* table, directory_t* directory) {
         if (table->header->dir_count + 1 >= DIRECTORIES_PER_TABLE)
             return -1;

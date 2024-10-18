@@ -26,24 +26,14 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             int current = -1;
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_DDT[i] != NULL) {
-                    if (DRM_get_checksum(directory) == DRM_get_checksum(DRM_DDT[i])) {
+                    if (DRM_get_checksum(directory) == DRM_get_checksum(DRM_DDT[i]) || DRM_DDT[i]->lock == UNLOCKED) {
                         current = i;
                         break;
                     }
                 }
-                else if (DRM_DDT[i] == NULL) {
+                else {
                     current = i;
                     break;
-                }
-            }
-
-            if (current == -1) {
-                for (int i = 0; i < DDT_SIZE; i++) {
-                    if (DRM_DDT[i]->lock == LOCKED) continue;
-                    else {
-                        current = i;
-                        break;
-                    }
                 }
             }
 
@@ -99,12 +89,8 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     int DRM_DDT_free() {
         #ifndef NO_DDT
             for (int i = 0; i < DDT_SIZE; i++) {
-                if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
-                    DRM_DDT_flush_index(i);
-                }
-                else {
-                    return -1;
-                }
+                if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) DRM_DDT_flush_index(i);
+                else return -1;
             }
         #endif
 

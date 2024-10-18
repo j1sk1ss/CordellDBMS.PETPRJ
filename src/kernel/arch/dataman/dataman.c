@@ -236,54 +236,7 @@
             else offset = global_offset + data_size;
         }
     }
-
-    int DB_find_value_row(
-        database_t* database, char* table_name, char* column, int offset, uint8_t value, uint8_t access
-    ) {
-        table_t* table = DB_get_table(database, table_name);
-        if (table == NULL) return -1;
-        if (CHECK_READ_ACCESS(access, table->header->access) == -1) return -3;
-
-        int row_size      = 0;
-        int column_offset = -1;
-        int column_size   = -1;
-        for (int i = 0; i < table->header->column_count; i++) {
-            if (column != NULL) {
-                if (strcmp((char*)table->columns[i]->name, column) == 0) {
-                    column_offset = row_size;
-                    column_size = table->columns[i]->size;
-                }
-
-                row_size += table->columns[i]->size;
-            }
-            else {
-                row_size = table->row_size;
-                break;
-            }
-        }
-
-        while (1) {
-            int global_offset = TBM_find_value(table, offset, value);
-            if (global_offset < 0) {
-                TBM_release_table(table, omp_get_thread_num());
-                return -1;
-            }
-
-            int row = global_offset / row_size;
-            if (column_offset == -1 && column_size == -1) {
-                TBM_release_table(table, omp_get_thread_num());
-                return row;
-            }
-
-            int position_in_row = global_offset % row_size;
-            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
-                TBM_release_table(table, omp_get_thread_num());
-                return row;
-            }
-            else offset = global_offset + 1;
-        }
-    }
-
+    
     table_t* DB_get_table(database_t* database, char* table_name) {
         if (database == NULL) return NULL;
         if (table_name == NULL) return NULL;
