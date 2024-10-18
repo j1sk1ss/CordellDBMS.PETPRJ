@@ -329,8 +329,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - name - name of database. This function will try to load database by
              default path (Should be NULL, if provided path).
 
-    Return -2 if Magic is wrong. Check file.
-    Return -1 if file nfound. Check path.
+    Return NULL if file can't be opened, or magic is wrong.
     Return pointer to database if all was success.
     */
     database_t* DB_load_database(char* path, char* name);
@@ -344,8 +343,8 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     Return -3 if table names write corrupt.
     Return -2 if header write corrupt.
-    Return -1 if something goes wrong
-    Return 1 if save was success
+    Return -1 if can`t create or open file.
+    Return 1 if save was success.
     */
     int DB_save_database(database_t* database, char* path);
 

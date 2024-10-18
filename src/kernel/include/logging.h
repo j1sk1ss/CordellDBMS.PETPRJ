@@ -7,7 +7,10 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
+#define LOGGING
+#define WARNINGS
 #define ERRORS
+#define INFORMING
 
 #pragma region [Logging]
 

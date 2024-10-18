@@ -47,7 +47,7 @@ void cleanup();
 int send2destination_pointer(int destination, uint8_t* data, size_t data_size);
 int send2destination_byte(int destination, uint8_t data);
 void* handle_client(void* client_socket_fd);
-void start_kernel_session(int source, int destination);
+void start_kernel_session(int source, int destination, int session);
 int setup_server();
 
 
@@ -74,8 +74,10 @@ int send2destination_byte(int destination, uint8_t data) {
 }
 
 void* handle_client(void* client_socket_fd) {
-    int socket_fd = *(int*)client_socket_fd;
-    start_kernel_session(socket_fd, socket_fd);
+    int socket_fd = ((int*)client_socket_fd)[0];
+    int session = ((int*)client_socket_fd)[1];
+
+    start_kernel_session(socket_fd, socket_fd, session);
     close(socket_fd);
 
     #ifndef _WIN32
@@ -85,6 +87,7 @@ void* handle_client(void* client_socket_fd) {
     closesocket(client_socket_fd);
     #endif
 
+    print_info("Session [%i] closed", session);
     return NULL;
 }
 
@@ -96,7 +99,7 @@ void* handle_client(void* client_socket_fd) {
  * - source - source FD with commands.
  * - destination - destination FD for kernel answer.
 */
-void start_kernel_session(int source, int destination) {
+void start_kernel_session(int source, int destination, int session) {
     user_t* user = NULL;
     int count = 0;
     uint8_t buffer[MESSAGE_BUFFER];
@@ -155,7 +158,7 @@ void start_kernel_session(int source, int destination) {
             argv[argc++] = current_arg;
         }
 
-        kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access);
+        kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access, session);
         if (result->answer_body != NULL) {
             send2destination_pointer(destination, result->answer_body, result->answer_size);
             print_log("Answer body: [%s]", result->answer_body);
@@ -238,8 +241,9 @@ int main()
                 continue;
             }
 
-            int* client_socket_fd_ptr = malloc(sizeof(int));
-            *client_socket_fd_ptr = client_socket_fd;
+            int* client_socket_fd_ptr = malloc(sizeof(int) * 2);
+            client_socket_fd_ptr[0] = client_socket_fd;
+            client_socket_fd_ptr[1] = 0; // TODO
 
             print_info("Client connected from %s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
             #ifdef _WIN32

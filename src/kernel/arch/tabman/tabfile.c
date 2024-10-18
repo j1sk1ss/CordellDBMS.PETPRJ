@@ -5,9 +5,8 @@
 
     table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access) {
         int row_size = 0;
-        for (int i = 0; i < col_count; i++) {
+        for (int i = 0; i < col_count; i++)
             row_size += columns[i]->size;
-        }
 
         // If future row size is larger, then page content size
         // we return NULL. We don't want to make deal with row, larger
@@ -15,15 +14,15 @@
         if (row_size >= PAGE_CONTENT_SIZE) return NULL;
         table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
 
-        header->access  = access;
-        header->magic   = TABLE_MAGIC;
+        header->access = access;
+        header->magic  = TABLE_MAGIC;
         strncpy((char*)header->name, name, TABLE_NAME_SIZE);
 
-        header->dir_count           = 0;
-        header->column_count        = col_count;
-        header->column_link_count   = 0;
+        header->dir_count         = 0;
+        header->column_count      = col_count;
+        header->column_link_count = 0;
 
-        table_t* table = (table_t*)malloc(sizeof(table_t));
+        table_t* table  = (table_t*)malloc(sizeof(table_t));
         table->header   = header;
         table->columns  = columns;
         table->row_size = row_size;
@@ -37,7 +36,7 @@
         int status = -1;
         #pragma omp critical (table_save)
         {
-            #ifndef NO_PAGE_SAVE_OPTIMIZATION
+            #ifndef NO_TABLE_SAVE_OPTIMIZATION
             if (TBM_get_checksum(table) != table->header->checksum)
             #endif
             {
@@ -207,24 +206,22 @@
 
         if (table->columns != NULL) {
             for (uint16_t i = 0; i < table->header->column_count; i++) {
-                if (table->columns[i] != NULL) {
+                if (table->columns[i] != NULL)
                     checksum = crc32(checksum, (const uint8_t*)table->columns[i], sizeof(table_column_t));
-                }
             }
         }
 
         if (table->column_links != NULL) {
             for (uint16_t i = 0; i < table->header->column_link_count; i++) {
-                if (table->column_links[i] != NULL) {
+                if (table->column_links[i] != NULL)
                     checksum = crc32(checksum, (const uint8_t*)table->column_links[i], sizeof(table_column_link_t));
-                }
             }
         }
         
         table->header->checksum = prev_checksum;
         checksum = crc32(checksum, (const uint8_t*)table->dir_names, sizeof(table->dir_names));
         TBM_release_table(table, omp_get_thread_num());
-
+ 
         return checksum;
     }
 

@@ -249,6 +249,7 @@
         }
 
         // If table not in database, we return NULL
+        print_warn("Table [%s] not in [%s] database!", table_name, database->header->name);
         return NULL;
     }
 

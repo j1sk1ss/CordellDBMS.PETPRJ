@@ -37,6 +37,7 @@
 #define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "SqwPP12CRTS=1-33\n\n]" : argv[index++]
 
 #define MAX_COMMANDS    100
+#define MAX_CONNECTIONS 2
 
 #pragma region [Commands]
 
@@ -102,10 +103,11 @@ Process commands and return answer structure.
 Params:
 - argc - args count.
 - argv - args body.
+- auto_sync - flag for auto sync command
 
 Return NULL or answer.
 */
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uint8_t access);
+kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, uint8_t access, int connection);
 
 /*
 Free answer structure.

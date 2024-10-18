@@ -3,7 +3,10 @@
 #include "include/kentry.h"
 
 
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uint8_t access) {
+static database_t* connections[MAX_CONNECTIONS] = { NULL };
+
+
+kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, uint8_t access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
 
     answer->answer_body = NULL;
@@ -12,11 +15,30 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
     answer->commands_processed = 0;
 
     int current_start = 1;
+    database_t* database;
+    char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
 
-    database_t* database = DB_load_database(NULL, SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start));
-    if (database == NULL) {
-        print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
-        current_start = 1;
+    while (1) {
+        if (connections[connection] == NULL) {
+            database = DB_load_database(NULL, db_name);
+            if (database == NULL) {
+                print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
+                current_start = 1;
+            }
+
+            connections[connection] = database;
+            break;
+        }
+        else {
+            if (strncmp((char*)connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) {
+                database = connections[connection];
+                break;
+            }
+            else {
+                DB_free_database(connections[connection]);
+                connections[connection] = NULL;
+            }
+        }
     }
 
     /*
@@ -67,6 +89,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                 int result = DB_save_database(new_database, NULL);
 
                 print_log("Database [%s.%s] create succes!", new_database->header->name, DATABASE_EXTENSION);
+                DB_free_database(new_database);
 
                 answer->answer_code = result;
                 answer->answer_size = -1;
@@ -187,7 +210,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
                     int result = DB_append_row(database, table_name, (uint8_t*)input_data, strlen(input_data), access);
                     if (result >= 0) print_log("Row [%s] successfully added to [%s] database!", input_data, database->header->name);
                     else {
-                        print_error("Error code: %i\n", result);
+                        print_error("Error code: %i, Params: [%s] [%s] [%s] [%i]\n", result, database->header->name, table_name, input_data, access);
                     }
 
                     answer->answer_size = -1;
@@ -427,7 +450,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
                     int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
                     if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
-                    else print_error("Error code: %i", result);
+                    else {
+                        print_error("Error code: %i", result);
+                    }
 
                     answer->answer_size = -1;
                     answer->answer_code = result;
@@ -468,7 +493,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
 
                             int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
                             if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
-                            else print_error("Error code: %i", result);
+                            else {
+                                print_error("Error code: %i", result);
+                            }
 
                             answer->answer_size = -1;
                             answer->answer_code = result;
@@ -546,7 +573,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int desktop, uin
         }
     }
 
-    if (desktop == 1) {
+    if (auto_sync == 1) {
         DB_init_transaction(database);
     }
 
