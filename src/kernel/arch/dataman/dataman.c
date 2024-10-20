@@ -243,8 +243,9 @@
 
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0)
+            if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
                 return TBM_load_table(NULL, table_name);
+            }
         }
 
         // If table not in database, we return NULL

@@ -364,6 +364,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if we can't free TDT
     Return -2 if we can't free DTD
     Return -3 if we can't free PDT
+    Return -4 if database is NULL.
     */
     int DB_init_transaction(database_t* database);
 
@@ -372,9 +373,10 @@ we use cache in pages (lowest level) and table cache at the highest level.
     in future transactions. If something goes wrong during transaction, we can just vipe all buffers before it will be written to disk.
 
     Return 1 if rollback success.
-    Return -1 if we can't free TDT
-    Return -2 if we can't free DTD
-    Return -3 if we can't free PDT
+    Return -1 if we can't free TDT.
+    Return -2 if we can't free DTD.
+    Return -3 if we can't free PDT.
+    Return -4 if database is NULL.
     */
     int DB_rollback(database_t* database);
 

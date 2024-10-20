@@ -37,7 +37,7 @@
 #define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "-1" : argv[index++]
 
 #define MAX_COMMANDS    100
-#define MAX_CONNECTIONS 2
+#define MAX_CONNECTIONS 5
 
 #pragma region [Commands]
 

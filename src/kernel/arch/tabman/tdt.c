@@ -84,8 +84,8 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
     int TBM_TDT_free() {
         #ifndef NO_TDT
-            for (int i = 0; i < PDT_SIZE; i++) {
-                if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) TBM_TDT_flush_index(i);
+            for (int i = 0; i < TDT_SIZE; i++) {
+                if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) != -1) TBM_TDT_flush_index(i);
                 else return -1;
             }
         #endif

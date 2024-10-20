@@ -41,6 +41,7 @@
 #define CDBMS_SERVER_PORT   getenv("CDBMS_SERVER_PORT") == NULL ? 1010 : atoi(getenv("CDBMS_SERVER_PORT"))
 #define MESSAGE_BUFFER      2048
 #define COMMANDS_BUFFER     256
+#define MAX_SESSION_COUNT   5
 
 
 void cleanup();
@@ -51,7 +52,7 @@ void start_kernel_session(int source, int destination, int session);
 int setup_server();
 
 
-static int sessions[2] = { 0 };
+static int sessions[MAX_SESSION_COUNT] = { 0 };
 
 
 void cleanup() {
@@ -83,6 +84,9 @@ void* handle_client(void* client_socket_fd) {
     start_kernel_session(socket_fd, socket_fd, session);
     close(socket_fd);
 
+    sessions[session] = 0;
+    print_info("Session [%i] closed", session);
+
     #ifndef _WIN32
     pthread_exit(NULL);
     close(socket_fd);
@@ -90,8 +94,6 @@ void* handle_client(void* client_socket_fd) {
     closesocket(client_socket_fd);
     #endif
 
-    sessions[session] = 0;
-    print_info("Session [%i] closed", session);
     return NULL;
 }
 
@@ -255,7 +257,7 @@ int main()
 
             int session = 0;
             while (sessions[session] == 1) {
-                if (session++ >= 2) session = 0;
+                if (session++ >= MAX_SESSION_COUNT) session = 0;
             }
 
             sessions[session] = 1;

@@ -133,7 +133,7 @@
                     }
 
                     table->row_size = 0;
-                    for (int i = 0; i < table->header->column_count; i++) 
+                    for (int i = 0; i < header->column_count; i++) 
                         table->row_size += table->columns[i]->size;
 
                     // Read column links from file.

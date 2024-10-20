@@ -20,7 +20,8 @@
 #define ERRORS
 #define INFORMING
 
-#define LOG_TO_FILE
+// Note: LOG_TO_FILE option very heavy function. Prefere console logging.
+// #define LOG_TO_FILE
 #define LOG_FILE_PATH getenv("LOG_FILE_PATH") == NULL ? "cdbms.log" : getenv("LOG_FILE_PATH")
 
 #ifdef LOGGING

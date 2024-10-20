@@ -87,7 +87,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
     int PGM_PDT_free() {
         #ifndef NO_PDT
             for (int i = 0; i < PDT_SIZE; i++) {
-                if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) PGM_PDT_flush_index(i);
+                if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) != -1) PGM_PDT_flush_index(i);
                 else return -1;
             }
         #endif

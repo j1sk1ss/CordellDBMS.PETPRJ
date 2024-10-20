@@ -53,21 +53,21 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
     for (int i = 0; i < MAX_COMMANDS; i++) {
         if (commands[i] == NULL) break;
         char* command = commands[i];
-
         int command_index = i;
+
         /*
         Handle flush command. Init transaction start. Check docs.
         Command syntax: flush
         */
         if (strcmp(command, SYNC) == 0) {
-            DB_init_transaction(database);
+            answer->answer_code = DB_init_transaction(database);
         }
         /*
         Handle rollback command.
         Command syntax: rollback
         */
         else if (strcmp(command, ROLLBACK) == 0) {
-            DB_rollback(database);
+            answer->answer_code = DB_rollback(database);
         }
         /*
         Handle creation.
@@ -81,9 +81,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             command_index++;
             if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
                 char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (database_name == NULL) {
-                    return answer;
-                }
+                if (database_name == NULL) return answer;
 
                 database_t* new_database = DB_create_database(database_name);
                 int result = DB_save_database(new_database, NULL);
@@ -94,8 +92,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 answer->answer_code = result;
                 answer->answer_size = -1;
                 answer->commands_processed = command_index;
-
-                return answer;
             }
             /*
             Handle table creation.
@@ -105,9 +101,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             */
             else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (table_name == NULL) {
-                    return answer;
-                }
+                if (table_name == NULL) return answer;
 
                 if (TBM_release_table(DB_get_table(database, table_name), omp_get_thread_num()) != -3) return answer;
                 char* table_access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
@@ -180,8 +174,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 answer->answer_size = -1;
                 answer->answer_code = 1;
                 answer->commands_processed = command_index;
-
-                return answer;
             }
         }
         /*
@@ -216,8 +208,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     answer->answer_size = -1;
                     answer->answer_code = result;
                     answer->commands_processed = command_index;
-
-                    return answer;
                 }
             }
         }
@@ -245,8 +235,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 answer->answer_code = 1;
                 answer->answer_size = -1;
                 answer->commands_processed = command_index;
-
-                return answer;
             }
 
             /*
@@ -270,10 +258,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     answer->answer_size = -1;
                     answer->answer_code = result;
                     answer->commands_processed = command_index;
-
-                    return answer;
                 }
-
                 /*
                 Note: will delete first row, where will find value in provided column.
                 Command syntax: delete row <table_name> by_value column <column_name> value <value>
@@ -309,21 +294,16 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             answer->answer_size = -1;
                             answer->answer_code = result;
                             answer->commands_processed = command_index;
-
-                            return answer;
                         }
                     }
                 }
             }
-
-            return answer;
         }
         /*
         Handle get command.
         Command syntax: get <option>
         */
         else if (strcmp(command, GET) == 0) {
-
             /*
             Command syntax: get row <table_name> <operation_type> <options>
             */
@@ -338,7 +318,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 Note: Will get entire row. (If table has links, it will cause CASCADE operations).
                 Command syntax: get row <table_name> by_index <index>
                 */
-                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), BY_INDEX) == 0) {
+                command_index++;
+                if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     int index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                     if (index == -1) {
                         answer->answer_code = 7;
@@ -360,7 +341,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     TBM_release_table(table, omp_get_thread_num());
                     return answer;
                 }
-
                 /*
                 Note: will get first row, where will find value in provided column.
                 Command syntax: get row table <table_name> by_value column <column_name> value <value>
@@ -381,11 +361,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             }
 
                             table_t* table = DB_get_table(database, table_name);
+                            uint8_t* data  = NULL;
+                            int offset     = 0;
+                            int data_size  = 0;
+                            int row2get    = 0;
 
-                            uint8_t* data = NULL;
-                            int offset    = 0;
-                            int data_size = 0;
-                            int row2get   = 0;
                             while (row2get != -1) {
                                 row2get = DB_find_data_row(database, table_name, column_name, offset, (uint8_t*)value, strlen(value), access);
                                 if (row2get == -1) {
@@ -415,14 +395,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             answer->commands_processed = command_index;
 
                             TBM_release_table(table, omp_get_thread_num());
-
-                            return answer;
                         }
                     }
                 }
             }
-
-            return answer;
         }
         /*
         Handle update command.
@@ -439,11 +415,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     return answer;
                 }
 
-                command_index++;
-
                 /*
                 Command syntax: update row <table_name> by_index <index> <new_data>
                 */
+                command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     int index  = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
                     char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
@@ -461,10 +436,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     answer->answer_size = -1;
                     answer->answer_code = result;
                     answer->commands_processed = command_index;
-
-                    return answer;
                 }
-
                 /*
                 Command syntax: update row <table_name> by_value column <column_name> value <new_data>
                 */
@@ -504,8 +476,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             answer->answer_size = -1;
                             answer->answer_code = result;
                             answer->commands_processed = command_index;
-
-                            return answer;
                         }
                     }
                 }
@@ -564,24 +534,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             answer->answer_size = -1;
             answer->answer_code = result;
             answer->commands_processed = command_index;
-
-            return answer;
-        }
-        /*
-        Handle info command.
-        Command syntax: help
-        */
-        else if (strcmp(command, HELP) == 0) {
-            answer->commands_processed = command_index;
-            return answer;
         }
     }
 
-    if (auto_sync == 1) {
-        DB_init_transaction(database);
-    }
-
-    answer->commands_processed = 0;
+    if (auto_sync == 1) DB_init_transaction(database);
     return answer;
 }
 

@@ -114,9 +114,8 @@
             if (file == NULL) print_error("Page not found! Path: [%s]", load_path);
             else {
                 // Read header from file
-                uint8_t* header_data = (uint8_t*)malloc(sizeof(page_header_t));
-                fread(header_data, sizeof(page_header_t), 1, file);
-                page_header_t* header = (page_header_t*)header_data;
+                page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
+                fread(header, sizeof(page_header_t), 1, file);
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
