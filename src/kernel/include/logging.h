@@ -7,37 +7,48 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <time.h>
+
+#include "common.h"
+
 #define LOGGING
 #define WARNINGS
 #define ERRORS
 #define INFORMING
 
-#pragma region [Logging]
+#define LOG_TO_FILE
+#define LOG_FILE_PATH getenv("LOG_FILE_PATH") == NULL ? "cdbms.log" : getenv("LOG_FILE_PATH")
 
-  #ifdef LOGGING
-    #define print_log(message, ...)    printf("[LOG] (%s:%i) " message "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-  #else
+#ifdef LOGGING
+    #define print_log(message, ...)    log_message("LOG", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
     #define print_log(message, ...)
-  #endif
+#endif
 
-  #ifdef WARNINGS
-    #define print_warn(message, ...)   printf("[WARN] (%s:%i) " message "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-  #else
+#ifdef WARNINGS
+    #define print_warn(message, ...)   log_message("WARN", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
     #define print_warn(message, ...)
-  #endif
+#endif
 
-  #ifdef ERRORS
-    #define print_error(message, ...)  printf("[ERROR] (%s:%i) " message "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-  #else
+#ifdef ERRORS
+    #define print_error(message, ...)  log_message("ERROR", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
     #define print_error(message, ...)
-  #endif
+#endif
 
-  #ifdef INFORMING
-    #define print_info(message, ...)   printf("[INFO] (%s:%i) " message "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-  #else
+#ifdef INFORMING
+    #define print_info(message, ...)   log_message("INFO", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
     #define print_info(message, ...)
-  #endif
+#endif
 
-#pragma endregion
+
+void write_log(const char* level, const char* file, int line, const char* message, va_list args);
+void log_message(const char* level, const char* file, int line, const char* message, ...);
 
 #endif

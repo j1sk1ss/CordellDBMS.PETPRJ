@@ -51,6 +51,9 @@ void start_kernel_session(int source, int destination, int session);
 int setup_server();
 
 
+static int sessions[2] = { 0 };
+
+
 void cleanup() {
     #ifdef _WIN32
         WSACleanup();
@@ -87,6 +90,7 @@ void* handle_client(void* client_socket_fd) {
     closesocket(client_socket_fd);
     #endif
 
+    sessions[session] = 0;
     print_info("Session [%i] closed", session);
     return NULL;
 }
@@ -111,6 +115,8 @@ void start_kernel_session(int source, int destination, int session) {
     #endif
     {
         buffer[count - 1] = '\0';
+        print_info("Session [%i]: [%s]", session, buffer);
+
         if (user == NULL) {
             char username[USERNAME_SIZE];
             char password[128];
@@ -118,8 +124,14 @@ void start_kernel_session(int source, int destination, int session) {
 
             #ifndef USER_DEBUG
                 user = USR_auth(username, password);
-                if (user == NULL) send2destination_byte(destination, 0);
-                else send2destination_byte(destination, 1);
+                if (user == NULL) {
+                    print_error("Wrong password [%s] for user [%s] at session [%i]", user->name, password, session);
+                    send2destination_byte(destination, 0);
+                }
+                else {
+                    print_info("User [%s] auth succes in session [%i]", user->name, session);
+                    send2destination_byte(destination, 1);
+                }
             #else
                 user = USR_create(username, password, CREATE_ACCESS_BYTE(0, 0, 0));
                 USR_save(user, NULL);
@@ -154,10 +166,7 @@ void start_kernel_session(int source, int destination, int session) {
             else if (!current_arg) current_arg = p;
         }
 
-        if (current_arg) {
-            argv[argc++] = current_arg;
-        }
-
+        if (current_arg) argv[argc++] = current_arg;
         kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access, session);
         if (result->answer_body != NULL) {
             send2destination_pointer(destination, result->answer_body, result->answer_size);
@@ -243,7 +252,14 @@ int main()
 
             int* client_socket_fd_ptr = malloc(sizeof(int) * 2);
             client_socket_fd_ptr[0] = client_socket_fd;
-            client_socket_fd_ptr[1] = 0; // TODO
+
+            int session = 0;
+            while (sessions[session] == 1) {
+                if (session++ >= 2) session = 0;
+            }
+
+            sessions[session] = 1;
+            client_socket_fd_ptr[1] = session;
 
             print_info("Client connected from %s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
             #ifdef _WIN32

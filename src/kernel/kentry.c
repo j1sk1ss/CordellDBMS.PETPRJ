@@ -338,9 +338,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 Note: Will get entire row. (If table has links, it will cause CASCADE operations).
                 Command syntax: get row <table_name> by_index <index>
                 */
-                command_index++;
-                if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    int index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), BY_INDEX) == 0) {
+                    int index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
+                    if (index == -1) {
+                        answer->answer_code = 7;
+                        return answer;
+                    }
+
                     uint8_t* data = DB_get_row(database, table_name, index, access);
                     if (data == NULL) {
                         print_error("Something goes wrong! Params: [%s] [%s] [%i] [%i]", database->header->name, table_name, index, access);

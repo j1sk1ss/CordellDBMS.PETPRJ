@@ -9,7 +9,7 @@
         table_t* table = DB_get_table(database, table_name);
         if (table == NULL) return NULL;
         if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return NULL;
-
+        
         int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
         int pages_offset  = row / rows_per_page;
         int page_offset   = row % rows_per_page;
@@ -243,9 +243,8 @@
 
         // Main difference with TBM_load in check, that table in database
         for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
+            if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0)
                 return TBM_load_table(NULL, table_name);
-            }
         }
 
         // If table not in database, we return NULL

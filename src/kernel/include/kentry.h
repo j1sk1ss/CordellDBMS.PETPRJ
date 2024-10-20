@@ -32,9 +32,9 @@
 #define SAFE_GET_VALUE_PRE_INC(argv, max, index)    index + 1 >= max ? NULL : argv[++index]
 #define SAFE_GET_VALUE_POST_INC(argv, max, index)   index >= max ? NULL : argv[index++]
 
-#define SAFE_GET_VALUE_S(argv, max, index)            index >= max ? "SqwPP\r\r\tty[=1-33CRDL]" : argv[index]
-#define SAFE_GET_VALUE_PRE_INC_S(argv, max, index)    index + 1 >= max ? "S1COS\ttyqwPP[=1-33\n\n]" : argv[++index]
-#define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "SqwPP12CRTS=1-33\n\n]" : argv[index++]
+#define SAFE_GET_VALUE_S(argv, max, index)            index >= max ? "-1" : argv[index]
+#define SAFE_GET_VALUE_PRE_INC_S(argv, max, index)    index + 1 >= max ? "-1" : argv[++index]
+#define SAFE_GET_VALUE_POST_INC_S(argv, max, index)   index >= max ? "-1" : argv[index++]
 
 #define MAX_COMMANDS    100
 #define MAX_CONNECTIONS 2

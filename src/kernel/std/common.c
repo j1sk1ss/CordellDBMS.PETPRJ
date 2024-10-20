@@ -156,3 +156,15 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
         }
     }
 }
+
+char* get_current_time() {
+    time_t rawtime;
+    struct tm* timeinfo;
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    char* time_str = asctime(timeinfo);
+    time_str[strlen(time_str) - 1] = '\0';
+
+    return time_str;
+}

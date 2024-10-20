@@ -83,4 +83,11 @@ Took from: https://stackoverflow.com/questions/24975928/extract-the-file-name-an
 */
 void get_file_path_parts(char* path, char* path_, char* base_, char* ext_);
 
+/*
+Get current time from time.h library
+
+Return char* of current time in format: "%Y-%m-%d %H:%M:%S"
+*/
+char* get_current_time();
+
 #endif
