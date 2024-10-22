@@ -44,7 +44,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
                     DRM_DDT_flush_index(current);
                 }
 
-                print_log("Adding to DDT directory [%s] at index [%i]", directory->header->name, current);
+                print_debug("Adding to DDT directory [%s] at index [%i]", directory->header->name, current);
                 DRM_DDT[current] = directory;
             }
             else {
@@ -61,10 +61,8 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
             if (name == NULL) return NULL;
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_DDT[i] == NULL) continue;
-                if (memcmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) {
-                    DRM_lock_directory(DRM_DDT[i], omp_get_thread_num());
+                if (memcmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0)
                     return DRM_DDT[i];
-                }
             }
         #endif
 
@@ -90,7 +88,10 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
         #ifndef NO_DDT
             for (int i = 0; i < DDT_SIZE; i++) {
                 if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) != -1) DRM_DDT_flush_index(i);
-                else return -1;
+                else {
+                    print_error("Can't lock directory [%s]", DRM_DDT[i]);
+                    return -1;
+                }
             }
         #endif
 
@@ -120,7 +121,7 @@ static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
     }
 
     int DRM_DDT_flush_index(int index) {
-        print_log("Flushed DDT directory in [%i] index", index);
+        print_debug("Flushed DDT directory in [%i] index", index);
 
         #ifndef NO_DDT
             if (DRM_DDT[index] == NULL) return -1;

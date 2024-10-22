@@ -20,6 +20,7 @@
 
             // We load current page
             page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+            if (PGM_lock_page(page, omp_get_thread_num()) == -1) continue;
             if (page == NULL) continue;
 
             // We check, that we don't return Page Empty, because
@@ -65,11 +66,9 @@
                 if (page == NULL) return -1;
 
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
-                if (index < 0) {
-                    PGM_release_page(page, omp_get_thread_num());
-                    continue;
-                }
+                if (index < 0) continue;
 
+                if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -4;
                 PGM_insert_content(page, index, data, data_lenght);
                 PGM_release_page(page, omp_get_thread_num());
                 return 1;
@@ -115,6 +114,7 @@
             if (page == NULL) return -1;
 
             // We insert current part of content with local offset
+            if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -2;
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2insert);
             PGM_insert_content(page, current_index, data_pointer, current_size);
             PGM_release_page(page, omp_get_thread_num());
@@ -144,6 +144,7 @@
 
             // We load current page
             page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page++]);
+            if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -4;
 
             // We check, that we don't return Page Empty, because
             // PE symbols != Content symbols.
@@ -173,14 +174,19 @@
             char page_path[DEFAULT_PATH_SIZE];
             sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
             page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+            if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -4;
 
             // If page, after delete operation, full empty, we delete page.
             // Also we realise page pointer in RAM.
             if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
                 DRM_unlink_page_from_directory(directory, (char*)page->header->name);
                 PGM_PDT_flush_page(page);
-                print_log("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
+                print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
             }
+            else {
+                PGM_release_page(page, omp_get_thread_num());
+            }
+
         }
 
         return 1;
@@ -210,6 +216,7 @@
 
             // We search part of data in this page, save index and unload page.
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size4seach);
+            if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -3;
             int result = PGM_find_content(page, current_index, data_pointer, current_size);
             PGM_release_page(page, omp_get_thread_num());
 

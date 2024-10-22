@@ -6,6 +6,7 @@
     int TBM_lock_table(table_t* table, uint8_t owner) {
         #ifndef NO_TDT
             if (table == NULL) return -2;
+            print_debug("Try to lock table [%s]", table->header->name);
 
             int delay = DEFAULT_DELAY;
             while (TBM_lock_test(table, owner) == LOCKED) 
@@ -30,6 +31,7 @@
 
     int TBM_release_table(table_t* table, uint8_t owner) {
         if (table == NULL) return -3;
+        print_debug("Try to unlock table [%s]", table->header->name);
 
         #ifndef NO_TDT
             if (table->lock == UNLOCKED) return -1;

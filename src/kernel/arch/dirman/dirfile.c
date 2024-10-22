@@ -104,6 +104,7 @@
         {
             // Open file directory
             FILE* file = fopen(load_path, "rb");
+            print_debug("Loading directory [%s]", load_path);
             if (file == NULL) print_error("Directory not found! Path: [%s]\n", load_path);
             else {
                 // Read header from file
@@ -125,9 +126,11 @@
                     // Close file directory
                     fclose(file);
 
+                    directory->lock_owner = NO_OWNER;
+                    directory->lock = UNLOCKED;
+
                     directory->header = header;
                     DRM_DDT_add_directory(directory);
-                    DRM_lock_directory(directory, omp_get_thread_num());
                     loaded_directory = directory;
                 }
             }
@@ -142,7 +145,7 @@
             for (int i = 0; i < directory->header->page_count && full == 1; i++) {
                 char page_path[DEFAULT_PATH_SIZE];
                 sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
-                print_log(
+                print_debug(
                     "Page [%s] was deleted and flushed with results [%i | %i]", 
                     page_path, PGM_PDT_flush_page(PGM_load_page(page_path, NULL)), remove(page_path)
                 );
@@ -151,7 +154,7 @@
             char delete_path[DEFAULT_PATH_SIZE];
             sprintf(delete_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory->header->name, DIRECTORY_EXTENSION);
             DRM_DDT_flush_directory(directory);
-            print_log("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
+            print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
 
             return 1;
         }

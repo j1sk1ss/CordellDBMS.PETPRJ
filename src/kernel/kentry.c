@@ -22,7 +22,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         if (connections[connection] == NULL) {
             database = DB_load_database(NULL, db_name);
             if (database == NULL) {
-                print_warn("Database wasn`t found. Create a new one with CREATE DATABASE.");
+                print_warn("Database wasn`t found. Create a new one with [create database <name>].");
                 current_start = 1;
             }
 
@@ -67,7 +67,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         Command syntax: rollback
         */
         else if (strcmp(command, ROLLBACK) == 0) {
-            answer->answer_code = DB_rollback(database);
+            answer->answer_code = DB_rollback(&connections[connection]);
         }
         /*
         Handle creation.
@@ -103,7 +103,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) return answer;
 
-                if (TBM_release_table(DB_get_table(database, table_name), omp_get_thread_num()) != -3) return answer;
+                if (DB_get_table(database, table_name) != NULL) return answer;
                 char* table_access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_access == NULL) {
                     answer->answer_code = 5;
@@ -228,9 +228,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 }
 
                 if (DB_delete_table(database, table_name, atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index))) != 1) print_error("Error code 1 during deleting %s", table_name);
-                else {
-                    print_log("Table [%s] was delete successfully.", table_name);
-                }
+                else print_log("Table [%s] was delete successfully.", table_name);
 
                 answer->answer_code = 1;
                 answer->answer_size = -1;
@@ -281,14 +279,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             int row2delete = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), access);
                             if (row2delete == -1) {
                                 print_error("Value not presented in table [%s].", table_name);
-                                return NULL;
+                                return answer;
                             }
 
                             int result = DB_delete_row(database, table_name, row2delete, access);
                             if (result == 1) printf("Row %i was deleted succesfully from %s\n", row2delete, table_name);
                             else {
                                 print_error("Error code: %i", result);
-                                return NULL;
+                                return answer;
                             }
 
                             answer->answer_size = -1;
@@ -329,7 +327,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     uint8_t* data = DB_get_row(database, table_name, index, access);
                     if (data == NULL) {
                         print_error("Something goes wrong! Params: [%s] [%s] [%i] [%i]", database->header->name, table_name, index, access);
-                        return NULL;
+                        answer->answer_code = 8;
+                        return answer;
                     }
 
                     table_t* table = DB_get_table(database, table_name);
@@ -338,7 +337,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     answer->answer_size = table->row_size;
                     answer->commands_processed = command_index;
 
-                    TBM_release_table(table, omp_get_thread_num());
                     return answer;
                 }
                 /*
@@ -370,13 +368,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 row2get = DB_find_data_row(database, table_name, column_name, offset, (uint8_t*)value, strlen(value), access);
                                 if (row2get == -1) {
                                     print_error("Value not presented in table [%s].", table_name);
-                                    return NULL;
+                                    return answer;
                                 }
 
                                 uint8_t* row_data = DB_get_row(database, table_name, row2get, access);
                                 if (row_data == NULL) {
                                     print_error("Something goes wrong! Params: [%s] [%s] [%i] [%i]", database->header->name, table_name, row2get, access);
-                                    return NULL;
+                                    return answer;
                                 }
 
                                 int data_start = data_size;
@@ -393,8 +391,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             answer->answer_body = data;
                             answer->answer_size = data_size;
                             answer->commands_processed = command_index;
-
-                            TBM_release_table(table, omp_get_thread_num());
                         }
                     }
                 }
@@ -464,7 +460,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             int index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), access);
                             if (index == -1) {
                                 print_error("Value [%s] not presented in table [%s]", data, table_name);
-                                return NULL;
+                                return answer;
                             }
 
                             int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
@@ -510,7 +506,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             table_t* slave = DB_get_table(database, slave_table);
             if (slave == NULL) {
                 print_error("Table [%s] not found in database!", slave_table);
-                TBM_release_table(master, omp_get_thread_num());
                 return answer;
             }
 
@@ -528,8 +523,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             );
 
             print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
-            TBM_release_table(master, omp_get_thread_num());
-            TBM_release_table(slave, omp_get_thread_num());
 
             answer->answer_size = -1;
             answer->answer_code = result;

@@ -111,6 +111,7 @@
         {
             // Open file page
             FILE* file = fopen(load_path, "rb");
+            print_debug("Loading page [%s]", load_path);
             if (file == NULL) print_error("Page not found! Path: [%s]", load_path);
             else {
                 // Read header from file
@@ -129,6 +130,9 @@
                     fread(page->content, sizeof(uint8_t), PAGE_CONTENT_SIZE, file);
 
                     fclose(file);
+
+                    page->lock_owner = NO_OWNER;
+                    page->lock = UNLOCKED;
 
                     page->header = header;
                     PGM_PDT_add_page(page);

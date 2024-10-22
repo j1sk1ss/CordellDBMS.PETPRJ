@@ -37,6 +37,7 @@
         #pragma omp critical (load_database)
         {
             FILE* file = fopen(load_path, "rb");
+            print_debug("Loading database [%s]", load_path);
             if (file == NULL) print_error("Database file not found! [%s]", load_path);
             else {
                 database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));

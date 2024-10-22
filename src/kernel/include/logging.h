@@ -15,6 +15,7 @@
 
 #include "common.h"
 
+#define DEBUG
 #define LOGGING
 #define WARNINGS
 #define ERRORS
@@ -23,6 +24,12 @@
 // Note: LOG_TO_FILE option very heavy function. Prefere console logging.
 // #define LOG_TO_FILE
 #define LOG_FILE_PATH getenv("LOG_FILE_PATH") == NULL ? "cdbms.log" : getenv("LOG_FILE_PATH")
+
+#ifdef DEBUG
+    #define print_debug(message, ...)    log_message("DEBUG", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
+    #define print_debug(message, ...)
+#endif
 
 #ifdef LOGGING
     #define print_log(message, ...)    log_message("LOG", __FILE__, __LINE__, message, ##__VA_ARGS__)

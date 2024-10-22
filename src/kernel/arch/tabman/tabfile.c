@@ -107,11 +107,15 @@
         }
 
         table_t* loaded_table = TBM_TDT_find_table(file_name);
-        if (loaded_table != NULL) return loaded_table;
+        if (loaded_table != NULL) {
+            print_debug("Loading table [%s] from TDT", load_path);
+            return loaded_table;
+        }
 
         #pragma omp critical (table_load)
         {
             FILE* file = fopen(load_path, "rb");
+            print_debug("Loading table [%s] from disk", load_path);
             if (file == NULL) print_error("Can't open table [%s]", load_path);
             else {
                 // Read header of table from file.
@@ -149,9 +153,11 @@
 
                     fclose(file);
 
+                    table->lock_owner = NO_OWNER;
+                    table->lock = UNLOCKED;
+
                     table->header = header;
                     TBM_TDT_add_table(table);
-                    TBM_lock_table(table, omp_get_thread_num());
                     loaded_table = table;
                 }
             }

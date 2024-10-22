@@ -19,7 +19,6 @@
             // If current directory include page, that we want, we save this directory.
             // Else we unload directory and go to the next dir. name.
             int page_count = directory->header->page_count;
-            DRM_release_directory(directory, omp_get_thread_num());
             if (current_page + page_count < global_page_offset) {
                 current_page += page_count;
                 continue;
@@ -42,6 +41,11 @@
         for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
             // Load directory to memory
             directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+            if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) {
+                print_warn("Can't lock directory [%s] while get_content operation!", (char*)table->dir_names[i]);
+                continue;
+            }
+
             if (directory == NULL) continue;
 
             // Get data from directory
@@ -49,6 +53,8 @@
             int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
             uint8_t* directory_content = DRM_get_content(directory, offset, current_size);
             DRM_release_directory(directory, omp_get_thread_num());
+            if (directory_content == NULL) continue;
+
             memcpy(output_content_pointer, directory_content, current_size);
 
             // Realise data
@@ -57,8 +63,8 @@
             // Set offset to 0, because we go to next directory
             // Update size of getcontent
             offset = 0;
-            content2get_size        -= current_size;
-            output_content_pointer  += current_size;
+            content2get_size       -= current_size;
+            output_content_pointer += current_size;
         }
 
         return output_content;
@@ -72,6 +78,7 @@
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory to memory
             directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+            if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -2;
             if (directory == NULL) return -1;
             if (directory->header->page_count + size4append > PAGES_PER_DIRECTORY) continue;
 
@@ -113,8 +120,10 @@
             directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
             if (directory == NULL) return -1;
 
+            if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -4;
             int result = DRM_insert_content(directory, offset, data_pointer, size4insert);
             DRM_release_directory(directory, omp_get_thread_num());
+
             if (result == -1) return -1;
             else if (result == 1 || result == 2) {
                 return result;
@@ -138,8 +147,11 @@
         for (int i = 0; i < table->header->dir_count; i++) {
             // Load directory to memory
             directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+
+            if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -4;
             size4delete = DRM_delete_content(directory, offset, size4delete);
             DRM_release_directory(directory, omp_get_thread_num());
+
             if (size4delete == -1) return -1;
             else if (size4delete == 1 || size4delete == 2) return size4delete;
         }
@@ -193,8 +205,6 @@
                 size4seach   -= directory->header->page_count * PAGE_CONTENT_SIZE - result;
                 data_pointer += directory->header->page_count * PAGE_CONTENT_SIZE - result;
             }
-
-            DRM_release_directory(directory, omp_get_thread_num());
         }
 
         if (target_global_index == -1) return -1;
@@ -202,7 +212,6 @@
             directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
             if (directory == NULL) return -2;
             target_global_index += directory->header->page_count * PAGE_CONTENT_SIZE;
-            DRM_release_directory(directory, omp_get_thread_num());
         }
 
         return target_global_index;

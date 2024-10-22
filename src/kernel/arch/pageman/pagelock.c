@@ -6,6 +6,7 @@
     int PGM_lock_page(page_t* page, uint8_t owner) {
         #ifndef NO_PDT
             if (page == NULL) return -2;
+            print_debug("Try to lock page [%s]", page->header->name);
 
             int delay = DEFAULT_DELAY;
             while (PGM_lock_test(page, owner) == LOCKED)
@@ -30,6 +31,7 @@
 
     int PGM_release_page(page_t* page, uint8_t owner) {
         if (page == NULL) return -3;
+        print_debug("Try to unlock page [%s]", page->header->name);
 
         #ifndef NO_PDT
             if (page->lock == UNLOCKED) return -1;

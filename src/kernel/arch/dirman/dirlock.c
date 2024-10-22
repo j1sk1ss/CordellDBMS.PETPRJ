@@ -6,6 +6,7 @@
     int DRM_lock_directory(directory_t* directory, uint8_t owner) {
         #ifndef NO_DDT
             if (directory == NULL) return -2;
+            print_debug("Try to lock directory [%s]", directory->header->name);
 
             int delay = DEFAULT_DELAY;
             while (DRM_lock_test(directory, owner) == LOCKED)
@@ -30,6 +31,7 @@
 
     int DRM_release_directory(directory_t* directory, uint8_t owner) {
         if (directory == NULL) return -3;
+        print_debug("Try to unlock directory [%s]", directory->header->name);
 
         #ifndef NO_DDT
             if (directory->lock == UNLOCKED) return -1;

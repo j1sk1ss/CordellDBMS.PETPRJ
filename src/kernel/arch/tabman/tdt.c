@@ -22,6 +22,8 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
 #pragma region [TDT]
 
     int TBM_TDT_add_table(table_t* table) {
+        if (table == NULL) return -1;
+
         #ifndef NO_TDT
             int current = -1;
             for (int i = 0; i < TDT_SIZE; i++) {
@@ -44,7 +46,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
                     TBM_TDT_flush_index(current);
                 }
 
-                print_log("Adding to TDT table [%s] at index [%i]", table->header->name, current);
+                print_debug("Adding to TDT table [%s] at index [%i]", table->header->name, current);
                 TBM_TDT[current] = table;
             }
         #endif
@@ -57,10 +59,8 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
             if (name == NULL) return NULL;
             for (int i = 0; i < TDT_SIZE; i++) {
                 if (TBM_TDT[i] == NULL) continue;
-                if (memcmp(TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0) {
-                    TBM_lock_table(TBM_TDT[i], omp_get_thread_num());
+                if (memcmp(TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0)
                     return TBM_TDT[i];
-                }
             }
         #endif
 
@@ -86,7 +86,10 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
         #ifndef NO_TDT
             for (int i = 0; i < TDT_SIZE; i++) {
                 if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) != -1) TBM_TDT_flush_index(i);
-                else return -1;
+                else {
+                    print_error("Can't lock table [%s]", TBM_TDT[i]);
+                    return -1;
+                }
             }
         #endif
 
@@ -116,7 +119,7 @@ static table_t* TBM_TDT[TDT_SIZE] = { NULL };
     }
 
     int TBM_TDT_flush_index(int index) {
-        print_log("Flushed TDT table in [%i] index", index);
+        print_debug("Flushed TDT table in [%i] index", index);
 
         #ifndef NO_TDT
             if (TBM_TDT[index] == NULL) return -1;

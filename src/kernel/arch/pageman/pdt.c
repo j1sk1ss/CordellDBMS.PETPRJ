@@ -44,7 +44,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
                     PGM_PDT_flush_index(current);
                 }
                 
-                print_log("Adding to PDT page [%s] at index [%i]", page->header->name, current);
+                print_debug("Adding to PDT page [%s] at index [%i]", page->header->name, current);
                 PGM_PDT[current] = page;
             } else {
                 print_error("Can't lock page [%s] for flushing!", PGM_PDT[current]->header->name);
@@ -59,10 +59,8 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
         #ifndef NO_PDT
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_PDT[i] == NULL) continue;
-                if (memcmp(PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0) {
-                    PGM_lock_page(PGM_PDT[i], omp_get_thread_num());
+                if (memcmp(PGM_PDT[i]->header->name, name, PAGE_NAME_SIZE) == 0)
                     return PGM_PDT[i];
-                }
             }
         #endif
 
@@ -88,7 +86,10 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
         #ifndef NO_PDT
             for (int i = 0; i < PDT_SIZE; i++) {
                 if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) != -1) PGM_PDT_flush_index(i);
-                else return -1;
+                else {
+                    print_error("Can't lock page [%s]", PGM_PDT[i]);
+                    return -1;
+                }
             }
         #endif
 
@@ -118,7 +119,7 @@ static page_t* PGM_PDT[PDT_SIZE] = { NULL };
     }
 
     int PGM_PDT_flush_index(int index) {
-        print_log("Flushed PDT page in [%i] index", index);
+        print_debug("Flushed PDT page in [%i] index", index);
 
         #ifndef NO_PDT
             if (PGM_PDT[index] == NULL) return -1;

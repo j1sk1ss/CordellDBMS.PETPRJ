@@ -16,7 +16,6 @@
         int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
         uint8_t* content = TBM_get_content(table, global_offset, table->row_size);
-        TBM_release_table(table, omp_get_thread_num());
         return content;
     }
 
@@ -59,7 +58,6 @@
         #endif
 
         result = TBM_append_content(table, data, data_size);
-        TBM_release_table(table, omp_get_thread_num());
         return result;
     }
 
@@ -78,8 +76,10 @@
         int page_offset   = row % rows_per_page;
         int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
+        if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -4;
         result = TBM_insert_content(table, global_offset, data, data_size);
         TBM_release_table(table, omp_get_thread_num());
+
         return result;
     }
 
@@ -103,6 +103,7 @@
                 row_size += table->columns[i]->size;
             }
             else {
+                if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -2;
                 int result = TBM_insert_content(table, table->row_size * row, data, table->row_size);
                 TBM_release_table(table, omp_get_thread_num());
                 return result;
@@ -111,8 +112,11 @@
 
         int result = 0;
         if ((int)data_size > column_size) result = -1;
+
+        if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -2;
         result = TBM_insert_content(table, row_size * row + column_offset, data, column_size);
         TBM_release_table(table, omp_get_thread_num());
+        
         return result;
     }
 
@@ -129,10 +133,7 @@
                 // Load slave table from disk
                 table_t* slave_table = DB_get_table(database, (char*)table->column_links[i]->slave_table_name);
                 if (slave_table == NULL) continue;
-                if (CHECK_DELETE_ACCESS(access, slave_table->header->access) == -1) {
-                    TBM_release_table(slave_table, omp_get_thread_num());
-                    continue;
-                }
+                if (CHECK_DELETE_ACCESS(access, slave_table->header->access) == -1) continue;
 
                 // Get master column data and offset
                 int master_column_offset = 0;
@@ -147,11 +148,7 @@
                 }
 
                 // Get row by provided index
-                if (master_column == NULL) {
-                    TBM_release_table(slave_table, omp_get_thread_num());
-                    continue;
-                }
-
+                if (master_column == NULL) continue;
                 uint8_t* master_row = DB_get_row(database, table_name, row, access);
                 uint8_t* master_row_pointer = master_row + master_column_offset;
 
@@ -162,6 +159,8 @@
                 );
 
                 free(master_row);
+
+                if (TBM_lock_table(slave_table, omp_get_thread_num()) == -1) continue;
                 DB_delete_row(database, (char*)slave_table->header->name, slave_row, access);
                 TBM_release_table(slave_table, omp_get_thread_num());
             }
@@ -172,6 +171,7 @@
         int page_offset   = row % rows_per_page;
         int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
+        if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -3;
         int result = TBM_delete_content(table, global_offset, table->row_size);
         TBM_release_table(table, omp_get_thread_num());
         return result;
@@ -181,7 +181,6 @@
         for (int i = 0; i < database->header->table_count; i++) {
             table_t* table = DB_get_table(database, (char*)database->table_names[i]);
             TBM_cleanup_dirs(table);
-            TBM_release_table(table, omp_get_thread_num());
         }
         
         if (TBM_TDT_sync() != 1) return -1;
@@ -217,22 +216,13 @@
 
         while (1) {
             int global_offset = TBM_find_content(table, offset, data, data_size);
-            if (global_offset < 0) {
-                TBM_release_table(table, omp_get_thread_num());
-                return -1;
-            }
+            if (global_offset < 0) return -1;
 
             int row = global_offset / row_size;
-            if (column_offset == -1 && column_size == -1) {
-                TBM_release_table(table, omp_get_thread_num());
-                return row;
-            }
+            if (column_offset == -1 && column_size == -1) return row;
 
             int position_in_row = global_offset % row_size;
-            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
-                TBM_release_table(table, omp_get_thread_num());
-                return row;
-            }
+            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
             else offset = global_offset + data_size;
         }
     }
