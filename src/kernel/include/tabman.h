@@ -8,7 +8,7 @@
  *      - Link dirs to tables
  *      - Unlink dirs from tables
  *      - Append / delete / insert and find data in tables
- * 
+ *
  *  Tabman abstraction level responsible for working with directories. It send requests and earns data from lower
  *  abstraction level. Also tabman don't check data signature. This is work of database level.
  *  Note: Tabman don't work directly with pages. It can work only with directories.
@@ -29,6 +29,7 @@
     #include <unistd.h>
 #endif
 
+#include "logging.h"
 #include "common.h"
 #include "dirman.h"
 

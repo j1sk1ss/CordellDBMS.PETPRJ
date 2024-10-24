@@ -21,6 +21,7 @@
     #include <unistd.h>
 #endif
 
+#include "logging.h"
 #include "common.h"
 #include "tabman.h"
 

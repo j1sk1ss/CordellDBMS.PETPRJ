@@ -39,13 +39,13 @@ int is_float(const char* str) {
 char* get_next_token(char** input, char delimiter) {
     char* token = *input;
     char* delimiter_position = strchr(*input, delimiter);
-    
+
     if (delimiter_position != NULL) {
         *delimiter_position = '\0';
         *input = delimiter_position + 1;
-    } 
+    }
     else *input = NULL;
-    
+
     return token;
 }
 
@@ -93,7 +93,7 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
                 path[0] = '*';
             }
 
-            if (!strstr(path, ".")) {                       
+            if (!strstr(path, ".")) {
                 lenFullPath = strlen(path);
                 if (path[lenFullPath - 1] != iDelim) {
                     strcat(path, sDelim);
@@ -119,7 +119,7 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
 
                 // Get length of extension:
                 for (i = lenFullPath - 1; i >= 0; i--) {
-                    if (pathKeep[i] == '.') break; 
+                    if (pathKeep[i] == '.') break;
                 }
 
                 lenExt_ = (lenFullPath - i) - 1;
@@ -149,7 +149,7 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
             strcpy(path, pathKeep2);
 
             if (path_ != NULL) {
-                if (rel) path_[0] = '.'; 
+                if (rel) path_[0] = '.';
             } // replace first "." for relative path
 
             free(sDelim);
@@ -167,4 +167,31 @@ char* get_current_time() {
     time_str[strlen(time_str) - 1] = '\0';
 
     return time_str;
+}
+
+char* generate_unique_filename(char* base_path, int name_size, char* extension) {
+    char* name = (char*)malloc(name_size * sizeof(char));
+    char save_path[512];
+
+    int delay = DEFAULT_DELAY;
+    while (1) {
+        rand_str(name, name_size);
+        sprintf(save_path, "%s%.8s.%s", base_path, name, extension);
+
+        FILE* file;
+        if ((file = fopen(save_path,"r")) != NULL) {
+            fclose(file);
+            if (--delay <= 0) {
+                free(name);
+                return NULL;
+            }
+        }
+        else {
+            // File not found, no memory leak since 'file' == NULL
+            // fclose(file) would cause an error
+            break;
+        }
+    }
+
+    return name;
 }

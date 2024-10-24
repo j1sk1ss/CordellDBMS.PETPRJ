@@ -12,8 +12,8 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <time.h>
+#include <stdio.h>
 
-#include "logging.h"
 #include "threading.h"
 
 
@@ -89,5 +89,17 @@ Get current time from time.h library
 Return char* of current time in format: "%Y-%m-%d %H:%M:%S"
 */
 char* get_current_time();
+
+/*
+Generate unique filename.
+
+Params:
+- base_path - Path, where will be placed file.
+- name_size - Name size of future file.
+- extension - File extension.
+
+Return allocated unique name or NULL, if name can't be create.
+*/
+char* generate_unique_filename(char* base_path, int name_size, char* extension);
 
 #endif

@@ -30,6 +30,7 @@
     #include <libgen.h>
 #endif
 
+#include "logging.h"
 #include "common.h"
 
 

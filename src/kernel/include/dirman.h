@@ -30,6 +30,7 @@
 #endif
 
 #include "common.h"
+#include "logging.h"
 #include "pageman.h"
 
 
