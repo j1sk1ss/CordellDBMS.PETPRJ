@@ -8,6 +8,7 @@ Examples:
 ```
 Example: db create database db1
 Example: db create table table_1 000 columns ( col1 10 str is_primary na col2 10 any np na )
+Example: db create table table_1 000 columns ( col1 10 calc=col2*10,mpre is_primary na col2 10 any np na )
 ```
 
 *APPEND*:
