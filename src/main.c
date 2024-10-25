@@ -82,6 +82,7 @@ void* handle_client(void* client_socket_fd) {
     int session = ((int*)client_socket_fd)[1];
 
     start_kernel_session(socket_fd, socket_fd, session);
+    close_connection(session);
     close(socket_fd);
 
     sessions[session] = 0;

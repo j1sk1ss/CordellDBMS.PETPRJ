@@ -85,25 +85,14 @@ int TBM_save_table(table_t* table, char* path) {
 
 table_t* TBM_load_table(char* path, char* name) {
     char load_path[DEFAULT_PATH_SIZE];
-    if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", TABLE_BASE_PATH, name, TABLE_EXTENSION);
-    else if (path != NULL) strcpy(load_path, path);
-    else {
+    if (get_load_path(name, path, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
     // If path is not NULL, we use function for getting file name
     char file_name[TABLE_NAME_SIZE];
-    if (path != NULL) {
-        char temp_path[DEFAULT_PATH_SIZE];
-        strcpy(temp_path, path);
-        get_file_path_parts(temp_path, NULL, file_name, NULL);
-    }
-    // If name is not NULL, we just copy it to filename buffer
-    else if (name != NULL) {
-        strncpy(file_name, name, TABLE_NAME_SIZE);
-    }
-
+    if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
     table_t* loaded_table = TBM_TDT_find_table(file_name);
     if (loaded_table != NULL) {
         print_debug("Loading table [%s] from TDT", load_path);

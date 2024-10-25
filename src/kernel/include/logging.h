@@ -56,7 +56,26 @@
 #endif
 
 
+/*
+Write log to file descriptor.
+
+Params:
+- level - Log level.
+- file - File descriptor.
+- line - Code line number.
+- message - Additional info message.
+- args - Args.
+*/
 void write_log(const char* level, const char* file, int line, const char* message, va_list args);
+
+/*
+Create log message.
+
+- level - Log level.
+- file - File name.
+- line - Code line number.
+- message - Additional info message.
+*/
 void log_message(const char* level, const char* file, int line, const char* message, ...);
 
 #endif

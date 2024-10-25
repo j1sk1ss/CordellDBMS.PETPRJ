@@ -23,8 +23,10 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define SOFT_FREE(ptr) do { \
-    free((ptr));      \
-    (ptr) = NULL;     \
+    if (ptr != NULL) {      \
+      free((ptr));          \
+      (ptr) = NULL;         \
+    }                       \
   } while(0)
 
 /*
@@ -89,6 +91,35 @@ Get current time from time.h library
 Return char* of current time in format: "%Y-%m-%d %H:%M:%S"
 */
 char* get_current_time();
+
+/*
+Get load path by name or path.
+
+Params:
+- name - Name of file or NULL.
+- path - Path for save or NULL.
+- buffer - Buffer, where will be stored load path.
+- base_path - Base path.
+- extension - File extension.
+
+Return 1 if load path generated.
+Return -1 if something goes wrong.
+*/
+int get_load_path(char* name, char* path, char* buffer, char* base_path, char* extension);
+
+/*
+Get filename by name or path.
+
+Params:
+- name - Name of file or NULL.
+- path - Path for save or NULL.
+- buffer - Buffer, where will be stored load path.
+- name_size - Size of name.
+
+Return 1 if name generated.
+Return -1 if something goes wrong.
+*/
+int get_filename(char* name, char* path, char* buffer, size_t name_size);
 
 /*
 Generate unique filename.

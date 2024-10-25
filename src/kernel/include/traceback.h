@@ -15,7 +15,14 @@
 #endif
 
 
+/*
+Enable trace back
+*/
 int TB_enable(void);
+
+/*
+Signal handler for trace back
+*/
 void handler(int sig);
 
 #endif

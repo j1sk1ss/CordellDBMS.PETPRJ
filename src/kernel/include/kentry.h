@@ -110,6 +110,16 @@ Return NULL or answer.
 kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, uint8_t access, int connection);
 
 /*
+Close connection by index.
+
+Params:
+- connection - Connection index.
+
+Return 1 if success.
+*/
+int close_connection(int connection);
+
+/*
 Free answer structure.
 
 Params:

@@ -63,23 +63,13 @@ int DRM_save_directory(directory_t* directory, char* path) {
 
 directory_t* DRM_load_directory(char* path, char* name) {
     char load_path[DEFAULT_PATH_SIZE];
-    if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, name, DIRECTORY_EXTENSION);
-    else if (path != NULL) strcpy(load_path, path);
-    else {
+    if (get_load_path(name, path, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
     char file_name[DIRECTORY_NAME_SIZE];
-    if (path != NULL) {
-        char temp_path[DEFAULT_PATH_SIZE];
-        strcpy(temp_path, path);
-        get_file_path_parts(temp_path, NULL, file_name, NULL);
-    }
-    else if (name != NULL) {
-        strncpy(file_name, name, DIRECTORY_NAME_SIZE);
-    }
-
+    if (get_filename(name, path, file_name, DIRECTORY_NAME_SIZE) == -1) return NULL;
     directory_t* loaded_directory = DRM_DDT_find_directory(file_name);
     if (loaded_directory != NULL) return loaded_directory;
 

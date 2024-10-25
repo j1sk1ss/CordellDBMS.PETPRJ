@@ -172,9 +172,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if update was success.
     */
     int DB_update_row(
-        database_t* database, char* table_name,
-        int row, char* column_name, uint8_t* data,
-        size_t data_size, uint8_t access
+        database_t* database, char* table_name, int row, char* column_name, uint8_t* data, size_t data_size, uint8_t access
     );
 
     /*
@@ -216,30 +214,28 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     Note 2: For avoiding situations, where function return row with part of word,
             add space to target data (Don't forget to encrease size).
-    Note 3: In difference with find data, this function will return index of row,
+    Note 3: <DEPRECATED> In difference with find data, this function will return index of row,
             that't why result of this function can't be used as offset. For working with
             rows, use rows functions.
 
     Params:
-    - database - pointer to database. (If NULL, we don`t use database table cache)
-    - table_name - table name
+    - database - pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - table name.
     - column - column name. Provide NULL, if you don't need specified column.
     - offset - global offset. For simple use, try:
                 DIRECTORY_OFFSET for directory offset,
                 PAGE_CONTENT_SIZE for page offset.
-    - data - data for search
-    - data_size - data for search size
-    - access - user access level
+    - data - data for search.
+    - data_size - data for search size.
+    - access - user access level.
 
-    Return -3 if access denied
-    Return -2 if something goes wrong
-    Return -1 if data nfound
-    Return row index (first entry) of target data
+    Return -3 if access denied.
+    Return -2 if something goes wrong.
+    Return -1 if data nfound.
+    Return row index (first entry) of target data.
     */
     int DB_find_data_row(
-        database_t* database, char* table_name,
-        char* column, int offset, uint8_t* data,
-        size_t data_size, uint8_t access
+        database_t* database, char* table_name, char* column, int offset, uint8_t* data, size_t data_size, uint8_t access
     );
 
 #pragma endregion
@@ -253,10 +249,10 @@ we use cache in pages (lowest level) and table cache at the highest level.
           Anyway, if you want to flash table, be sure that you replace it by NULL in database cache.
 
     Params:
-    - table_name - name of table
+    - table_name - name of table.
 
-    Return NULL if table nfound
-    Return pointer to table
+    Return NULL if table nfound.
+    Return pointer to table.
     */
     table_t* DB_get_table(database_t* database, char* table_name);
 
@@ -277,12 +273,12 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Add table to database. You can add infinity count of tables.
 
     Params:
-    - database - pointer to database
+    - database - pointer to database.
     - table - pointer to table (Be sure that you don`t flust this table after link).
               This function also save link in database cache to this table.
 
-    Return -1 if something goes wrong
-    Return 1 if link was success
+    Return -1 if something goes wrong.
+    Return 1 if link was success.
     */
     int DB_link_table2database(database_t* database, table_t* table);
 
@@ -292,11 +288,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
           For deleting tables - manualy use C file delete (Or higher abstaction language file operation).
 
     Params:
-    - database - pointer to database
-    - name - table name for delete
+    - database - pointer to database.
+    - name - table name for delete.
 
-    Return -1 if something goes wrong
-    Return 1 if unlink was success
+    Return -1 if something goes wrong.
+    Return 1 if unlink was success.
     */
     int DB_unlink_table_from_database(database_t* database, char* name);
 
@@ -307,18 +303,30 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Params:
     - name - database name. Be sure that this name is uniqe. Function don't check this!
 
-    Return pointer to new database
+    Return pointer to new database.
     */
     database_t* DB_create_database(char* name);
 
     /*
-    Free allocated data base
+    Delete database from disk. <NOT TRANSACTION SAFE!>
 
     Params:
-    - database - pointer to database
+    - database - Pointer to database.
+    - full - Recurse deleting.
 
-    Return -1 if something goes wrong
-    Return 1 if realise was success
+    Return 1 if database deleted.
+    Return -1 if something goes wrong.
+    */
+    int DB_delete_database(database_t* database, int full);
+
+    /*
+    Free allocated data base.
+
+    Params:
+    - database - pointer to database.
+
+    Return -1 if something goes wrong.
+    Return 1 if realise was success.
     */
     int DB_free_database(database_t* database);
 
@@ -356,15 +364,15 @@ we use cache in pages (lowest level) and table cache at the highest level.
     /*
     Init transaction method prepare DBMS for transaction by flush all buffers.
     Note: Be sure, that transaction will work with:
-    - 10 or less tables
-    - 10 or less directories
-    - 10 or less pages
+    - 10 or less tables.
+    - 10 or less directories.
+    - 10 or less pages.
     In few words, that means, that you can input data with 40960KB (40MB) size to 10 directories at one time.
 
     Return 1 if transaction init success.
-    Return -1 if we can't free TDT
-    Return -2 if we can't free DTD
-    Return -3 if we can't free PDT
+    Return -1 if we can't free TDT.
+    Return -2 if we can't free DTD.
+    Return -3 if we can't free PDT.
     Return -4 if database is NULL.
     */
     int DB_init_transaction(database_t* database);

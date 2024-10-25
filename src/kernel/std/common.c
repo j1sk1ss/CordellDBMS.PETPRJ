@@ -169,6 +169,26 @@ char* get_current_time() {
     return time_str;
 }
 
+int get_load_path(char* name, char* path, char* buffer, char* base_path, char* extension) {
+    if (path == NULL && name != NULL) sprintf(buffer, "%s%.8s.%s", base_path, name, extension);
+    else if (path != NULL) strcpy(buffer, path);
+    else return -1;
+    return 1;
+}
+
+int get_filename(char* name, char* path, char* buffer, size_t name_size) {
+    if (path != NULL) {
+        char temp_path[DEFAULT_PATH_SIZE];
+        strcpy(temp_path, path);
+        get_file_path_parts(temp_path, NULL, buffer, NULL);
+    }
+    else if (name != NULL) {
+        strncpy(buffer, name, name_size);
+    }
+    
+    return 1;
+}
+
 char* generate_unique_filename(char* base_path, int name_size, char* extension) {
     char* name = (char*)malloc(name_size * sizeof(char));
     char save_path[512];

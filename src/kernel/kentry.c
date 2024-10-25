@@ -217,10 +217,30 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         */
         else if (strcmp(command, DELETE) == 0) {
             /*
-            Command syntax: delete table <name> <rwd>
+            Command syntax: delete database <name>
             */
             command_index++;
-            if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
+            if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
+                char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (database_name == NULL) {
+                    answer->answer_code = 5;
+                    return answer;
+                }
+
+                if (DB_delete_database(database, 1) != 1) print_error("Error code 1 during deleting %s", database_name);
+                else print_log("Database [%s] was delete successfully.", database_name);
+
+                database = NULL;
+                connections[connection] = NULL;
+
+                answer->answer_code = 1;
+                answer->answer_size = -1;
+                answer->commands_processed = command_index;
+            }
+            /*
+            Command syntax: delete table <name>
+            */
+            else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
                     answer->answer_code = 5;
@@ -532,6 +552,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
 
     if (auto_sync == 1) DB_init_transaction(database);
     return answer;
+}
+
+int close_connection(int connection) {
+    DB_free_database(connections[connection]);
+    connections[connection] = NULL;
 }
 
 int kernel_free_answer(kernel_answer_t* answer) {

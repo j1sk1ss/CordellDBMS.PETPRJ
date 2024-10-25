@@ -44,7 +44,7 @@ int PGM_save_page(page_t* page, char* path) {
                 status  = 1;
                 int eof = PGM_set_pe_symbol(page, PAGE_START);
                 int page_size = PGM_find_value(page, 0, PAGE_END);
-                if (page_size <= 0) page_size = PAGE_CONTENT_SIZE;
+                if (page_size <= 0) page_size = 0;
 
                 page->header->checksum = PGM_get_checksum(page);
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
@@ -68,23 +68,13 @@ int PGM_save_page(page_t* page, char* path) {
 
 page_t* PGM_load_page(char* path, char* name) {
     char load_path[DEFAULT_PATH_SIZE];
-    if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", PAGE_BASE_PATH, name, PAGE_EXTENSION);
-    else if (path != NULL) strcpy(load_path, path);
-    else {
+    if (get_load_path(name, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
     char file_name[PAGE_NAME_SIZE];
-    if (path != NULL) {
-        char temp_path[DEFAULT_PATH_SIZE];
-        strcpy(temp_path, path);
-        get_file_path_parts(temp_path, NULL, file_name, NULL);
-    }
-    else if (name != NULL) {
-        strncpy(file_name, name, PAGE_NAME_SIZE);
-    }
-
+    if (get_filename(name, path, file_name, PAGE_NAME_SIZE) == -1) return NULL;
     page_t* loaded_page = PGM_PDT_find_page(file_name);
     if (loaded_page != NULL) return loaded_page;
 
