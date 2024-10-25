@@ -13,6 +13,11 @@
 #include <stdint.h>
 #include <time.h>
 #include <stdio.h>
+#ifdef _WIN32
+  #include <windows.h>
+#else
+  #include <sys/stat.h>
+#endif
 
 #include "threading.h"
 
@@ -28,6 +33,7 @@
       (ptr) = NULL;         \
     }                       \
   } while(0)
+
 
 /*
 Create rundom string
@@ -132,5 +138,33 @@ Params:
 Return allocated unique name or NULL, if name can't be create.
 */
 char* generate_unique_filename(char* base_path, int name_size, char* extension);
+
+/*
+Check if file exists.
+
+Params:
+- path - Path to file with filename and extension.
+
+Return 1 if exist, 0 if not.
+*/
+int file_exists(const char* path);
+
+/*
+Replacing sub-memory in memory by new memory.
+Reference from: https://stackoverflow.com/questions/779875/what-function-is-to-replace-a-substring-from-a-string-in-c
+
+Params:
+- source - Source memory.
+- source_size - Size of source memory.
+- sub_string - Sub memory for replace.
+- sub_string_size - Sub memory size.
+- new_string - New sub string.
+- new_string_size - New sub memory size.
+
+Return new mamory with replaced sub-memory.
+*/
+uint8_t* memrep(
+    uint8_t* source, int source_size, uint8_t* sub, int sub_size, uint8_t* new, int new_size, size_t *result_len
+);
 
 #endif

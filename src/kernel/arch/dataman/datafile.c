@@ -23,7 +23,7 @@ int DB_delete_database(database_t* database, int full) {
     }
 
     char delete_path[DEFAULT_PATH_SIZE];
-    get_load_path(database->header->name, NULL, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
+    get_load_path((char*)database->header->name, NULL, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
     remove(delete_path);
 
     DB_free_database(database);

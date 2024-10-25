@@ -185,7 +185,7 @@ int get_filename(char* name, char* path, char* buffer, size_t name_size) {
     else if (name != NULL) {
         strncpy(buffer, name, name_size);
     }
-    
+
     return 1;
 }
 
@@ -198,9 +198,7 @@ char* generate_unique_filename(char* base_path, int name_size, char* extension) 
         rand_str(name, name_size);
         sprintf(save_path, "%s%.8s.%s", base_path, name, extension);
 
-        FILE* file;
-        if ((file = fopen(save_path,"r")) != NULL) {
-            fclose(file);
+        if (file_exists(save_path)) {
             if (--delay <= 0) {
                 free(name);
                 return NULL;
@@ -214,4 +212,68 @@ char* generate_unique_filename(char* base_path, int name_size, char* extension) 
     }
 
     return name;
+}
+
+int file_exists(const char* filename) {
+    #ifdef _WIN32
+        DWORD fileAttr = GetFileAttributes(filename);
+        return (fileAttr != INVALID_FILE_ATTRIBUTES && !(fileAttr & FILE_ATTRIBUTE_DIRECTORY));
+    #else
+        struct stat buffer;
+        return (stat(filename, &buffer) == 0);
+    #endif
+}
+
+uint8_t* memrep(
+    uint8_t* source, int source_size, uint8_t* sub, int sub_size, uint8_t* new, int new_size, size_t *result_len
+) {
+    uint8_t* result;   // the return array
+    uint8_t* ins;      // the next insert point
+    uint8_t* tmp;      // varies
+    size_t len_front;  // distance between rep and end of last rep
+    int count;         // number of replacements
+
+    // sanity checks and initialization
+    if (!source || !sub || sub_size == 0) return NULL;
+    if (!new) {
+        new = (uint8_t *)"";
+        new_size = 0;
+    }
+
+    // count the number of replacements needed
+    ins = source;
+    for (count = 0; (tmp = (uint8_t *)memmem(ins, source_size - (ins - source), sub, sub_size)); ++count) {
+        ins = tmp + sub_size;
+    }
+
+    // Calculate the length of the result array
+    *result_len = source_size + (new_size - sub_size) * count;
+    result = (uint8_t *)malloc(*result_len);
+    if (!result) {
+        return NULL;
+    }
+
+    tmp = result;
+    ins = source;
+
+    // Perform the replacements
+    while (count--) {
+        uint8_t *pos = (uint8_t *)memmem(ins, source_size - (ins - source), sub, sub_size);
+        len_front = pos - ins;
+        
+        // Copy segment before the match
+        memcpy(tmp, ins, len_front);
+        tmp += len_front;
+
+        // Copy the replacement segment
+        memcpy(tmp, new, new_size);
+        tmp += new_size;
+
+        // Advance the original array pointer past the matched segment
+        ins = pos + sub_size;
+    }
+
+    // Copy the remainder of the original array after the last match
+    memcpy(tmp, ins, source_size - (ins - source));
+    return result;
 }

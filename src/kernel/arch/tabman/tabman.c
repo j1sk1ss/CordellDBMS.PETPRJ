@@ -347,14 +347,55 @@ int TBM_check_signature(table_t* table, uint8_t* data) {
             case COLUMN_TYPE_INT:
                 if (!is_integer(value)) return -2;
                 break;
-            case COLUMN_TYPE_FLOAT:
-                if (!is_float(value)) return -3;
-                break;
             case COLUMN_TYPE_ANY:
+                break;
+            case COLUMN_TYPE_MODULE:
                 break;
             default:
                 return -4;
         }
+    }
+
+    return 1;
+}
+
+int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
+    for (int i = 0; i < table->header->column_count; i++) {
+        int content_offset = 0;
+        int module_offset  = 0;
+
+        if (GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_MODULE) {
+            if (table->columns[i]->module_params != type) continue;
+            char* formula = (char*)table->columns[i]->module_querry;
+            char* output_querry = (char*)malloc(COLUMN_MODULE_SIZE);
+            memcpy(output_querry, formula, COLUMN_MODULE_SIZE);
+
+            for (int j = 0; j < table->header->column_count; j++) {
+                if (i != j) {
+                    uint8_t* content_pointer = data + content_offset;
+                    char content_part[table->columns[j]->size];
+                    memcpy(content_part, content_pointer, table->columns[j]->size);
+
+                    size_t next_output_querry_size[1];
+                    uint8_t* next_output_querry = memrep(
+                        (uint8_t*)output_querry, COLUMN_MODULE_SIZE,
+                        table->columns[j]->name, strlen((char*)table->columns[j]->name),
+                        (uint8_t*)content_part, table->columns[j]->size,
+                        next_output_querry_size
+                    );
+                    
+                    free(output_querry);
+                    output_querry = (char*)next_output_querry;
+                }
+
+                content_offset += table->columns[j]->size;
+            }
+
+            uint8_t* module_content_answer = data + module_offset;
+            MDL_launch_module((char*)table->columns[i]->module_name, output_querry, module_content_answer, table->columns[i]->size);
+        }
+
+        module_offset += table->columns[i]->size;
     }
 
     return 1;

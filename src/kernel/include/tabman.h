@@ -32,6 +32,7 @@
 #include "logging.h"
 #include "common.h"
 #include "dirman.h"
+#include "module.h"
 
 
 #define TDT_SIZE 10
@@ -106,7 +107,12 @@
     In optimisation purpuse, this value should be equals something like 16 or 8.
     Note: In PSQL, max size of column name is 64.
     */
-    #define COLUMN_NAME_SIZE    8
+    #define COLUMN_NAME_SIZE        8
+
+    #define COLUMN_MODULE_NAME_SIZE 8
+    #define COLUMN_MODULE_SIZE      24
+    #define COLUMN_MODULE_PRELOAD   0x00
+    #define COLUMN_MODULE_POSTLOAD  0x01
 
     // Column auto increment bits.
     // <Already not implemented yet>
@@ -122,8 +128,8 @@
     #define COLUMN_TYPE_ANY          0x00
     // Int type throw error, if user insert something, that not int
     #define COLUMN_TYPE_INT          0x01
-    // Float type throw error, if user insert something, that not float
-    #define COLUMN_TYPE_FLOAT        0x02
+    // Float type throw error, if user insert something, that not module
+    #define COLUMN_TYPE_MODULE       0x02
     // String type throw error, if user insert something, that not char*
     #define COLUMN_TYPE_STRING       0x03
 
@@ -220,6 +226,12 @@
         // Column name with fixed size
         // Column name
         uint8_t name[COLUMN_NAME_SIZE];
+
+        // Column module data.
+        // If in column used any module, we store command here.
+        uint8_t module_params;
+        uint8_t module_name[COLUMN_MODULE_NAME_SIZE];
+        uint8_t module_querry[COLUMN_MODULE_SIZE];
     } table_column_t;
 
     typedef struct table_header {
@@ -598,6 +610,18 @@
     Return table checksum.
     */
     uint32_t TBM_get_checksum(table_t* table);
+
+    /*
+    Invoke modules in table and change input data.
+
+    Params:
+    - table - Pointer to table.
+    - data - Pointer to data for module invoke.
+    - type - Addition params.
+
+    Return 1 if success.
+    */
+    int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type);
 
     #pragma region [TDT]
 

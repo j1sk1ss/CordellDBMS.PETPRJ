@@ -95,7 +95,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             }
             /*
             Handle table creation.
-            Command syntax: create table <name> <rwd> columns ( name size <int/str/dob/any> <is_primary/np> <auto_increment/na> )
+            Command syntax: create table <name> <rwd> columns ( name size <int/str/<module>="formula"/any> <is_primary/np> <auto_increment/na> )
             Errors:
             - Return -1 if table already exists in database.
             */
@@ -133,10 +133,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             if (column_stack[j] == NULL) break;
 
                             // Get column data type
-                            uint8_t data_type = COLUMN_TYPE_ANY;
+                            uint8_t data_type = COLUMN_TYPE_MODULE;
                             char* column_data_type = column_stack[j + 2];
                             if (strcmp(column_data_type, TYPE_INT) == 0) data_type = COLUMN_TYPE_INT;
-                            else if (strcmp(column_data_type, TYPE_DOUBLE) == 0) data_type = COLUMN_TYPE_FLOAT;
+                            else if (strcmp(column_data_type, TYPE_ANY) == 0) data_type = COLUMN_TYPE_ANY;
                             else if (strcmp(column_data_type, TYPE_STRING) == 0) data_type = COLUMN_TYPE_STRING;
 
                             // Get column primary status
@@ -150,12 +150,32 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             if (strcmp(column_increment, AUTO_INC) == 0) increment_status = COLUMN_AUTO_INCREMENT;
 
                             columns = (table_column_t**)realloc(columns, sizeof(table_column_t*) * (column_count + 1));
-                            columns[column_count++] = TBM_create_column(
+                            columns[column_count] = TBM_create_column(
                                 CREATE_COLUMN_TYPE_BYTE(primary_status, data_type, increment_status),
                                 atoi(column_stack[j + 1]), column_stack[j]
                             );
 
-                            print_log("%i) Column [%s] with args: [%i], created success!", column_count, column_stack[j], columns[column_count - 1]->type);
+                            if (data_type == COLUMN_TYPE_MODULE) {
+                                char* equals_pos = strchr(column_data_type, '=');
+                                char* comma_pos = strchr(column_data_type, ',');
+
+                                columns[column_count]->module_params = COLUMN_MODULE_POSTLOAD;
+                                if (strncmp(comma_pos + 1, MODULE_PRELOAD, strlen(MODULE_PRELOAD)) == 0)
+                                    columns[column_count]->module_params = COLUMN_MODULE_PRELOAD;
+
+                                size_t module_name_len = equals_pos - column_data_type;
+                                size_t module_query_len = comma_pos - equals_pos - 1;
+
+                                memset(columns[column_count]->module_name, '\0', COLUMN_MODULE_NAME_SIZE);
+                                strncpy((char*)columns[column_count]->module_name, column_data_type, MIN(module_name_len, COLUMN_MODULE_NAME_SIZE));
+                                if (equals_pos != NULL) {
+                                    strncpy((char*)columns[column_count]->module_querry, equals_pos + 1, module_query_len);
+                                    print_log("Module [%s] registered with [%s] querry", columns[column_count]->module_name, columns[column_count]->module_querry);
+                                }
+                            }
+
+                            print_log("%i) Column [%s] with args: [%i], created success!", column_count, column_stack[j], columns[column_count]->type);
+                            column_count++;
                         }
                     }
                 }
@@ -557,11 +577,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
 int close_connection(int connection) {
     DB_free_database(connections[connection]);
     connections[connection] = NULL;
+    return 1;
 }
 
 int kernel_free_answer(kernel_answer_t* answer) {
     if (answer->answer_body != NULL) free(answer->answer_body);
     free(answer);
-
     return 1;
 }

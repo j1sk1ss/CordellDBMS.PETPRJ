@@ -70,7 +70,7 @@
     #pragma region [Types]
 
         #define TYPE_INT    "int"
-        #define TYPE_DOUBLE "dob"
+        #define TYPE_MODULE "mod"
         #define TYPE_STRING "str"
         #define TYPE_ANY    "any"
 
@@ -78,6 +78,9 @@
         #define CASCADE_UPD "cupd"
         #define CASCADE_APP "capp"
         #define CASCADE_FND "cfnd"
+
+        #define MODULE_PRELOAD  "mpre"
+        #define MODULE_POSTLOAD "mpost"
 
     #pragma endregion
 

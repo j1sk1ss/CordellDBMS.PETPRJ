@@ -124,7 +124,6 @@ int PGM_free_page(page_t* page) {
 }
 
 uint32_t PGM_get_checksum(page_t* page) {
-    PGM_lock_page(page, omp_get_thread_num());
     uint32_t prev_checksum = page->header->checksum;
     page->header->checksum = 0;
 
@@ -134,7 +133,5 @@ uint32_t PGM_get_checksum(page_t* page) {
 
     page->header->checksum = prev_checksum;
     checksum = crc32(checksum, (const uint8_t*)page->content, sizeof(page->content));
-    PGM_release_page(page, omp_get_thread_num());
-
     return checksum;
 }

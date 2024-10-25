@@ -12,6 +12,8 @@ uint8_t* DB_get_row(database_t* database, char* table_name, int row, uint8_t acc
     int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
     uint8_t* content = TBM_get_content(table, global_offset, table->row_size);
+    TBM_invoke_modules(table, content, COLUMN_MODULE_POSTLOAD);
+
     return content;
 }
 
@@ -22,6 +24,8 @@ int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t 
 
     int result = TBM_check_signature(table, data);
     if (result != 1) return result - 10;
+
+    TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
 
     // Get primary column and column offset
     int column_offset = 0;
@@ -74,8 +78,7 @@ int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data
 }
 
 int DB_update_row(
-    database_t* database, char* table_name, int row, char* column_name,
-    uint8_t* data, size_t data_size, uint8_t access
+    database_t* database, char* table_name, int row, char* column_name, uint8_t* data, size_t data_size, uint8_t access
 ) { // TODO: Cascade Update (If updated linked column)
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
