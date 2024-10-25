@@ -7,7 +7,10 @@
 
         int delay = DEFAULT_DELAY;
         while (TBM_lock_test(table, owner) == LOCKED)
-            if (--delay <= 0) return -1;
+            if (--delay <= 0) {
+                print_error("Can't lock table [%s], owner: [%i], new owner [%i]", table->header->name, table->lock_owner, owner);
+                return -1;
+            }
 
         table->lock = LOCKED;
         table->lock_owner = owner;

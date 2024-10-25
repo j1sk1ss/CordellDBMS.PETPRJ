@@ -7,7 +7,10 @@ int PGM_lock_page(page_t* page, uint8_t owner) {
 
     int delay = DEFAULT_DELAY;
     while (PGM_lock_test(page, owner) == LOCKED)
-        if (--delay <= 0) return -1;
+        if (--delay <= 0) {
+            print_error("Can't lock page [%s], owner: [%i], new owner [%i]", page->header->name, page->lock_owner, owner);
+            return -1;
+        }
 
     page->lock       = LOCKED;
     page->lock_owner = owner;

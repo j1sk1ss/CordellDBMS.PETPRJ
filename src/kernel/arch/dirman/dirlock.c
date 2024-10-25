@@ -7,7 +7,10 @@ int DRM_lock_directory(directory_t* directory, uint8_t owner) {
 
     int delay = DEFAULT_DELAY;
     while (DRM_lock_test(directory, owner) == LOCKED)
-        if (--delay <= 0) return -1;
+        if (--delay <= 0) {
+            print_error("Can't lock directory [%s], owner: [%i], new owner [%i]", directory->header->name, directory->lock_owner, owner);
+            return -1;
+        }
 
     directory->lock = LOCKED;
     directory->lock_owner = owner;
