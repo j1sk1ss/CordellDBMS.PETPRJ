@@ -1,6 +1,12 @@
-I just want to create alternative of SQL like DBMS
+**About this project:**
+-----------------------------------------------------
+I just want to create alternative of SQL like DBMS. For example my own PostgreSQL, but simpler and lighter.
 
-##Docs:
+**ToDo list:**
+-----------------------------------------------------
+1) STM32 brunch </br>
+
+**Docs:**
 -----------------------------------------------------
 Examples:
 
