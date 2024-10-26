@@ -42,7 +42,7 @@ Took from: https://stackoverflow.com/questions/15767691/whats-the-c-library-func
 dest - pointer to place, where mamory for string allocated
 length - length of string that will be generated bu function
 */
-void rand_str(char* dest, size_t length);
+void strrand(char* dest, size_t length);
 
 /*
 Check if provided string is integer
@@ -129,6 +129,7 @@ int get_filename(char* name, char* path, char* buffer, size_t name_size);
 
 /*
 Generate unique filename.
+Took from: https://stackoverflow.com/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c
 
 Params:
 - base_path - Path, where will be placed file.

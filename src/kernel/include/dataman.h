@@ -98,16 +98,17 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note 2: This function will fail if signature of input data different with provided table.
 
     Data should have next format:
-    DATA_DATA_DATA -> CD -> DATA_DATA_DATA -> ... -> DATA_DATA_DATA
+    DATA_DATA_DATA -> CD -> DATA_DATA_DATA -> ... -> DATA_DATA_DATA.
     Don't use RD symbols in data, because it will cause failure. (Function append RD symbols).
 
     Params:
-    - database - pointer to database. (If NULL, we don`t use database table cache)
-    - table_name - current table name
-    - data - data for append (row for append)
-    - data_size - size of row (No limits)
-    - access - user access level
+    - database - pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - current table name.
+    - data - data for append (row for append).
+    - data_size - size of row (No limits).
+    - access - user access level.
 
+    Return -20 if primary row check failed.
     Return -4 if table not found in database.
     Return -3 if access denied.
     Return -2 if signature is wrong: {

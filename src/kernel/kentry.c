@@ -267,7 +267,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     return answer;
                 }
 
-                if (DB_delete_table(database, table_name, atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index))) != 1) print_error("Error code 1 during deleting %s", table_name);
+                if (DB_delete_table(database, table_name, 1) != 1) print_error("Error code 1 during deleting %s", table_name);
                 else print_log("Table [%s] was delete successfully.", table_name);
 
                 answer->answer_code = 1;

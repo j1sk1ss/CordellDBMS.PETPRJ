@@ -20,11 +20,15 @@ table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, u
     header->column_count      = col_count;
     header->column_link_count = 0;
 
+
     table_t* table  = (table_t*)malloc(sizeof(table_t));
     table->header   = header;
     table->columns  = columns;
     table->row_size = row_size;
 
+    table->lock = UNLOCKED;
+    table->lock_owner = NO_OWNER;
+    
     table->column_links = NULL;
 
     return table;

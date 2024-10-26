@@ -1,7 +1,7 @@
 #include "../include/common.h"
 
 
-void rand_str(char *dest, size_t length) {
+void strrand(char *dest, size_t length) {
     srand(time(0));
     char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     while (length-- > 0) {
@@ -195,7 +195,7 @@ char* generate_unique_filename(char* base_path, int name_size, char* extension) 
 
     int delay = DEFAULT_DELAY;
     while (1) {
-        rand_str(name, name_size);
+        strrand(name, name_size);
         sprintf(save_path, "%s%.8s.%s", base_path, name, extension);
 
         if (file_exists(save_path)) {
@@ -233,20 +233,17 @@ uint8_t* memrep(
     size_t len_front;  // distance between rep and end of last rep
     int count;         // number of replacements
 
-    // sanity checks and initialization
     if (!source || !sub || sub_size == 0) return NULL;
     if (!new) {
         new = (uint8_t *)"";
         new_size = 0;
     }
 
-    // count the number of replacements needed
     ins = source;
     for (count = 0; (tmp = (uint8_t *)memmem(ins, source_size - (ins - source), sub, sub_size)); ++count) {
         ins = tmp + sub_size;
     }
 
-    // Calculate the length of the result array
     *result_len = source_size + (new_size - sub_size) * count;
     result = (uint8_t *)malloc(*result_len);
     if (!result) {
@@ -256,24 +253,18 @@ uint8_t* memrep(
     tmp = result;
     ins = source;
 
-    // Perform the replacements
     while (count--) {
         uint8_t *pos = (uint8_t *)memmem(ins, source_size - (ins - source), sub, sub_size);
         len_front = pos - ins;
         
-        // Copy segment before the match
         memcpy(tmp, ins, len_front);
         tmp += len_front;
 
-        // Copy the replacement segment
         memcpy(tmp, new, new_size);
         tmp += new_size;
-
-        // Advance the original array pointer past the matched segment
         ins = pos + sub_size;
     }
 
-    // Copy the remainder of the original array after the last match
     memcpy(tmp, ins, source_size - (ins - source));
     return result;
 }

@@ -50,7 +50,7 @@ int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t 
 
         // If in table already presented this value.
         // That means, that this data not uniqe.
-        if (row >= 0) return -1;
+        if (row >= 0) return -20;
     }
 
     result = TBM_append_content(table, data, data_size);

@@ -8,6 +8,9 @@ page_t* PGM_create_page(char* name, uint8_t* buffer, size_t data_size) {
     header->magic = PAGE_MAGIC;
     memcpy(header->name, name, PAGE_NAME_SIZE);
 
+    page->lock_owner = NO_OWNER;
+    page->lock = UNLOCKED;
+
     page->header = header;
     if (buffer != NULL) memcpy(page->content, buffer, data_size);
     for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;

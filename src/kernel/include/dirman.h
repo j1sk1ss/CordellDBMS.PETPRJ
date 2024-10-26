@@ -247,7 +247,6 @@
     Note 2: Function generates random name with delay. It need for avoid situations,
             where we can rewrite existed directory.
     Note 3: In future prefere avoid random generation by using something like hash generator
-    Took from: https://stackoverflow.com/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c
 
     Return pointer to allocated directory.
     Return NULL if we can`t create random name.

@@ -9,6 +9,9 @@ directory_t* DRM_create_directory(char* name) {
     dir->header->magic = DIRECTORY_MAGIC;
     dir->header->page_count = 0;
 
+    dir->lock_owner = NO_OWNER;
+    dir->lock = UNLOCKED;
+
     return dir;
 }
 
