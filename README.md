@@ -1,6 +1,12 @@
-I just want to create alternative of SQL like DBMS
+**About this project:**
+-----------------------------------------------------
+I just want to create alternative of SQL like DBMS. For example my own PostgreSQL, but simpler and lighter.
 
-##Docs:
+**ToDo list:**
+-----------------------------------------------------
+1) STM32 brunch </br>
+
+**Docs:**
 -----------------------------------------------------
 Examples:
 
@@ -8,6 +14,7 @@ Examples:
 ```
 Example: db create database db1
 Example: db create table table_1 000 columns ( col1 10 str is_primary na col2 10 any np na )
+Example: db create table table_1 000 columns ( col1 10 calc=col2*10,mpre is_primary na col2 10 any np na )
 ```
 
 *APPEND*:
