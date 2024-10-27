@@ -61,6 +61,9 @@
     #define VALUE           "value"
     #define ROW             "row"
 
+    #define MASTER          "master"
+    #define TO_SLAVE        "to_slave"
+
     #define BY_INDEX        "by_index"
     #define BY_VALUE        "by_value"
 
@@ -79,14 +82,15 @@
         #define CASCADE_APP "capp"
         #define CASCADE_FND "cfnd"
 
-        #define MODULE_PRELOAD  "mpre"
-        #define MODULE_POSTLOAD "mpost"
+        #define MODULE_PRELOAD   "mpre"
+        #define MODULE_POSTLOAD  "mpost"
+        #define MODULE_BOTH_LOAD "both"
 
     #pragma endregion
 
-    #define PRIMARY         "is_primary"
+    #define PRIMARY         "p"
     #define NPRIMART        "np"
-    #define AUTO_INC        "auto_increment"
+    #define AUTO_INC        "a"
     #define NAUTO_INC       "na"
 
 #pragma endregion

@@ -15,7 +15,7 @@ int MDL_launch_module(char* module_name, char* args, uint8_t* buffer, size_t buf
         return -1;
     }
 
-    snprintf(command, sizeof(command), "./%s '%s'", module_path, args);
+    snprintf(command, sizeof(command), "./%s %s", module_path, args);
     FILE* fp = popen(command, "r");
     if (fp == NULL) {
         print_error("Error executing command\n");

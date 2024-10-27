@@ -21,6 +21,7 @@ int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t 
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -4;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
+    if (table->row_size != data_size) return -5;
 
     int result = TBM_check_signature(table, data);
     if (result != 1) return result - 10;
@@ -61,9 +62,12 @@ int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
+    if (table->row_size != data_size) return -5;
 
     int result = TBM_check_signature(table, data);
     if (result != 1) return result - 10;
+
+    TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
 
     int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
     int pages_offset  = row / rows_per_page;
@@ -72,43 +76,6 @@ int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data
 
     if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -4;
     result = TBM_insert_content(table, global_offset, data, data_size);
-    TBM_release_table(table, omp_get_thread_num());
-
-    return result;
-}
-
-int DB_update_row(
-    database_t* database, char* table_name, int row, char* column_name, uint8_t* data, size_t data_size, uint8_t access
-) { // TODO: Cascade Update (If updated linked column)
-    table_t* table = DB_get_table(database, table_name);
-    if (table == NULL) return -1;
-    if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
-
-    int row_size      = 0;
-    int column_offset = -1;
-    int column_size   = -1;
-    for (int i = 0; i < table->header->column_count; i++) {
-        if (column_name != NULL) {
-            if (strcmp((char*)table->columns[i]->name, column_name) == 0) {
-                column_offset = row_size;
-                column_size = table->columns[i]->size;
-            }
-
-            row_size += table->columns[i]->size;
-        }
-        else {
-            if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -2;
-            int result = TBM_insert_content(table, table->row_size * row, data, table->row_size);
-            TBM_release_table(table, omp_get_thread_num());
-            return result;
-        }
-    }
-
-    int result = 0;
-    if ((int)data_size > column_size) result = -1;
-
-    if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -2;
-    result = TBM_insert_content(table, row_size * row + column_offset, data, column_size);
     TBM_release_table(table, omp_get_thread_num());
 
     return result;

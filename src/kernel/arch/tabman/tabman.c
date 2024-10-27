@@ -363,16 +363,22 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
     int module_offset = 0;
     for (int i = 0; i < table->header->column_count; i++) {
         if (GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_MODULE) {
-            if (table->columns[i]->module_params != type) continue;
-            char* formula = (char*)table->columns[i]->module_querry;
-            char* output_querry = (char*)malloc(COLUMN_MODULE_SIZE);
-            memcpy(output_querry, formula, COLUMN_MODULE_SIZE);
+            if (table->columns[i]->module_params == type || table->columns[i]->module_params == COLUMN_MODULE_BOTH) {
+                char* formula = (char*)table->columns[i]->module_querry;
+                char* output_querry = (char*)malloc(COLUMN_MODULE_SIZE);
+                if (!output_querry) return -1;
 
-            int content_offset = 0;
-            for (int j = 0; j < table->header->column_count; j++) {
-                if (i != j) {
+                memcpy(output_querry, formula, COLUMN_MODULE_SIZE);
+
+                int content_offset = 0;
+                for (int j = 0; j < table->header->column_count; j++) {
                     uint8_t* content_pointer = data + content_offset;
-                    char content_part[table->columns[j]->size];
+                    char* content_part = (char*)malloc(table->columns[j]->size);
+                    if (!content_part) {
+                        free(output_querry);
+                        return -2;
+                    }
+
                     memcpy(content_part, content_pointer, table->columns[j]->size);
 
                     size_t next_output_querry_size[1];
@@ -384,14 +390,15 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
                     );
                     
                     free(output_querry);
+                    free(content_part);
+
                     output_querry = (char*)next_output_querry;
+                    content_offset += table->columns[j]->size;
                 }
 
-                content_offset += table->columns[j]->size;
+                uint8_t* module_content_answer = data + module_offset;
+                MDL_launch_module((char*)table->columns[i]->module_name, output_querry, module_content_answer, table->columns[i]->size);
             }
-
-            uint8_t* module_content_answer = data + module_offset;
-            MDL_launch_module((char*)table->columns[i]->module_name, output_querry, module_content_answer, table->columns[i]->size);
         }
 
         module_offset += table->columns[i]->size;

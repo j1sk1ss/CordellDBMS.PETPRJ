@@ -109,6 +109,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - access - user access level.
 
     Return -20 if primary row check failed.
+    Return -5 if data size != row size.
     Return -4 if table not found in database.
     Return -3 if access denied.
     Return -2 if signature is wrong: {
@@ -154,27 +155,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if row insert cause page creation
     */
     int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data, size_t data_size, uint8_t access);
-
-    /*
-    Update row function, in difference with insert, can update only one value by specified column name.
-    Note: If you want get same functionality like in insert row, provide NULL to column_name. NULL pointer
-          in column_name will indicate, that user want update whole row by index.
-
-    Params:
-    - database - Pointer to database. (If NULL, we don`t use database table cache).
-    - table_name - Current table name.
-    - row - Row index in table (Use find_data_row for getting index).
-    - column_name - Column name.
-    - data - Data for insert (row for append).
-    - data_size - Size of row (No limits).
-    - access - User access level.
-
-    Return -1 if something goes wrong.
-    Return 1 if update was success.
-    */
-    int DB_update_row(
-        database_t* database, char* table_name, int row, char* column_name, uint8_t* data, size_t data_size, uint8_t access
-    );
 
     /*
     Delete row function iterate all database by RW symbol and delite entire row by rewriting him with PE symbol.

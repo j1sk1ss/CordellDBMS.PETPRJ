@@ -1,4 +1,15 @@
-#include "timer.h"
+#include <stdint.h>
+#include <time.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
+#define NOW "now"
+
+
+char* get_current_time();
+int main(int argc, char* argv[]);
 
 
 char* get_current_time() {

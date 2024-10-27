@@ -110,9 +110,10 @@
     #define COLUMN_NAME_SIZE        8
 
     #define COLUMN_MODULE_NAME_SIZE 8
-    #define COLUMN_MODULE_SIZE      24
+    #define COLUMN_MODULE_SIZE      16
     #define COLUMN_MODULE_PRELOAD   0x00
     #define COLUMN_MODULE_POSTLOAD  0x01
+    #define COLUMN_MODULE_BOTH      0x02
 
     // Column auto increment bits.
     // <Already not implemented yet>

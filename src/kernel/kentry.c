@@ -45,7 +45,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
     Save commands into RAM.
     */
     char* commands[MAX_COMMANDS] = { NULL };
-    for (int i = current_start; i < argc; i++) commands[i - current_start] = argv[i];
+    for (int i = current_start; i < argc; i++) {
+        commands[i - current_start] = argv[i];
+    }
 
     /*
     Handle command.
@@ -95,7 +97,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             }
             /*
             Handle table creation.
-            Command syntax: create table <name> <rwd> columns ( name size <int/str/<module>="formula"/any> <is_primary/np> <auto_increment/na> )
+            Command syntax: create table <name> <rwd> columns ( name size <int/str/"<module>=args,<mpre/mpost/both>"/any> <is_primary/np> <auto_increment/na> )
             Errors:
             - Return -1 if table already exists in database.
             */
@@ -162,6 +164,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 columns[column_count]->module_params = COLUMN_MODULE_POSTLOAD;
                                 if (strncmp(comma_pos + 1, MODULE_PRELOAD, strlen(MODULE_PRELOAD)) == 0)
                                     columns[column_count]->module_params = COLUMN_MODULE_PRELOAD;
+                                else if (strncmp(comma_pos + 1, MODULE_BOTH_LOAD, strlen(MODULE_PRELOAD)) == 0)
+                                    columns[column_count]->module_params = COLUMN_MODULE_BOTH;
 
                                 size_t module_name_len = equals_pos - column_data_type;
                                 size_t module_query_len = comma_pos - equals_pos - 1;
@@ -198,7 +202,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         }
         /*
         Handle data append.
-        Command syntax: append <table_name> columns <data> <rwd>.
+        Command syntax: append row <table_name> values <data>
         Note: Command don`t care about spacing, data separations, padding and other stuff. This is your work.
         Errors:
         - Return -1 error if table not found.
@@ -452,29 +456,31 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 }
 
                 /*
-                Command syntax: update row <table_name> by_index <index> <new_data>
+                Command syntax: update row <table_name> by_index <index> value <new_data>
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     int index  = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
-                    char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    if (data == NULL) {
-                        answer->answer_code = 5;
-                        return answer;
-                    }
+                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
+                        char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        if (data == NULL) {
+                            answer->answer_code = 5;
+                            return answer;
+                        }
 
-                    int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
-                    if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
-                    else {
-                        print_error("Error code: %i", result);
-                    }
+                        int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
+                        if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
+                        else {
+                            print_error("Error code: %i", result);
+                        }
 
-                    answer->answer_size = -1;
-                    answer->answer_code = result;
-                    answer->commands_processed = command_index;
+                        answer->answer_size = -1;
+                        answer->answer_code = result;
+                        answer->commands_processed = command_index;
+                    }
                 }
                 /*
-                Command syntax: update row <table_name> by_value column <column_name> value <new_data>
+                Command syntax: update row <table_name> by_value column <column_name> value <value> values <data>
                 */
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
@@ -491,27 +497,29 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 return answer;
                             }
 
-                            char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            if (data == NULL) {
-                                answer->answer_code = 5;
-                                return answer;
-                            }
+                            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
+                                char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                                if (data == NULL) {
+                                    answer->answer_code = 5;
+                                    return answer;
+                                }
 
-                            int index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), access);
-                            if (index == -1) {
-                                print_error("Value [%s] not presented in table [%s]", data, table_name);
-                                return answer;
-                            }
+                                int index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), access);
+                                if (index == -1) {
+                                    print_error("Value [%s] not presented in table [%s]", data, table_name);
+                                    return answer;
+                                }
 
-                            int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
-                            if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
-                            else {
-                                print_error("Error code: %i", result);
-                            }
+                                int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
+                                if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
+                                else {
+                                    print_error("Error code: %i", result);
+                                }
 
-                            answer->answer_size = -1;
-                            answer->answer_code = result;
-                            answer->commands_processed = command_index;
+                                answer->answer_size = -1;
+                                answer->answer_code = result;
+                                answer->commands_processed = command_index;
+                            }
                         }
                     }
                 }
@@ -520,53 +528,58 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         }
         /*
         Handle link command.
-        Command syntax: link <master_table> <master_column> <slave_table> <slave_column> ( flags )
+        Command syntax: link master <master_table> <master_column> to_slave <slave_table> <slave_column> ( flags )
         */
         else if (strcmp(command, LINK) == 0) {
-            char* master_table  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-            char* master_column = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-            char* slave_table   = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-            char* slave_column  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-            if (master_table == NULL || master_column == NULL || slave_table == NULL || slave_column == NULL) {
-                answer->answer_code = 5;
-                return answer;
-            }
+            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), MASTER) == 0) {
+                char* master_table  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                char* master_column = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
-            uint8_t delete_link = LINK_NOTHING;
-            uint8_t update_link = LINK_NOTHING;
-            uint8_t append_link = LINK_NOTHING;
-            uint8_t find_link   = LINK_NOTHING;
+                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), TO_SLAVE) == 0) {
+                    char* slave_table   = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    char* slave_column  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                    if (master_table == NULL || master_column == NULL || slave_table == NULL || slave_column == NULL) {
+                        answer->answer_code = 5;
+                        return answer;
+                    }
 
-            table_t* master = DB_get_table(database, master_table);
-            if (master == NULL) {
-                print_error("Table [%s] not found in database!", master_table);
-                return answer;
-            }
+                    uint8_t delete_link = LINK_NOTHING;
+                    uint8_t update_link = LINK_NOTHING;
+                    uint8_t append_link = LINK_NOTHING;
+                    uint8_t find_link   = LINK_NOTHING;
 
-            table_t* slave = DB_get_table(database, slave_table);
-            if (slave == NULL) {
-                print_error("Table [%s] not found in database!", slave_table);
-                return answer;
-            }
+                    table_t* master = DB_get_table(database, master_table);
+                    if (master == NULL) {
+                        print_error("Table [%s] not found in database!", master_table);
+                        return answer;
+                    }
 
-            if (strcmp(OPEN_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == 0) {
-                while (strcmp(CLOSE_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != 0) {
-                    if (strcmp(CASCADE_DEL, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) delete_link = LINK_CASCADE_DELETE;
-                    else if (strcmp(CASCADE_UPD, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) update_link = LINK_CASCADE_UPDATE;
-                    else if (strcmp(CASCADE_APP, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) append_link = LINK_CASCADE_APPEND;
-                    else if (strcmp(CASCADE_FND, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) find_link = LINK_CASCADE_FIND;
+                    table_t* slave = DB_get_table(database, slave_table);
+                    if (slave == NULL) {
+                        print_error("Table [%s] not found in database!", slave_table);
+                        return answer;
+                    }
+
+                    if (strcmp(OPEN_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == 0) {
+                        while (strcmp(CLOSE_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != 0) {
+                            if (strcmp(CASCADE_DEL, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) delete_link = LINK_CASCADE_DELETE;
+                            else if (strcmp(CASCADE_UPD, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) update_link = LINK_CASCADE_UPDATE;
+                            else if (strcmp(CASCADE_APP, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) append_link = LINK_CASCADE_APPEND;
+                            else if (strcmp(CASCADE_FND, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) find_link = LINK_CASCADE_FIND;
+                        }
+                    }
+
+                    int result = TBM_link_column2column(
+                        master, master_column, slave, slave_column, CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
+                    );
+
+                    print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
+
+                    answer->answer_size = -1;
+                    answer->answer_code = result;
+                    answer->commands_processed = command_index;
                 }
             }
-
-            int result = TBM_link_column2column(
-                master, master_column, slave, slave_column, CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
-            );
-
-            print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
-
-            answer->answer_size = -1;
-            answer->answer_code = result;
-            answer->commands_processed = command_index;
         }
     }
 
