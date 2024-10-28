@@ -1,7 +1,7 @@
-#include "../include/traceback.h"
+#include "../include/sighandler.h"
 
 
-void handler(int sig) {
+void traceback_handler(int sig) {
     #ifndef _WIN32
         void* array[10];
         size_t size;
@@ -15,7 +15,7 @@ void handler(int sig) {
 }
 
 int TB_enable(void) {
-    signal(SIGSEGV, handler);
-    signal(SIGFPE, handler);
+    signal(SIGSEGV, traceback_handler);
+    signal(SIGFPE, traceback_handler);
     return 1;
 }

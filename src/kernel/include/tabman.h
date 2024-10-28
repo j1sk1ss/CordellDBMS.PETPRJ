@@ -109,7 +109,6 @@
     */
     #define COLUMN_NAME_SIZE        8
 
-    #define COLUMN_MODULE_NAME_SIZE 8
     #define COLUMN_MODULE_SIZE      16
     #define COLUMN_MODULE_PRELOAD   0x00
     #define COLUMN_MODULE_POSTLOAD  0x01
@@ -231,7 +230,7 @@
         // Column module data.
         // If in column used any module, we store command here.
         uint8_t module_params;
-        uint8_t module_name[COLUMN_MODULE_NAME_SIZE];
+        uint8_t module_name[MODULE_NAME_SIZE];
         uint8_t module_querry[COLUMN_MODULE_SIZE];
     } table_column_t;
 

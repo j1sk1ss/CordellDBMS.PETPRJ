@@ -18,7 +18,7 @@ user_t* USR_auth(char* name, char* password) {
 
 user_t* USR_load(char* path, char* name) {
     char load_path[128];
-    if (path == NULL && name != NULL) sprintf(load_path, "%s%.8s.%s", USER_BASE_PATH, name, USER_EXTENSION);
+    if (path == NULL && name != NULL) sprintf(load_path, "%s%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, name, USER_EXTENSION);
     else if (path != NULL) strcpy(load_path, path);
     else return NULL;
 
@@ -39,7 +39,7 @@ user_t* USR_load(char* path, char* name) {
 
 int USR_save(user_t* user, char* path) {
     char save_path[128];
-    if (path == NULL) sprintf(save_path, "%s%.8s.%s", USER_BASE_PATH, user->name, USER_EXTENSION);
+    if (path == NULL) sprintf(save_path, "%s%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, user->name, USER_EXTENSION);
     else strcpy(save_path, path);
 
     int result = 0;

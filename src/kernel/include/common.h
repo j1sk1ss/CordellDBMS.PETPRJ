@@ -103,6 +103,7 @@ Get load path by name or path.
 
 Params:
 - name - Name of file or NULL.
+- name_size - Name size.
 - path - Path for save or NULL.
 - buffer - Buffer, where will be stored load path.
 - base_path - Base path.
@@ -111,7 +112,7 @@ Params:
 Return 1 if load path generated.
 Return -1 if something goes wrong.
 */
-int get_load_path(char* name, char* path, char* buffer, char* base_path, char* extension);
+int get_load_path(char* name, size_t name_size, char* path, char* buffer, char* base_path, char* extension);
 
 /*
 Get filename by name or path.

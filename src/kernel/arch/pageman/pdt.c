@@ -37,10 +37,10 @@ int PGM_PDT_add_page(page_t* page) {
             PGM_PDT_flush_index(current);
         }
 
-        print_debug("Adding to PDT page [%s] at index [%i]", page->header->name, current);
+        print_debug("Adding to PDT page [%.*s] at index [%i]", PAGE_NAME_SIZE, page->header->name, current);
         PGM_PDT[current] = page;
     } else {
-        print_error("Can't lock page [%s] for flushing!", PGM_PDT[current]->header->name);
+        print_error("Can't lock page [%.*s] for flushing!", PAGE_NAME_SIZE, PGM_PDT[current]->header->name);
         return -1;
     }
 

@@ -5,6 +5,7 @@
 #include "logging.h"
 
 
+#define MODULE_NAME_SIZE    8
 #define MODULE_EXTENSION    getenv("MODULE_EXTENSION") == NULL ? "mdl" : getenv("MODULE_EXTENSION")
 #define MODULE_BASE_PATH    getenv("MODULE_BASE_PATH") == NULL ? "" : getenv("MODULE_BASE_PATH")
 

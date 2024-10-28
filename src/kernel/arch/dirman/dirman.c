@@ -170,7 +170,7 @@ int DRM_delete_content(directory_t* directory, int offset, size_t length) {
 int DRM_cleanup_pages(directory_t* directory) {
     for (int i = 0; i < directory->header->page_count; i++) {
         char page_path[DEFAULT_PATH_SIZE];
-        sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
+        sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->names[i], PAGE_EXTENSION);
         page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
         if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -4;
 

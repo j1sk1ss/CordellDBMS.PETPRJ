@@ -1,15 +1,18 @@
 #include "../include/common.h"
 
 
-void strrand(char *dest, size_t length) {
-    srand(time(0));
+void strrand(char* dest, size_t length) {
+    static int seeded = 0;
+    if (!seeded) {
+        srand(time(0));
+        seeded = 1;
+    }
+    
     char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     while (length-- > 0) {
         size_t index = (double) rand() / RAND_MAX * (sizeof charset - 1);
         *dest++ = charset[index];
     }
-
-    *dest = '\0';
 }
 
 int is_integer(const char* str) {
@@ -169,8 +172,8 @@ char* get_current_time() {
     return time_str;
 }
 
-int get_load_path(char* name, char* path, char* buffer, char* base_path, char* extension) {
-    if (path == NULL && name != NULL) sprintf(buffer, "%s%.8s.%s", base_path, name, extension);
+int get_load_path(char* name, size_t name_size, char* path, char* buffer, char* base_path, char* extension) {
+    if (path == NULL && name != NULL) sprintf(buffer, "%s%.*s.%s", base_path, name_size, name, extension);
     else if (path != NULL) strcpy(buffer, path);
     else return -1;
     return 1;
@@ -196,7 +199,7 @@ char* generate_unique_filename(char* base_path, int name_size, char* extension) 
     int delay = DEFAULT_DELAY;
     while (1) {
         strrand(name, name_size);
-        sprintf(save_path, "%s%.8s.%s", base_path, name, extension);
+        sprintf(save_path, "%s%.*s.%s", base_path, name_size, name, extension);
 
         if (file_exists(save_path)) {
             if (--delay <= 0) {

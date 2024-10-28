@@ -14,15 +14,18 @@
     #include <unistd.h>
 #endif
 
+#include "dataman.h"
 
 /*
 Enable trace back
 */
 int TB_enable(void);
+int CL_enable(void);
 
 /*
 Signal handler for trace back
 */
-void handler(int sig);
+void traceback_handler(int sig);
+void cleanup_handler();
 
 #endif

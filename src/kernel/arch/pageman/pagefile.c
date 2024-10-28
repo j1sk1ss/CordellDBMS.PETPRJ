@@ -36,7 +36,7 @@ int PGM_save_page(page_t* page, char* path) {
         {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE];
-            if (path == NULL) sprintf(save_path, "%s%.8s.%s", PAGE_BASE_PATH, page->header->name, PAGE_EXTENSION);
+            if (path == NULL) sprintf(save_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, page->header->name, PAGE_EXTENSION);
             else strcpy(save_path, path);
 
             // Open or create file
@@ -71,7 +71,7 @@ int PGM_save_page(page_t* page, char* path) {
 
 page_t* PGM_load_page(char* path, char* name) {
     char load_path[DEFAULT_PATH_SIZE];
-    if (get_load_path(name, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
+    if (get_load_path(name, PAGE_NAME_SIZE, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }

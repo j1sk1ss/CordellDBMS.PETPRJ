@@ -215,6 +215,7 @@ int main()
     Enable traceback for current session.
     */
     TB_enable();
+    CL_enable();
 
     #ifdef DESKTOP
 

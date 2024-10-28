@@ -33,7 +33,7 @@ int DRM_save_directory(directory_t* directory, char* path) {
         #endif
         {
             char save_path[DEFAULT_PATH_SIZE];
-            if (path == NULL) sprintf(save_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory->header->name, DIRECTORY_EXTENSION);
+            if (path == NULL) sprintf(save_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
             else strcpy(save_path, path);
 
             FILE* file = fopen(save_path, "wb");
@@ -66,7 +66,7 @@ int DRM_save_directory(directory_t* directory, char* path) {
 
 directory_t* DRM_load_directory(char* path, char* name) {
     char load_path[DEFAULT_PATH_SIZE];
-    if (get_load_path(name, path, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
+    if (get_load_path(name, DIRECTORY_NAME_SIZE, path, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
@@ -120,7 +120,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
         #pragma omp parallel
         for (int i = 0; i < directory->header->page_count && full == 1; i++) {
             char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.8s.%s", PAGE_BASE_PATH, directory->names[i], PAGE_EXTENSION);
+            sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->names[i], PAGE_EXTENSION);
             print_debug(
                 "Page [%s] was deleted and flushed with results [%i | %i]",
                 page_path, PGM_PDT_flush_page(PGM_load_page(page_path, NULL)), remove(page_path)
@@ -128,7 +128,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
         }
 
         char delete_path[DEFAULT_PATH_SIZE];
-        sprintf(delete_path, "%s%.8s.%s", DIRECTORY_BASE_PATH, directory->header->name, DIRECTORY_EXTENSION);
+        sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
         DRM_DDT_flush_directory(directory);
         print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
 
