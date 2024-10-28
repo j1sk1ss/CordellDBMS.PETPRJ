@@ -98,7 +98,7 @@
 
 typedef struct kernel_answer {
     uint16_t commands_processed;
-    uint8_t answer_code;
+    int8_t answer_code;
     uint16_t answer_size;
     uint8_t* answer_body;
 } kernel_answer_t;

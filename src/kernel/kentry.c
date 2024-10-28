@@ -10,8 +10,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
 
     answer->answer_body = NULL;
-    answer->answer_code = -1;
-    answer->answer_size = -1;
+    answer->answer_code = 255;
+    answer->answer_size = 0;
     answer->commands_processed = 0;
 
     int current_start = 1;

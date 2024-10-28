@@ -45,8 +45,9 @@
 
 
 void cleanup();
-int send2destination_pointer(int destination, uint8_t* data, size_t data_size);
-int send2destination_byte(int destination, uint8_t data);
+int send2destination_pointer(int destination, int8_t* data, size_t data_size);
+int send2destination_byte(int destination, int8_t data);
+int send2destination_upointer(int destination, uint8_t* data, size_t data_size);
 void* handle_client(void* client_socket_fd);
 void start_kernel_session(int source, int destination, int session);
 int setup_server();
@@ -61,7 +62,9 @@ void cleanup() {
     #endif
 }
 
-int send2destination_pointer(int destination, uint8_t* data, size_t data_size) {
+#pragma region [Send functions]
+
+int send2destination_pointer(int destination, int8_t* data, size_t data_size) {
     #ifdef _WIN32
         send(destination, (const char*)data, data_size, 0);
     #else
@@ -71,11 +74,23 @@ int send2destination_pointer(int destination, uint8_t* data, size_t data_size) {
     return 1;
 }
 
-int send2destination_byte(int destination, uint8_t data) {
-    uint8_t buffer[1] = { data };
-    send2destination_pointer(destination, buffer, sizeof(uint8_t));
+int send2destination_upointer(int destination, uint8_t* data, size_t data_size) {
+    #ifdef _WIN32
+        send(destination, (const char*)data, data_size, 0);
+    #else
+        write(destination, data, data_size);
+    #endif
+
     return 1;
 }
+
+int send2destination_byte(int destination, int8_t data) {
+    int8_t buffer[1] = { data };
+    send2destination_pointer(destination, buffer, sizeof(int8_t));
+    return 1;
+}
+
+#pragma endregion
 
 void* handle_client(void* client_socket_fd) {
     int socket_fd = ((int*)client_socket_fd)[0];
@@ -172,7 +187,7 @@ void start_kernel_session(int source, int destination, int session) {
         if (current_arg) argv[argc++] = current_arg;
         kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access, session);
         if (result->answer_body != NULL) {
-            send2destination_pointer(destination, result->answer_body, result->answer_size);
+            send2destination_upointer(destination, result->answer_body, result->answer_size);
             print_log("Answer body: [%s]", result->answer_body);
         }
         else {
@@ -232,12 +247,12 @@ int main()
 
         if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) < 0) {
             print_error("bind() call failed");
-            return -1;
+            return -2;
         }
 
         if (listen(server_socket, 5) < 0) {
             print_error("listen() call failed");
-            return -1;
+            return -3;
         }
 
         print_info("DB server started on %s:%d", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
