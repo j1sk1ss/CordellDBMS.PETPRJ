@@ -170,8 +170,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 size_t module_name_len = equals_pos - column_data_type;
                                 size_t module_query_len = comma_pos - equals_pos - 1;
 
-                                memset(columns[column_count]->module_name, '\0', COLUMN_MODULE_NAME_SIZE);
-                                strncpy((char*)columns[column_count]->module_name, column_data_type, MIN(module_name_len, COLUMN_MODULE_NAME_SIZE));
+                                memset(columns[column_count]->module_name, '\0', MODULE_NAME_SIZE);
+                                strncpy((char*)columns[column_count]->module_name, column_data_type, MIN(module_name_len, MODULE_NAME_SIZE));
                                 if (equals_pos != NULL) {
                                     strncpy((char*)columns[column_count]->module_querry, equals_pos + 1, module_query_len);
                                     print_log("Module [%s] registered with [%s] querry", columns[column_count]->module_name, columns[column_count]->module_querry);

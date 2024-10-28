@@ -172,14 +172,14 @@ char* get_current_time() {
     return time_str;
 }
 
-int get_load_path(char* name, size_t name_size, char* path, char* buffer, char* base_path, char* extension) {
+int get_load_path(char* name, int name_size, char* path, char* buffer, char* base_path, char* extension) {
     if (path == NULL && name != NULL) sprintf(buffer, "%s%.*s.%s", base_path, name_size, name, extension);
     else if (path != NULL) strcpy(buffer, path);
     else return -1;
     return 1;
 }
 
-int get_filename(char* name, char* path, char* buffer, size_t name_size) {
+int get_filename(char* name, char* path, char* buffer, int name_size) {
     if (path != NULL) {
         char temp_path[DEFAULT_PATH_SIZE];
         strcpy(temp_path, path);

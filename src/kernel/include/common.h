@@ -112,7 +112,7 @@ Params:
 Return 1 if load path generated.
 Return -1 if something goes wrong.
 */
-int get_load_path(char* name, size_t name_size, char* path, char* buffer, char* base_path, char* extension);
+int get_load_path(char* name, int name_size, char* path, char* buffer, char* base_path, char* extension);
 
 /*
 Get filename by name or path.
@@ -126,7 +126,7 @@ Params:
 Return 1 if name generated.
 Return -1 if something goes wrong.
 */
-int get_filename(char* name, char* path, char* buffer, size_t name_size);
+int get_filename(char* name, char* path, char* buffer, int name_size);
 
 /*
 Generate unique filename.
