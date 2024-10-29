@@ -45,9 +45,8 @@
 
 
 void cleanup();
-int send2destination_pointer(int destination, int8_t* data, size_t data_size);
-int send2destination_byte(int destination, int8_t data);
-int send2destination_upointer(int destination, uint8_t* data, size_t data_size);
+int send2destination(int destination, void* data, size_t data_size);
+int send2destination_byte(int destination, int byte);
 void* handle_client(void* client_socket_fd);
 void start_kernel_session(int source, int destination, int session);
 int setup_server();
@@ -64,7 +63,7 @@ void cleanup() {
 
 #pragma region [Send functions]
 
-int send2destination_pointer(int destination, int8_t* data, size_t data_size) {
+int send2destination(int destination, void* data, size_t data_size) {
     #ifdef _WIN32
         send(destination, (const char*)data, data_size, 0);
     #else
@@ -74,20 +73,8 @@ int send2destination_pointer(int destination, int8_t* data, size_t data_size) {
     return 1;
 }
 
-int send2destination_upointer(int destination, uint8_t* data, size_t data_size) {
-    #ifdef _WIN32
-        send(destination, (const char*)data, data_size, 0);
-    #else
-        write(destination, data, data_size);
-    #endif
-
-    return 1;
-}
-
-int send2destination_byte(int destination, int8_t data) {
-    int8_t buffer[1] = { data };
-    send2destination_pointer(destination, buffer, sizeof(int8_t));
-    return 1;
+int send2destination_byte(int destination, int byte) {
+    return send2destination(destination, &byte, 1);
 }
 
 #pragma endregion
@@ -102,6 +89,7 @@ void* handle_client(void* client_socket_fd) {
 
     sessions[session] = 0;
     print_info("Session [%i] closed", session);
+    free(client_socket_fd);
 
     #ifndef _WIN32
     pthread_exit(NULL);
@@ -187,7 +175,7 @@ void start_kernel_session(int source, int destination, int session) {
         if (current_arg) argv[argc++] = current_arg;
         kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access, session);
         if (result->answer_body != NULL) {
-            send2destination_upointer(destination, result->answer_body, result->answer_size);
+            send2destination(destination, result->answer_body, result->answer_size);
             print_log("Answer body: [%.*s]", result->answer_size, result->answer_body);
         }
         else {
@@ -269,7 +257,7 @@ int main()
                 continue;
             }
 
-            int* client_socket_fd_ptr = malloc(sizeof(int) * 2);
+            int* client_socket_fd_ptr = malloc(sizeof(int) * 3);
             client_socket_fd_ptr[0] = client_socket_fd;
 
             int session = 0;
@@ -281,25 +269,9 @@ int main()
             client_socket_fd_ptr[1] = session;
 
             print_info("Client connected from %s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-            #ifdef _WIN32
-                HANDLE client_thread = CreateThread(NULL, 0, handle_client, client_socket_fd, 0, NULL);
-                if (client_thread == NULL) {
-                    print_error("Failed to create thread");
-                    free(client_socket_fd);
-                    continue;
-                }
-
-                CloseHandle(client_thread);
-            #else
-                pthread_t client_thread;
-                if (pthread_create(&client_thread, NULL, handle_client, client_socket_fd_ptr) != 0) {
-                    print_error("Failed to create thread");
-                    continue;
-                }
-
-                free(client_socket_fd_ptr);
-                pthread_detach(client_thread);
-            #endif
+            if (THR_create_thread(handle_client, client_socket_fd_ptr) != 1) {
+                print_error("Error while server try to create thread for [%i] session", session);
+            }
         }
 
         cleanup();

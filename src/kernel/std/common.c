@@ -163,14 +163,16 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
 char* get_current_time() {
     time_t rawtime;
     struct tm* timeinfo;
+    char* time_str = malloc(20);
+    if (time_str == NULL) return NULL;
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    char* time_str = asctime(timeinfo);
-    time_str[strlen(time_str) - 1] = '\0';
+    strftime(time_str, 20, "%Y-%m-%d %H:%M:%S", timeinfo);
 
     return time_str;
 }
+
 
 int get_load_path(char* name, int name_size, char* path, char* buffer, char* base_path, char* extension) {
     if (path == NULL && name != NULL) sprintf(buffer, "%s%.*s.%s", base_path, name_size, name, extension);

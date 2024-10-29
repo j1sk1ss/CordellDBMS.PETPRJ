@@ -12,7 +12,7 @@
  *
  *  Why we need TDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
-static table_t* TBM_TDT[TDT_SIZE] = { NULL };
+static __thread table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
 
 int TBM_TDT_add_table(table_t* table) {

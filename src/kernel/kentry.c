@@ -601,7 +601,16 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
     return answer;
 }
 
+int flush_tables() {
+    TBM_TDT_free();
+    DRM_DDT_free();
+    PGM_PDT_free();
+    return 1;
+}
+
 int close_connection(int connection) {
+    flush_tables();
+    if (connections[connection] == NULL) return -2;
     DB_free_database(connections[connection]);
     connections[connection] = NULL;
     return 1;
@@ -614,10 +623,7 @@ int kernel_free_answer(kernel_answer_t* answer) {
 }
 
 void cleanup_kernel() {
-    TBM_TDT_free();
-    DRM_DDT_free();
-    PGM_PDT_free();
-
+    flush_tables();
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         if (connections[i] == NULL) continue;
         DB_free_database(connections[i]);

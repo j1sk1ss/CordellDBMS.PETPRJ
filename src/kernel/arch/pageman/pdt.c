@@ -12,7 +12,7 @@
  *
  *  Why we need PDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
-static page_t* PGM_PDT[PDT_SIZE] = { NULL };
+static __thread page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
 
 int PGM_PDT_add_page(page_t* page) {

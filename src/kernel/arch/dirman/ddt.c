@@ -12,7 +12,7 @@
  *
  *  Why we need DDT? - https://stackoverflow.com/questions/26250744/efficiency-of-fopen-fclose
 */
-static directory_t* DRM_DDT[DDT_SIZE] = { NULL };
+static __thread directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
 
 int DRM_DDT_add_directory(directory_t* directory) {

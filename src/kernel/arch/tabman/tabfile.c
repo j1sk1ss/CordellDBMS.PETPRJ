@@ -174,9 +174,10 @@ int TBM_delete_table(table_t* table, int full) {
         remove(delete_path);
 
         TBM_TDT_flush_table(table);
+        return 1;
     }
-
-    return 1;
+    
+    return -1;
 }
 
 int TBM_free_table(table_t* table) {

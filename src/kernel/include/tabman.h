@@ -33,6 +33,7 @@
 #include "common.h"
 #include "dirman.h"
 #include "module.h"
+#include "threading.h"
 
 
 #define TDT_SIZE 10

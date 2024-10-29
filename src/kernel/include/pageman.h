@@ -32,6 +32,7 @@
 
 #include "logging.h"
 #include "common.h"
+#include "threading.h"
 
 
 #define PAGE_EXTENSION  getenv("PAGE_EXTENSION") == NULL ? "pg" : getenv("PAGE_EXTENSION")

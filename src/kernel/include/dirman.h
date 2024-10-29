@@ -32,6 +32,7 @@
 #include "common.h"
 #include "logging.h"
 #include "pageman.h"
+#include "threading.h"
 
 
 #define DIRECTORY_EXTENSION getenv("DIRECTORY_EXTENSION") == NULL ? "dr" : getenv("DIRECTORY_EXTENSION")
