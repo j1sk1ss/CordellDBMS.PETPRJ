@@ -38,7 +38,7 @@ int TBM_TDT_add_table(table_t* table) {
             TBM_TDT_flush_index(current);
         }
 
-        print_debug("Adding to TDT table [%s] at index [%i]", table->header->name, current);
+        print_debug("Adding to TDT table [%.*s] at index [%i]", TABLE_NAME_SIZE, table->header->name, current);
         TBM_TDT[current] = table;
     }
 
@@ -73,7 +73,7 @@ int TBM_TDT_free() {
     for (int i = 0; i < TDT_SIZE; i++) {
         if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) != -1) TBM_TDT_flush_index(i);
         else {
-            print_error("Can't lock table [%s]", TBM_TDT[i]);
+            print_error("Can't lock table [%.*s]", TABLE_NAME_SIZE, TBM_TDT[i]->header->name);
             return -1;
         }
     }

@@ -188,7 +188,7 @@ void start_kernel_session(int source, int destination, int session) {
         kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access, session);
         if (result->answer_body != NULL) {
             send2destination_upointer(destination, result->answer_body, result->answer_size);
-            print_log("Answer body: [%s]", result->answer_body);
+            print_log("Answer body: [%.*s]", result->answer_size, result->answer_body);
         }
         else {
             send2destination_byte(destination, result->answer_code);
@@ -297,6 +297,7 @@ int main()
                     continue;
                 }
 
+                free(client_socket_fd_ptr);
                 pthread_detach(client_thread);
             #endif
         }

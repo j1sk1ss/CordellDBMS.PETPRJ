@@ -3,12 +3,12 @@
 
     int TBM_lock_table(table_t* table, uint8_t owner) {
         if (table == NULL) return -2;
-        print_debug("Try to lock table [%s]", table->header->name);
+        print_debug("Try to lock table [%.*s]", TABLE_NAME_SIZE, table->header->name);
 
         int delay = DEFAULT_DELAY;
         while (TBM_lock_test(table, owner) == LOCKED)
             if (--delay <= 0) {
-                print_error("Can't lock table [%s], owner: [%i], new owner [%i]", table->header->name, table->lock_owner, owner);
+                print_error("Can't lock table [%.*s], owner: [%i], new owner [%i]", TABLE_NAME_SIZE, table->header->name, table->lock_owner, owner);
                 return -1;
             }
 

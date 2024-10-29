@@ -3,12 +3,12 @@
 
 int PGM_lock_page(page_t* page, uint8_t owner) {
     if (page == NULL) return -2;
-    print_debug("Try to lock page [%s]", page->header->name);
+    print_debug("Try to lock page [%.*s]", PAGE_NAME_SIZE, page->header->name);
 
     int delay = DEFAULT_DELAY;
     while (PGM_lock_test(page, owner) == LOCKED)
         if (--delay <= 0) {
-            print_error("Can't lock page [%s], owner: [%i], new owner [%i]", page->header->name, page->lock_owner, owner);
+            print_error("Can't lock page [%.*s], owner: [%i], new owner [%i]", PAGE_NAME_SIZE, page->header->name, page->lock_owner, owner);
             return -1;
         }
 
@@ -25,7 +25,7 @@ int PGM_lock_test(page_t* page, uint8_t owner) {
 
 int PGM_release_page(page_t* page, uint8_t owner) {
     if (page == NULL) return -3;
-    print_debug("Try to unlock page [%s]", page->header->name);
+    print_debug("Try to unlock page [%.*s]", PAGE_NAME_SIZE, page->header->name);
 
     if (page->lock == UNLOCKED) return -1;
     if (PGM_lock_test(page, owner) == LOCKED) return -2;

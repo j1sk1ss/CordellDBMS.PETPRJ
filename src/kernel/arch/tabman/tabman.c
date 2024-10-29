@@ -40,7 +40,7 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
         // Load directory to memory
         directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
         if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) {
-            print_warn("Can't lock directory [%s] while get_content operation!", (char*)table->dir_names[i]);
+            print_warn("Can't lock directory [%.*s] while get_content operation!", DIRECTORY_NAME_SIZE, (char*)table->dir_names[i]);
             continue;
         }
 

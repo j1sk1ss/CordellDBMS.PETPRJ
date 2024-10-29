@@ -74,7 +74,7 @@ int PGM_PDT_free() {
     for (int i = 0; i < PDT_SIZE; i++) {
         if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) != -1) PGM_PDT_flush_index(i);
         else {
-            print_error("Can't lock page [%s]", PGM_PDT[i]);
+            print_error("Can't lock page [%.*s]", PAGE_NAME_SIZE, PGM_PDT[i]->header->name);
             return -1;
         }
     }

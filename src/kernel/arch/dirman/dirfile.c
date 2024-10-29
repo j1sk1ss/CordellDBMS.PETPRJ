@@ -135,7 +135,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
         return 1;
     }
     else {
-        print_error("Can't lock directory [%s]", directory->header->name);
+        print_error("Can't lock directory [%.*s]", DIRECTORY_NAME_SIZE, directory->header->name);
         return -1;
     }
 }

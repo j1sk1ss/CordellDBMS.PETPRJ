@@ -88,7 +88,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 database_t* new_database = DB_create_database(database_name);
                 int result = DB_save_database(new_database, NULL);
 
-                print_log("Database [%s.%s] create succes!", new_database->header->name, DATABASE_EXTENSION);
+                print_log("Database [%.*s.%s] create succes!", DATABASE_NAME_SIZE, new_database->header->name, DATABASE_EXTENSION);
                 DB_free_database(new_database);
 
                 answer->answer_code = result;
@@ -174,7 +174,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 strncpy((char*)columns[column_count]->module_name, column_data_type, MIN(module_name_len, MODULE_NAME_SIZE));
                                 if (equals_pos != NULL) {
                                     strncpy((char*)columns[column_count]->module_querry, equals_pos + 1, module_query_len);
-                                    print_log("Module [%s] registered with [%s] querry", columns[column_count]->module_name, columns[column_count]->module_querry);
+                                    print_log(
+                                        "Module [%.*s] registered with [%s] querry", 
+                                        MODULE_NAME_SIZE, columns[column_count]->module_name, columns[column_count]->module_querry
+                                    );
                                 }
                             }
 
@@ -193,7 +196,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 DB_link_table2database(database, new_table);
                 TBM_TDT_add_table(new_table);
 
-                print_log("Table [%s] create success!", new_table->header->name);
+                print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
 
                 answer->answer_size = -1;
                 answer->answer_code = 1;
@@ -224,9 +227,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     }
 
                     int result = DB_append_row(database, table_name, (uint8_t*)input_data, strlen(input_data), access);
-                    if (result >= 0) print_log("Row [%s] successfully added to [%s] database!", input_data, database->header->name);
+                    if (result >= 0) print_log("Row [%s] successfully added to [%.*s] database!", input_data, DATABASE_NAME_SIZE, database->header->name);
                     else {
-                        print_error("Error code: %i, Params: [%s] [%s] [%s] [%i]\n", result, database->header->name, table_name, input_data, access);
+                        print_error(
+                            "Error code: %i, Params: [%.*s] [%s] [%s] [%i]\n", 
+                            result, DATABASE_NAME_SIZE, database->header->name, table_name, input_data, access
+                        );
                     }
 
                     answer->answer_size = -1;
@@ -370,7 +376,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
 
                     uint8_t* data = DB_get_row(database, table_name, index, access);
                     if (data == NULL) {
-                        print_error("Something goes wrong! Params: [%s] [%s] [%i] [%i]", database->header->name, table_name, index, access);
+                        print_error(
+                            "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", 
+                            DATABASE_NAME_SIZE, database->header->name, table_name, index, access
+                        );
+
                         answer->answer_code = 8;
                         return answer;
                     }
@@ -417,7 +427,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
 
                                 uint8_t* row_data = DB_get_row(database, table_name, row2get, access);
                                 if (row_data == NULL) {
-                                    print_error("Something goes wrong! Params: [%s] [%s] [%i] [%i]", database->header->name, table_name, row2get, access);
+                                    print_error(
+                                        "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", 
+                                        DATABASE_NAME_SIZE, database->header->name, table_name, row2get, access
+                                    );
+                                    
                                     return answer;
                                 }
 
@@ -597,4 +611,15 @@ int kernel_free_answer(kernel_answer_t* answer) {
     if (answer->answer_body != NULL) free(answer->answer_body);
     free(answer);
     return 1;
+}
+
+void cleanup_kernel() {
+    TBM_TDT_free();
+    DRM_DDT_free();
+    PGM_PDT_free();
+
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if (connections[i] == NULL) continue;
+        DB_free_database(connections[i]);
+    }
 }

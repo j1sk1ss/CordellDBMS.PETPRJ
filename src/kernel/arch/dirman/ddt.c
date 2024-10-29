@@ -37,11 +37,11 @@ int DRM_DDT_add_directory(directory_t* directory) {
             DRM_DDT_flush_index(current);
         }
 
-        print_debug("Adding to DDT directory [%s] at index [%i]", directory->header->name, current);
+        print_debug("Adding to DDT directory [%.*s] at index [%i]", DIRECTORY_NAME_SIZE, directory->header->name, current);
         DRM_DDT[current] = directory;
     }
     else {
-        print_error("Can't lock directory [%s] for flushing!", DRM_DDT[current]->header->name);
+        print_error("Can't lock directory [%.*s] for flushing!", DIRECTORY_NAME_SIZE, DRM_DDT[current]->header->name);
         return -1;
     }
 
@@ -76,7 +76,7 @@ int DRM_DDT_free() {
     for (int i = 0; i < DDT_SIZE; i++) {
         if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) != -1) DRM_DDT_flush_index(i);
         else {
-            print_error("Can't lock directory [%s]", DRM_DDT[i]);
+            print_error("Can't lock directory [%.*s]", DIRECTORY_NAME_SIZE, DRM_DDT[i]->header->name);
             return -1;
         }
     }

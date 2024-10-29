@@ -198,7 +198,7 @@ table_t* DB_get_table(database_t* database, char* table_name) {
     }
 
     // If table not in database, we return NULL
-    print_warn("Table [%s] not in [%s] database!", table_name, database->header->name);
+    print_warn("Table [%s] not in [%.*s] database!", table_name, DATABASE_NAME_SIZE, database->header->name);
     return NULL;
 }
 

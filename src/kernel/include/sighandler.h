@@ -14,7 +14,7 @@
     #include <unistd.h>
 #endif
 
-#include "dataman.h"
+#include "kentry.h"
 
 /*
 Enable trace back
