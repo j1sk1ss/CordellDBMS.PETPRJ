@@ -11,11 +11,10 @@ void write_log(const char* level, const char* file, int line, const char* messag
         }
     #endif
 
-    if (message == NULL) message = "(null)";
-
     char* time = get_current_time();
-    fprintf(log_output, "[%s] [%s] (%s:%i) ", level, time, file, line);
-    free(time);
+    if (message == NULL) message = "(null)";
+    if (time != NULL) fprintf(log_output, "[%s] [%s] (%s:%i) ", level, time, file, line);
+    SOFT_FREE(time);
 
     vfprintf(log_output, message, args);
     fprintf(log_output, "\n");
