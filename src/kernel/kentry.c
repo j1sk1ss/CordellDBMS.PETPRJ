@@ -30,7 +30,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             break;
         }
         else {
-            if (strncmp((char*)connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) {
+            if (strncmp(connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) {
                 database = connections[connection];
                 break;
             }
@@ -72,6 +72,15 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             answer->answer_code = DB_rollback(&connections[connection]);
         }
         /*
+        Handle info command about cdbms kernel version.
+        Command syntax: version
+        */
+        else if (strcmp(command, VERSION) == 0) {
+            answer->answer_body = (uint8_t*)malloc(strlen(KERNEL_VERSION));
+            memcpy(answer->answer_body, KERNEL_VERSION, strlen(KERNEL_VERSION));
+            answer->answer_size = strlen(KERNEL_VERSION);
+        }
+        /*
         Handle creation.
         Command syntax: create <option>
         */
@@ -97,7 +106,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             }
             /*
             Handle table creation.
-            Command syntax: create table <name> <rwd> columns ( name size <int/str/"<module>=args,<mpre/mpost/both>"/any> <is_primary/np> <auto_increment/na> )
+            Command syntax: create table <name> <rwd/same> columns ( name size <int/str/"<module>=args,<mpre/mpost/both>"/any> <is_primary/np> <auto_increment/na> )
             Errors:
             - Return -1 if table already exists in database.
             */
@@ -112,13 +121,16 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     return answer;
                 }
 
-                uint8_t rd  = table_access[0] - '0';
-                uint8_t wr  = table_access[1] - '0';
-                uint8_t del = table_access[2] - '0';
-                uint8_t access_byte = CREATE_ACCESS_BYTE(rd, wr, del);
-                if (access_byte < access) {
-                    answer->answer_code = 6;
-                    return answer;
+                uint8_t access_byte = access;
+                if (strcmp(table_access, ACCESS_SAME) != 0) {
+                    uint8_t rd  = table_access[0] - '0';
+                    uint8_t wr  = table_access[1] - '0';
+                    uint8_t del = table_access[2] - '0';
+                    access_byte = CREATE_ACCESS_BYTE(rd, wr, del);
+                    if (access_byte < access) {
+                        answer->answer_code = 6;
+                        return answer;
+                    }
                 }
 
                 int column_count = 0;
@@ -171,9 +183,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 size_t module_query_len = comma_pos - equals_pos - 1;
 
                                 memset(columns[column_count]->module_name, '\0', MODULE_NAME_SIZE);
-                                strncpy((char*)columns[column_count]->module_name, column_data_type, MIN(module_name_len, MODULE_NAME_SIZE));
+                                strncpy(columns[column_count]->module_name, column_data_type, MIN(module_name_len, MODULE_NAME_SIZE));
                                 if (equals_pos != NULL) {
-                                    strncpy((char*)columns[column_count]->module_querry, equals_pos + 1, module_query_len);
+                                    strncpy(columns[column_count]->module_querry, equals_pos + 1, module_query_len);
                                     print_log(
                                         "Module [%.*s] registered with [%s] querry", 
                                         MODULE_NAME_SIZE, columns[column_count]->module_name, columns[column_count]->module_querry
@@ -230,7 +242,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     if (result >= 0) print_log("Row [%s] successfully added to [%.*s] database!", input_data, DATABASE_NAME_SIZE, database->header->name);
                     else {
                         print_error(
-                            "Error code: %i, Params: [%.*s] [%s] [%s] [%i]\n", 
+                            "Error code: %i, Params: [%.*s] [%s] [%s] [%i]", 
                             result, DATABASE_NAME_SIZE, database->header->name, table_name, input_data, access
                         );
                     }
@@ -333,7 +345,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             }
 
                             int result = DB_delete_row(database, table_name, row2delete, access);
-                            if (result == 1) printf("Row %i was deleted succesfully from %s\n", row2delete, table_name);
+                            if (result == 1) print_info("Row %i was deleted succesfully from %s", row2delete, table_name);
                             else {
                                 print_error("Error code: %i", result);
                                 return answer;

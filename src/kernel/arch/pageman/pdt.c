@@ -64,7 +64,8 @@ int PGM_PDT_sync() {
             PGM_save_page(PGM_PDT[i], NULL);
             PGM_release_page(PGM_PDT[i], omp_get_thread_num());
         }
-        else return -1;
+
+        return -1;
     }
 
     return 1;

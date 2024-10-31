@@ -10,27 +10,27 @@ table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, u
     // we return NULL. We don't want to make deal with row, larger
     // then page size, because that will brake all DB structure.
     if (row_size >= PAGE_CONTENT_SIZE) return NULL;
+
+    table_t* table  = (table_t*)malloc(sizeof(table_t));
     table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
+    memset(header, '\0', sizeof(table_header_t));
 
     header->access = access;
     header->magic  = TABLE_MAGIC;
-    strncpy((char*)header->name, name, TABLE_NAME_SIZE);
+    strncpy(header->name, name, TABLE_NAME_SIZE);
 
     header->dir_count         = 0;
     header->column_count      = col_count;
     header->column_link_count = 0;
 
-
-    table_t* table  = (table_t*)malloc(sizeof(table_t));
-    table->header   = header;
-    table->columns  = columns;
-    table->row_size = row_size;
-
+    table->columns      = columns;
+    table->row_size     = row_size;
+    table->column_links = NULL;
+    
     table->lock = UNLOCKED;
     table->lock_owner = NO_OWNER;
-    
-    table->column_links = NULL;
 
+    table->header = header;
     return table;
 }
 
@@ -161,10 +161,10 @@ int TBM_delete_table(table_t* table, int full) {
     if (TBM_lock_table(table, omp_get_thread_num()) == 1) {
         #pragma omp parallel
         for (int i = 0; i < table->header->dir_count; i++) {
-            directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+            directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
             if (directory == NULL) continue;
 
-            TBM_unlink_dir_from_table(table, (char*)table->dir_names[i]);
+            TBM_unlink_dir_from_table(table, table->dir_names[i]);
             DRM_delete_directory(directory, full);
         }
 

@@ -2,14 +2,17 @@
 
 
 database_t* DB_create_database(char* name) {
+    database_t* database = (database_t*)malloc(sizeof(database_t));
     database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
+
+    memset(database, 0, sizeof(database_t));
+    memset(header, 0, sizeof(database_header_t));
+
     header->magic = DATABASE_MAGIC;
-    strncpy((char*)header->name, name, DATABASE_NAME_SIZE);
+    strncpy(header->name, name, DATABASE_NAME_SIZE);
     header->table_count = 0;
 
-    database_t* database = (database_t*)malloc(sizeof(database_t));
     database->header = header;
-
     return database;
 }
 
@@ -17,14 +20,14 @@ int DB_delete_database(database_t* database, int full) {
     int result = 1;
     #pragma omp parallel shared(result)
     for (int i = 0; i < database->header->table_count; i++) {
-        table_t* table = DB_get_table(database, (char*)database->table_names[i]);
+        table_t* table = DB_get_table(database, database->table_names[i]);
         if (table == NULL) continue;
         if (TBM_delete_table(table, full) != 1) result = -1;
     }
 
     if (result != 1) return result;
     char delete_path[DEFAULT_PATH_SIZE];
-    get_load_path((char*)database->header->name, DATABASE_NAME_SIZE, NULL, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
+    get_load_path(database->header->name, DATABASE_NAME_SIZE, NULL, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
     remove(delete_path);
 
     DB_free_database(database);
@@ -55,6 +58,7 @@ database_t* DB_load_database(char* path, char* name) {
         if (file == NULL) print_error("Database file not found! [%s]", load_path);
         else {
             database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
+            memset(header, 0, sizeof(database_header_t));
             fread(header, sizeof(database_header_t), 1, file);
 
             if (header->magic != DATABASE_MAGIC) {
@@ -63,6 +67,7 @@ database_t* DB_load_database(char* path, char* name) {
                 fclose(file);
             } else {
                 database_t* database = (database_t*)malloc(sizeof(database_t));
+                memset(database, 0, sizeof(database_t));
                 for (int i = 0; i < header->table_count; i++)
                     fread(database->table_names[i], TABLE_NAME_SIZE, 1, file);
 

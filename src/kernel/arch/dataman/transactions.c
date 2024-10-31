@@ -19,7 +19,7 @@ int DB_rollback(database_t** database) {
     if (DRM_DDT_free() != 1) return -2;
     if (PGM_PDT_free() != 1) return -3;
 
-    database_t* old_database = DB_load_database(NULL, (char*)(*database)->header->name);
+    database_t* old_database = DB_load_database(NULL, (*database)->header->name);
     if (old_database == NULL) return -5;
 
     DB_free_database(*database);

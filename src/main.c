@@ -208,8 +208,8 @@ int main()
     #ifdef DESKTOP
 
         kernel_answer_t* result = kernel_process_command(argc, argv, 1, CREATE_ACCESS_BYTE(3, 3, 3));
-        if (result->answer_body != NULL) printf("%s\nCode: %i\n", result->answer_body, result->answer_code);
-        else printf("Code: %i\n", result->answer_code);
+        if (result->answer_body != NULL) print_info("%s\nCode: %i\n", result->answer_body, result->answer_code);
+        else print_info("Code: %i\n", result->answer_code);
 
     #else
 

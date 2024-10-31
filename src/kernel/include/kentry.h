@@ -1,4 +1,16 @@
 /*
+ *  License:
+ *  Copyright (C) 2024 Nikolaj Fot
+ *
+ *  This program is free software: you can redistribute it and/or modify it under the terms of 
+ *  the GNU General Public License as published by the Free Software Foundation, version 3.
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ *  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along with this program. 
+ *  If not, see https://www.gnu.org/licenses/.
+ *
+ *  Description:
  *  Kmain file. In future here will be placed some kernel init stuff.
  *  Also, this file handle commands, and work with database.
  *
@@ -54,6 +66,7 @@
 
     #define TABLE           "table"
     #define DATABASE        "database"
+    #define VERSION         "version"
 
     #define COLUMNS         "columns"
     #define COLUMN          "column"
@@ -71,6 +84,8 @@
     #define CLOSE_BRACKET   ")"
 
     #pragma region [Types]
+
+        #define ACCESS_SAME "same"
 
         #define TYPE_INT    "int"
         #define TYPE_MODULE "mod"
@@ -94,6 +109,8 @@
     #define NAUTO_INC       "na"
 
 #pragma endregion
+
+#define KERNEL_VERSION     "v2.1"
 
 
 typedef struct kernel_answer {

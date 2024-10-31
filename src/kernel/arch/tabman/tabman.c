@@ -10,7 +10,7 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
     directory_t* directory = NULL;
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory from disk to memory
-        directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+        directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) continue;
 
         // Check:
@@ -38,9 +38,9 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
     // Iterate from all directories in table
     for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
         // Load directory to memory
-        directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+        directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) {
-            print_warn("Can't lock directory [%.*s] while get_content operation!", DIRECTORY_NAME_SIZE, (char*)table->dir_names[i]);
+            print_warn("Can't lock directory [%.*s] while get_content operation!", DIRECTORY_NAME_SIZE, table->dir_names[i]);
             continue;
         }
 
@@ -75,7 +75,7 @@ int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
     // Iterate existed directories. Maybe we can store data here?
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory to memory
-        directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -2;
         if (directory == NULL) return -1;
         if (directory->header->page_count + size4append > PAGES_PER_DIRECTORY) continue;
@@ -115,7 +115,7 @@ int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_si
     // Iterate existed directories. Maybe we can insert data here?
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory to memory
-        directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) return -1;
 
         if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -4;
@@ -144,7 +144,7 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
     // Iterate existed directories. Maybe we can insert data here?
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory to memory
-        directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
 
         if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -4;
         size4delete = DRM_delete_content(directory, offset, size4delete);
@@ -160,10 +160,10 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 
 int TBM_cleanup_dirs(table_t* table) {
     for (int i = 0; i < table->header->dir_count; i++) {
-        directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         DRM_cleanup_pages(directory);
         if (directory->header->page_count == 0) {
-            TBM_unlink_dir_from_table(table, (char*)directory->header->name);
+            TBM_unlink_dir_from_table(table, directory->header->name);
             DRM_delete_directory(directory, 0);
         }
     }
@@ -179,7 +179,7 @@ int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size
     uint8_t* data_pointer = data;
     for (directory_offset = 0; directory_offset < table->header->dir_count && size4seach > 0; directory_offset++) {
         // We load current page to memory
-        directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[directory_offset]);
+        directory_t* directory = DRM_load_directory(NULL, table->dir_names[directory_offset]);
         if (directory == NULL) return -2;
 
         // We search part of data in this page, save index and unload page.
@@ -207,7 +207,7 @@ int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size
 
     if (target_global_index == -1) return -1;
     for (int i = 0; i < MAX(directory_offset - 1, 0); i++) {
-        directory_t* directory = DRM_load_directory(NULL, (char*)table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) return -2;
         target_global_index += directory->header->page_count * PAGE_CONTENT_SIZE;
     }
@@ -229,7 +229,7 @@ int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
     #pragma omp critical (unlink_dir_from_table)
     {
         for (int i = 0; i < table->header->dir_count; i++) {
-            if (strncmp((char*)table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
+            if (strncmp(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
                 for (int j = i; j < table->header->dir_count - 1; j++) {
                     memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
                 }
@@ -324,9 +324,10 @@ int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_in
 
 table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name) {
     table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
+    memset(column, '\0', sizeof(table_column_t));
 
     column->magic = COLUMN_MAGIC;
-    strncpy((char*)column->name, name, COLUMN_NAME_SIZE);
+    memcpy(column->name, name, COLUMN_NAME_SIZE);
     column->type = type;
     column->size = size;
 
@@ -364,13 +365,14 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
     for (int i = 0; i < table->header->column_count; i++) {
         if (GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_MODULE) {
             if (table->columns[i]->module_params == type || table->columns[i]->module_params == COLUMN_MODULE_BOTH) {
-                char* formula = (char*)table->columns[i]->module_querry;
+                char* formula = table->columns[i]->module_querry;
                 char* output_querry = (char*)malloc(COLUMN_MODULE_SIZE);
                 if (!output_querry) return -1;
 
-                memcpy(output_querry, formula, COLUMN_MODULE_SIZE);
-
+                int querry_size = 0;
                 int content_offset = 0;
+                memset(output_querry, '\0', COLUMN_MODULE_SIZE);
+                memcpy(output_querry, formula, COLUMN_MODULE_SIZE);
                 for (int j = 0; j < table->header->column_count; j++) {
                     uint8_t* content_pointer = data + content_offset;
                     char* content_part = (char*)malloc(table->columns[j]->size);
@@ -383,8 +385,8 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
 
                     size_t next_output_querry_size[1];
                     uint8_t* next_output_querry = memrep(
-                        (uint8_t*)output_querry, COLUMN_MODULE_SIZE,
-                        table->columns[j]->name, strlen((char*)table->columns[j]->name),
+                        (uint8_t*)output_querry, strlen(output_querry),
+                        (uint8_t*)table->columns[j]->name, strlen(table->columns[j]->name),
                         (uint8_t*)content_part, table->columns[j]->size,
                         next_output_querry_size
                     );
@@ -394,10 +396,12 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
 
                     output_querry = (char*)next_output_querry;
                     content_offset += table->columns[j]->size;
+                    querry_size = next_output_querry_size[0];
                 }
 
+                output_querry[querry_size] = '\0';
                 uint8_t* module_content_answer = data + module_offset;
-                MDL_launch_module((char*)table->columns[i]->module_name, output_querry, module_content_answer, table->columns[i]->size);
+                MDL_launch_module(table->columns[i]->module_name, output_querry, module_content_answer, table->columns[i]->size);
             }
         }
 

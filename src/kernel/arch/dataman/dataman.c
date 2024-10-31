@@ -46,7 +46,7 @@ int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t 
         data_pointer += column_offset;
 
         int row = DB_find_data_row(
-            database, table_name, (char*)primary_column_name->name, 0, data_pointer, primary_column_name->size, access
+            database, table_name, primary_column_name->name, 0, data_pointer, primary_column_name->size, access
         );
 
         // If in table already presented this value.
@@ -90,7 +90,7 @@ int DB_delete_row(database_t* database, char* table_name, int row, uint8_t acces
         #pragma omp parallel
         for (int i = 0; i < table->header->column_link_count; i++) {
             // Load slave table from disk
-            table_t* slave_table = DB_get_table(database, (char*)table->column_links[i]->slave_table_name);
+            table_t* slave_table = DB_get_table(database, table->column_links[i]->slave_table_name);
             if (slave_table == NULL) continue;
             if (CHECK_DELETE_ACCESS(access, slave_table->header->access) == -1) continue;
 
@@ -113,14 +113,14 @@ int DB_delete_row(database_t* database, char* table_name, int row, uint8_t acces
 
             // Find row in slave table with same key on linked column
             int slave_row = DB_find_data_row(
-                database, (char*)slave_table->header->name, (char*)table->column_links[i]->slave_column_name,
+                database, slave_table->header->name, table->column_links[i]->slave_column_name,
                 0, master_row_pointer, master_column->size, access
             );
 
             free(master_row);
 
             if (TBM_lock_table(slave_table, omp_get_thread_num()) == -1) continue;
-            DB_delete_row(database, (char*)slave_table->header->name, slave_row, access);
+            DB_delete_row(database, slave_table->header->name, slave_row, access);
             TBM_release_table(slave_table, omp_get_thread_num());
         }
     #endif
@@ -138,7 +138,7 @@ int DB_delete_row(database_t* database, char* table_name, int row, uint8_t acces
 
 int DB_cleanup_tables(database_t* database) {
     for (int i = 0; i < database->header->table_count; i++) {
-        table_t* table = DB_get_table(database, (char*)database->table_names[i]);
+        table_t* table = DB_get_table(database, database->table_names[i]);
         TBM_cleanup_dirs(table);
     }
 
@@ -160,7 +160,7 @@ int DB_find_data_row(
     int column_size   = -1;
     for (int i = 0; i < table->header->column_count; i++) {
         if (column != NULL) {
-            if (strcmp((char*)table->columns[i]->name, column) == 0) {
+            if (strncmp(table->columns[i]->name, column, COLUMN_NAME_SIZE) == 0) {
                 column_offset = row_size;
                 column_size = table->columns[i]->size;
             }
@@ -190,9 +190,8 @@ table_t* DB_get_table(database_t* database, char* table_name) {
     if (database == NULL) return NULL;
     if (table_name == NULL) return NULL;
 
-    // Main difference with TBM_load in check, that table in database
     for (int i = 0; i < database->header->table_count; i++) {
-        if (strncmp((char*)database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
+        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
             return TBM_load_table(NULL, table_name);
         }
     }
@@ -223,7 +222,7 @@ int DB_unlink_table_from_database(database_t* database, char* name) {
     #pragma omp critical (unlink_table_from_database)
     {
         for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp((char*)database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
+            if (strncmp(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
                 for (int j = i; j < database->header->table_count - 1; j++) {
                     memcpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
                 }

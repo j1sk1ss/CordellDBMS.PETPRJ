@@ -1,4 +1,16 @@
 /*
+ *  License:
+ *  Copyright (C) 2024 Nikolaj Fot
+ *
+ *  This program is free software: you can redistribute it and/or modify it under the terms of 
+ *  the GNU General Public License as published by the Free Software Foundation, version 3.
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ *  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along with this program. 
+ *  If not, see https://www.gnu.org/licenses/.
+ *
+ *  Description:
  *  Database is the end abstraction level, that work with tables.
  *  Main idea is to have main list of functions for handle user commands.
  *
@@ -55,7 +67,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
         uint8_t magic;
 
         // Database name
-        uint8_t name[DATABASE_NAME_SIZE];
+        char name[DATABASE_NAME_SIZE];
 
         // Table count in database
         uint8_t table_count;
@@ -66,7 +78,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
         database_header_t* header;
 
         // Database linked tables
-        uint8_t table_names[TABLES_PER_DATABASE][TABLE_NAME_SIZE];
+        char table_names[TABLES_PER_DATABASE][TABLE_NAME_SIZE];
     } database_t;
 
 

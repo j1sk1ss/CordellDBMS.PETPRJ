@@ -5,8 +5,11 @@ page_t* PGM_create_page(char* name, uint8_t* buffer, size_t data_size) {
     page_t* page = (page_t*)malloc(sizeof(page_t));
     page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
 
+    memset(page, 0, sizeof(page_t));
+    memset(header, 0, sizeof(page_header_t));
+
     header->magic = PAGE_MAGIC;
-    memcpy(header->name, name, PAGE_NAME_SIZE);
+    strncpy(header->name, name, PAGE_NAME_SIZE);
 
     page->lock_owner = NO_OWNER;
     page->lock = UNLOCKED;
@@ -90,6 +93,7 @@ page_t* PGM_load_page(char* path, char* name) {
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
+            memset(header, 0, sizeof(page_header_t));
             fread(header, sizeof(page_header_t), 1, file);
 
             // Check page magic

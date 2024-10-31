@@ -15,7 +15,7 @@ char* hash_string(const char* input, size_t output_size) {
 
     if (output_size < 1) return NULL;
     size_t hash_length = output_size - 1 > full_hash_length ? full_hash_length : output_size - 1;
-    char* output = malloc(output_size);
+    char* output = (char*)malloc(output_size);
     if (!output) return NULL;
 
     for (size_t i = 0; i < hash_length / 2; i++) sprintf(output + (i * 2), "%02x", hash[i]);

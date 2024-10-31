@@ -106,7 +106,7 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
                 }
             }
             else {
-                nameKeep[0]   = 0; // works with C:\\dir1\file.txt
+                nameKeep[0]   = 0; // works target C:\\dir1\file.txt
                 pathKeep[0]   = 0;
                 pathKeep2[0]  = 0; // preserves *path
                 File_Ext[0]   = 0;
@@ -163,7 +163,7 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
 char* get_current_time() {
     time_t rawtime;
     struct tm* timeinfo;
-    char* time_str = malloc(20);
+    char* time_str = (char*)malloc(20);
     if (time_str == NULL) return NULL;
 
     time(&rawtime);
@@ -230,38 +230,38 @@ int file_exists(const char* filename) {
 }
 
 uint8_t* memrep(
-    uint8_t* source, int source_size, uint8_t* sub, int sub_size, uint8_t* new, int new_size, size_t *result_len
+    uint8_t* source, int source_size, uint8_t* sub, int sub_size, uint8_t* new, int new_size, size_t* result_len
 ) {
     uint8_t* result;   // the return array
     uint8_t* ins;      // the next insert point
     uint8_t* tmp;      // varies
-    size_t len_front;  // distance between rep and end of last rep
+    size_t len_front;  // distance between source and end of last source
     int count;         // number of replacements
 
     if (!source || !sub || sub_size == 0) return NULL;
     if (!new) {
-        new = (uint8_t *)"";
+        new = (uint8_t*)"";
         new_size = 0;
     }
 
     ins = source;
-    for (count = 0; (tmp = (uint8_t *)memmem(ins, source_size - (ins - source), sub, sub_size)); ++count) {
+    for (count = 0; (tmp = (uint8_t*)memmem(ins, source_size - (ins - source), sub, sub_size)); ++count) {
         ins = tmp + sub_size;
     }
 
     *result_len = source_size + (new_size - sub_size) * count;
-    result = (uint8_t *)malloc(*result_len);
-    if (!result) {
-        return NULL;
-    }
+    result = (uint8_t*)malloc(*result_len + 1);
+    memset(result, '\0', *result_len + 1);
+    if (!result) return NULL;
 
     tmp = result;
     ins = source;
 
     while (count--) {
-        uint8_t *pos = (uint8_t *)memmem(ins, source_size - (ins - source), sub, sub_size);
-        len_front = pos - ins;
+        uint8_t* pos = (uint8_t*)memmem(ins, source_size - (ins - source), sub, sub_size);
+        if (!pos) break;
         
+        len_front = pos - ins;
         memcpy(tmp, ins, len_front);
         tmp += len_front;
 

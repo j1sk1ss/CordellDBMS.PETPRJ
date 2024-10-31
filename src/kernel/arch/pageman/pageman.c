@@ -5,7 +5,9 @@ int PGM_insert_value(page_t* page, int offset, uint8_t value) {
     if (offset < PAGE_CONTENT_SIZE) {
         page->content[offset] = value;
         return 1;
-    } else return -1;
+    }
+
+    return -1;
 }
 
 int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_length) {

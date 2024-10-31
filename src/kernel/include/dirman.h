@@ -1,4 +1,16 @@
 /*
+ *  License:
+ *  Copyright (C) 2024 Nikolaj Fot
+ *
+ *  This program is free software: you can redistribute it and/or modify it under the terms of 
+ *  the GNU General Public License as published by the Free Software Foundation, version 3.
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ *  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along with this program. 
+ *  If not, see https://www.gnu.org/licenses/.
+ *
+ *  Description
  *  Directory is the next abstraction level, that work directly with pages.
  *  Dirman - list of functions for working with directories and pages:
  *  We can:
@@ -60,7 +72,7 @@
 
         // Directory filename
         // With this name we can save directories / compare directories
-        uint8_t name[DIRECTORY_NAME_SIZE];
+        char name[DIRECTORY_NAME_SIZE];
 
         // Page count in directory
         uint8_t page_count;
@@ -78,7 +90,7 @@
         uint8_t lock_owner;
 
         // Page file names
-        uint8_t names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
+        char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
     } directory_t;
 
 

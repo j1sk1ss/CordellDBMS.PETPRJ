@@ -1,4 +1,16 @@
 /*
+ *  License:
+ *  Copyright (C) 2024 Nikolaj Fot
+ *
+ *  This program is free software: you can redistribute it and/or modify it under the terms of 
+ *  the GNU General Public License as published by the Free Software Foundation, version 3.
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ *  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along with this program. 
+ *  If not, see https://www.gnu.org/licenses/.
+ * 
+ *  Description:
  *  Pages - first abstraction level, that responsible for working with files. Main idea of page,
  *  that this file contains rows without trunc. That's mean, that we can't store in one page a part
  *  of row. Only whole row. This is important point, that guarantee data strength.
@@ -66,7 +78,7 @@
 
         // Page filename
         // With this name we can save pages / compare pages
-        uint8_t name[PAGE_NAME_SIZE];
+        char name[PAGE_NAME_SIZE];
 
         // Table checksum
         uint32_t checksum;

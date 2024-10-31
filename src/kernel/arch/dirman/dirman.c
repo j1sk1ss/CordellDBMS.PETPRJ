@@ -4,6 +4,7 @@
 uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
     uint8_t* content = (uint8_t*)malloc(size);
     uint8_t* content_pointer = content;
+    memset(content_pointer, 0, size);
 
     int pages4work    = (int)size / PAGE_CONTENT_SIZE;
     int page_offset   = offset / PAGE_CONTENT_SIZE;
@@ -17,7 +18,7 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
         }
 
         // We load current page
-        page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+        page_t* page = PGM_load_page(NULL, directory->page_names[i]);
         if (PGM_lock_page(page, omp_get_thread_num()) == -1) continue;
         if (page == NULL) continue;
 
@@ -60,7 +61,7 @@ int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght
     // We skip this part if data_lenght larger then PAGE_CONTENT_SIZE
     if (data_lenght < PAGE_CONTENT_SIZE) {
         for (int i = 0; i < directory->header->page_count; i++) {
-            page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+            page_t* page = PGM_load_page(NULL, directory->page_names[i]);
             if (page == NULL) return -1;
 
             int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
@@ -108,7 +109,7 @@ int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, si
         }
 
         // We load current page to memory
-        page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page++]);
+        page_t* page = PGM_load_page(NULL, directory->page_names[current_page++]);
         if (page == NULL) return -1;
 
         // We insert current part of content with local offset
@@ -141,7 +142,7 @@ int DRM_delete_content(directory_t* directory, int offset, size_t length) {
         }
 
         // We load current page
-        page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page++]);
+        page_t* page = PGM_load_page(NULL, directory->page_names[current_page++]);
         if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -4;
 
         // We check, that we don't return Page Empty, because
@@ -170,14 +171,14 @@ int DRM_delete_content(directory_t* directory, int offset, size_t length) {
 int DRM_cleanup_pages(directory_t* directory) {
     for (int i = 0; i < directory->header->page_count; i++) {
         char page_path[DEFAULT_PATH_SIZE];
-        sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->names[i], PAGE_EXTENSION);
-        page_t* page = PGM_load_page(NULL, (char*)directory->names[i]);
+        sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
+        page_t* page = PGM_load_page(NULL, directory->page_names[i]);
         if (PGM_lock_page(page, omp_get_thread_num()) == -1) return -4;
 
         // If page, after delete operation, full empty, we delete page.
         // Also we realise page pointer in RAM.
         if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
-            DRM_unlink_page_from_directory(directory, (char*)page->header->name);
+            DRM_unlink_page_from_directory(directory, page->header->name);
             PGM_PDT_flush_page(page);
             print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
         }
@@ -209,7 +210,7 @@ int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t d
         }
 
         // We load current page to memory
-        page_t* page = PGM_load_page(NULL, (char*)directory->names[current_page]);
+        page_t* page = PGM_load_page(NULL, directory->page_names[current_page]);
         if (page == NULL) return -2;
 
         // We search part of data in this page, save index and unload page.
@@ -248,7 +249,7 @@ int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t d
 int DRM_link_page2dir(directory_t* directory, page_t* page) {
     if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) return -1;
     #pragma omp critical (link_page2dir)
-    memcpy(directory->names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
+    memcpy(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
     return 1;
 }
 
@@ -257,9 +258,9 @@ int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
     #pragma omp critical (unlink_page_from_directory)
     {
         for (int i = 0; i < directory->header->page_count; i++) {
-            if (memcmp(directory->names[i], page_name, PAGE_NAME_SIZE) == 0) {
+            if (memcmp(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
                 for (int j = i; j < directory->header->page_count - 1; j++)
-                    memcpy(directory->names[j], directory->names[j + 1], PAGE_NAME_SIZE);
+                    memcpy(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
 
                 directory->header->page_count--;
                 status = 1;

@@ -1,4 +1,16 @@
 /*
+ *  License:
+ *  Copyright (C) 2024 Nikolaj Fot
+ *
+ *  This program is free software: you can redistribute it and/or modify it under the terms of 
+ *  the GNU General Public License as published by the Free Software Foundation, version 3.
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ *  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along with this program. 
+ *  If not, see https://www.gnu.org/licenses/.
+ * 
+ *  Description:
  *  Table operator is a simple functions to work with OS filesystem.
  *  Main idea that we have files with sizes near 4 KB for pages, 2 KB dirs and 13 KB tables.
  *  Table contains list of dirs (names of file). In same time, every directory contain list pf pages (names of file).
@@ -192,13 +204,13 @@
 
     typedef struct table_column_link {
         // Source name of column in source table
-        uint8_t master_column_name[COLUMN_NAME_SIZE];
+        char master_column_name[COLUMN_NAME_SIZE];
 
         // Source table name
-        uint8_t slave_table_name[TABLE_NAME_SIZE];
+        char slave_table_name[TABLE_NAME_SIZE];
 
         // Target column name
-        uint8_t slave_column_name[COLUMN_NAME_SIZE];
+        char slave_column_name[COLUMN_NAME_SIZE];
 
         // Link type
         uint8_t type;
@@ -226,13 +238,13 @@
 
         // Column name with fixed size
         // Column name
-        uint8_t name[COLUMN_NAME_SIZE];
+        char name[COLUMN_NAME_SIZE];
 
         // Column module data.
         // If in column used any module, we store command here.
         uint8_t module_params;
-        uint8_t module_name[MODULE_NAME_SIZE];
-        uint8_t module_querry[COLUMN_MODULE_SIZE];
+        char module_name[MODULE_NAME_SIZE];
+        char module_querry[COLUMN_MODULE_SIZE];
     } table_column_t;
 
     typedef struct table_header {
@@ -241,7 +253,7 @@
 
         // Table name
         // Table name needs for working with modfication exist table
-        uint8_t name[TABLE_NAME_SIZE];
+        char name[TABLE_NAME_SIZE];
 
         /*
         Main idea:
@@ -289,7 +301,7 @@
         uint8_t lock_owner;
 
         // Table directories
-        uint8_t dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
+        char dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
     } table_t;
 
 
