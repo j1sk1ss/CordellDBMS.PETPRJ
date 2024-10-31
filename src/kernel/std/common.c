@@ -245,14 +245,15 @@ uint8_t* memrep(
     }
 
     ins = source;
-    for (count = 0; (tmp = (uint8_t*)memmem(ins, source_size - (ins - source), sub, sub_size)); ++count) {
+    while ((tmp = (uint8_t*)memmem(ins, source_size - (ins - source), sub, sub_size)) != NULL) {
         ins = tmp + sub_size;
+        count++;
     }
 
     *result_len = source_size + (new_size - sub_size) * count;
     result = (uint8_t*)malloc(*result_len + 1);
-    memset(result, '\0', *result_len + 1);
     if (!result) return NULL;
+    memset(result, 0, *result_len + 1);
 
     tmp = result;
     ins = source;
@@ -265,11 +266,56 @@ uint8_t* memrep(
         memcpy(tmp, ins, len_front);
         tmp += len_front;
 
-        memcpy(tmp, new, new_size);
-        tmp += new_size;
+        if (new_size > 0) {
+            memcpy(tmp, new, new_size);
+            tmp += new_size;
+        }
+
         ins = pos + sub_size;
     }
 
     memcpy(tmp, ins, source_size - (ins - source));
+    return result;
+}
+
+char* strrep(char* string, char* source, char* target) {
+    char* result; // the return string
+    char* ins;    // the next insert point
+    char* tmp;    // varies
+    int len_source;  // length of source (the string to remove)
+    int len_target;  // length of target (the string to replace source target)
+    int len_front;   // distance between source and end of last source
+    int count;       // number of replacements
+
+    // sanity checks and initialization
+    if (!string || !source) return NULL;
+    len_source = strlen(source);
+    if (len_source == 0) return NULL; // empty source causes infinite loop during count
+    if (!target) target = "";
+    len_target = strlen(target);
+
+    // count the number of replacements needed
+    ins = string;
+    for (count = 0; (tmp = strstr(ins, source)); ++count) {
+        ins = tmp + len_source;
+    }
+
+    tmp = result = (char*)malloc(strlen(string) + (len_target - len_source) * count + 1);
+    if (!result) return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of source in string
+    //    string points to the remainder of string after "end of source"
+    while (count--) {
+        ins = strstr(string, source);
+        len_front = ins - string;
+        tmp = strncpy(tmp, string, len_front) + len_front;
+        tmp = strcpy(tmp, target) + len_target;
+        string += len_front + len_source; // move to next "end of source"
+    }
+
+    strcpy(tmp, string);
     return result;
 }

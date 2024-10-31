@@ -172,13 +172,26 @@ Params:
 - source_size - Size of source memory.
 - sub_string - Sub memory for replace.
 - sub_string_size - Sub memory size.
-- new_string - New sub string.
+- new_string - New sub memory.
 - new_string_size - New sub memory size.
 
-Return new mamory with replaced sub-memory.
+Return new memory with replaced sub-memory.
 */
 uint8_t* memrep(
     uint8_t* source, int source_size, uint8_t* sub, int sub_size, uint8_t* new, int new_size, size_t *result_len
 );
+
+/*
+Replacing sub-string in string by new string.
+Took from: https://stackoverflow.com/questions/779875/what-function-is-to-replace-a-substring-from-a-string-in-c
+
+Params:
+- string - Source string.
+- source - Sub memory for replace.
+- target - New sub string.
+
+Return new string with replaced sub-memory.
+*/
+char* strrep(char* string, char* source, char* target);
 
 #endif

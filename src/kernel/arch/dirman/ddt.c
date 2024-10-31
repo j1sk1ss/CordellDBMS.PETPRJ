@@ -16,21 +16,28 @@ static __thread directory_t* DRM_DDT[DDT_SIZE] = { NULL };
 
 
 int DRM_DDT_add_directory(directory_t* directory) {
+    if (directory == NULL) return -2;
+
     int current = -1;
+    int free_current = -1;
+    int occup_current = -1;
+
     for (int i = 0; i < DDT_SIZE; i++) {
         if (DRM_DDT[i] != NULL) {
             if (DRM_DDT[i]->lock == UNLOCKED) {
-                current = i;
-                break;
+                occup_current = i;
             }
         }
         else {
-            current = i;
+            free_current = i;
             break;
         }
     }
 
-    if (current == -1) return -1;
+    if (free_current == -1 && occup_current == -1) return -1;
+    else if (free_current != -1) current = free_current;
+    else if (occup_current != -1) current = occup_current;
+
     if (DRM_lock_directory(DRM_DDT[current], omp_get_thread_num()) != -1) {
         if (DRM_DDT[current] != NULL) {
             DRM_save_directory(DRM_DDT[current], NULL);

@@ -1,0 +1,367 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+ no time accumulated
+
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+  0.00      0.00     0.00       58     0.00     0.00  UNZ_byte_by_bits
+  0.00      0.00     0.00       57     0.00     0.00  CMP_byte_by_bits
+  0.00      0.00     0.00       57     0.00     0.00  get_file_path_parts
+  0.00      0.00     0.00       11     0.00     0.00  PGM_PDT_sync
+  0.00      0.00     0.00       11     0.00     0.00  TBM_get_checksum
+  0.00      0.00     0.00       10     0.00     0.00  DRM_DDT_sync
+  0.00      0.00     0.00       10     0.00     0.00  DRM_get_checksum
+  0.00      0.00     0.00       10     0.00     0.00  PGM_load_page
+  0.00      0.00     0.00       10     0.00     0.00  TBM_TDT_free
+  0.00      0.00     0.00        5     0.00     0.00  TBM_update_column_in_table
+  0.00      0.00     0.00        4     0.00     0.00  DB_create_database
+  0.00      0.00     0.00        4     0.00     0.00  kernel_process_command
+  0.00      0.00     0.00        3     0.00     0.00  DB_find_data_row
+  0.00      0.00     0.00        3     0.00     0.00  cleanup
+  0.00      0.00     0.00        3     0.00     0.00  file_exists
+  0.00      0.00     0.00        3     0.00     0.00  get_current_time
+  0.00      0.00     0.00        3     0.00     0.00  send2destination
+  0.00      0.00     0.00        3     0.00     0.00  strrand
+  0.00      0.00     0.00        2     0.00     0.00  close_connection
+  0.00      0.00     0.00        1     0.00     0.00  DB_load_database
+  0.00      0.00     0.00        1     0.00     0.00  DB_save_database
+  0.00      0.00     0.00        1     0.00     0.00  DRM_DDT_add_directory
+  0.00      0.00     0.00        1     0.00     0.00  PGM_PDT_add_page
+  0.00      0.00     0.00        1     0.00     0.00  TBM_TDT_add_table
+  0.00      0.00     0.00        1     0.00     0.00  TBM_TDT_find_table
+  0.00      0.00     0.00        1     0.00     0.00  TBM_check_signature
+  0.00      0.00     0.00        1     0.00     0.00  TBM_invoke_modules
+  0.00      0.00     0.00        1     0.00     0.00  TBM_load_table
+  0.00      0.00     0.00        1     0.00     0.00  TBM_save_table
+  0.00      0.00     0.00        1     0.00     0.00  USR_create
+  0.00      0.00     0.00        1     0.00     0.00  USR_load
+  0.00      0.00     0.00        1     0.00     0.00  cleanup_handler
+  0.00      0.00     0.00        1     0.00     0.00  cleanup_kernel
+  0.00      0.00     0.00        1     0.00     0.00  get_filename
+  0.00      0.00     0.00        1     0.00     0.00  kernel_free_answer
+  0.00      0.00     0.00        1     0.00     0.00  log_message
+  0.00      0.00     0.00        1     0.00     0.00  start_kernel_session
+  0.00      0.00     0.00        1     0.00     0.00  write_log
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2023 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) no time propagated
+
+index % time    self  children    called     name
+                0.00    0.00       1/58          DB_free_database [45]
+                0.00    0.00       1/58          DB_find_data_row [13]
+                0.00    0.00       1/58          TBM_save_table [29]
+                0.00    0.00       1/58          TBM_get_checksum [5]
+                0.00    0.00       1/58          TBM_TDT_add_table [24]
+                0.00    0.00       2/58          DB_delete_database [42]
+                0.00    0.00       3/58          main [132]
+                0.00    0.00       3/58          TBM_invoke_modules [27]
+                0.00    0.00       7/58          start_kernel_session [37]
+                0.00    0.00       8/58          kernel_process_command [12]
+                0.00    0.00      10/58          DRM_DDT_sync [6]
+                0.00    0.00      10/58          PGM_PDT_sync [4]
+                0.00    0.00      10/58          TBM_TDT_free [9]
+[1]      0.0    0.00    0.00      58         UNZ_byte_by_bits [1]
+                0.00    0.00      57/57          CMP_byte_by_bits [2]
+-----------------------------------------------
+                0.00    0.00      57/57          UNZ_byte_by_bits [1]
+[2]      0.0    0.00    0.00      57         CMP_byte_by_bits [2]
+                0.00    0.00      57/57          get_file_path_parts [3]
+-----------------------------------------------
+                0.00    0.00      57/57          CMP_byte_by_bits [2]
+[3]      0.0    0.00    0.00      57         get_file_path_parts [3]
+-----------------------------------------------
+                0.00    0.00       1/11          kernel_process_command [12]
+                0.00    0.00      10/11          PGM_PDT_add_page [23]
+[4]      0.0    0.00    0.00      11         PGM_PDT_sync [4]
+                0.00    0.00      10/58          UNZ_byte_by_bits [1]
+-----------------------------------------------
+                                   1             TBM_get_checksum [5]
+                0.00    0.00       1/11          TBM_invoke_modules [27]
+                0.00    0.00      10/11          TBM_TDT_find_table [25]
+[5]      0.0    0.00    0.00      11+1       TBM_get_checksum [5]
+                0.00    0.00       1/58          UNZ_byte_by_bits [1]
+                                   1             TBM_get_checksum [5]
+-----------------------------------------------
+                0.00    0.00      10/10          DRM_DDT_add_directory [22]
+[6]      0.0    0.00    0.00      10         DRM_DDT_sync [6]
+                0.00    0.00      10/58          UNZ_byte_by_bits [1]
+-----------------------------------------------
+                0.00    0.00      10/10          DRM_DDT_add_directory [22]
+[7]      0.0    0.00    0.00      10         DRM_get_checksum [7]
+-----------------------------------------------
+                0.00    0.00      10/10          PGM_PDT_add_page [23]
+[8]      0.0    0.00    0.00      10         PGM_load_page [8]
+-----------------------------------------------
+                0.00    0.00      10/10          TBM_TDT_find_table [25]
+[9]      0.0    0.00    0.00      10         TBM_TDT_free [9]
+                0.00    0.00      10/58          UNZ_byte_by_bits [1]
+                0.00    0.00       1/1           TBM_load_table [28]
+-----------------------------------------------
+                0.00    0.00       1/5           DB_save_database [21]
+                0.00    0.00       4/5           kernel_process_command [12]
+[10]     0.0    0.00    0.00       5         TBM_update_column_in_table [10]
+-----------------------------------------------
+                0.00    0.00       1/4           cleanup_kernel [33]
+                0.00    0.00       3/4           kernel_process_command [12]
+[11]     0.0    0.00    0.00       4         DB_create_database [11]
+-----------------------------------------------
+                0.00    0.00       1/4           cleanup_kernel [33]
+                0.00    0.00       3/4           start_kernel_session [37]
+[12]     0.0    0.00    0.00       4         kernel_process_command [12]
+                0.00    0.00       8/58          UNZ_byte_by_bits [1]
+                0.00    0.00       4/5           TBM_update_column_in_table [10]
+                0.00    0.00       3/4           DB_create_database [11]
+                0.00    0.00       2/3           DB_find_data_row [13]
+                0.00    0.00       1/1           log_message [36]
+                0.00    0.00       1/1           DB_load_database [20]
+                0.00    0.00       1/11          PGM_PDT_sync [4]
+                0.00    0.00       1/1           TBM_invoke_modules [27]
+                0.00    0.00       1/1           DB_save_database [21]
+                0.00    0.00       1/1           TBM_TDT_find_table [25]
+-----------------------------------------------
+                0.00    0.00       1/3           DB_save_database [21]
+                0.00    0.00       2/3           kernel_process_command [12]
+[13]     0.0    0.00    0.00       3         DB_find_data_row [13]
+                0.00    0.00       1/1           TBM_save_table [29]
+                0.00    0.00       1/58          UNZ_byte_by_bits [1]
+-----------------------------------------------
+                0.00    0.00       3/3           send2destination_byte [135]
+[14]     0.0    0.00    0.00       3         cleanup [14]
+-----------------------------------------------
+                0.00    0.00       3/3           TBM_invoke_modules [27]
+[15]     0.0    0.00    0.00       3         file_exists [15]
+-----------------------------------------------
+                0.00    0.00       1/3           TBM_save_table [29]
+                0.00    0.00       2/3           DB_delete_database [42]
+[16]     0.0    0.00    0.00       3         get_current_time [16]
+-----------------------------------------------
+                0.00    0.00       3/3           start_kernel_session [37]
+[17]     0.0    0.00    0.00       3         send2destination [17]
+-----------------------------------------------
+                0.00    0.00       3/3           TBM_check_signature [26]
+[18]     0.0    0.00    0.00       3         strrand [18]
+-----------------------------------------------
+                0.00    0.00       2/2           start_kernel_session [37]
+[19]     0.0    0.00    0.00       2         close_connection [19]
+-----------------------------------------------
+                0.00    0.00       1/1           kernel_process_command [12]
+[20]     0.0    0.00    0.00       1         DB_load_database [20]
+-----------------------------------------------
+                0.00    0.00       1/1           kernel_process_command [12]
+[21]     0.0    0.00    0.00       1         DB_save_database [21]
+                0.00    0.00       1/3           DB_find_data_row [13]
+                0.00    0.00       1/5           TBM_update_column_in_table [10]
+-----------------------------------------------
+                0.00    0.00       1/1           flush_tables [124]
+[22]     0.0    0.00    0.00       1         DRM_DDT_add_directory [22]
+                0.00    0.00      10/10          DRM_get_checksum [7]
+                0.00    0.00      10/10          DRM_DDT_sync [6]
+-----------------------------------------------
+                0.00    0.00       1/1           flush_tables [124]
+[23]     0.0    0.00    0.00       1         PGM_PDT_add_page [23]
+                0.00    0.00      10/10          PGM_load_page [8]
+                0.00    0.00      10/11          PGM_PDT_sync [4]
+-----------------------------------------------
+                0.00    0.00       1/1           TBM_save_table [29]
+[24]     0.0    0.00    0.00       1         TBM_TDT_add_table [24]
+                0.00    0.00       1/58          UNZ_byte_by_bits [1]
+-----------------------------------------------
+                0.00    0.00       1/1           kernel_process_command [12]
+[25]     0.0    0.00    0.00       1         TBM_TDT_find_table [25]
+                0.00    0.00      10/11          TBM_get_checksum [5]
+                0.00    0.00      10/10          TBM_TDT_free [9]
+-----------------------------------------------
+                0.00    0.00       1/1           DB_get_row [46]
+[26]     0.0    0.00    0.00       1         TBM_check_signature [26]
+                0.00    0.00       3/3           strrand [18]
+-----------------------------------------------
+                0.00    0.00       1/1           kernel_process_command [12]
+[27]     0.0    0.00    0.00       1         TBM_invoke_modules [27]
+                0.00    0.00       3/58          UNZ_byte_by_bits [1]
+                0.00    0.00       3/3           file_exists [15]
+                0.00    0.00       1/11          TBM_get_checksum [5]
+-----------------------------------------------
+                0.00    0.00       1/1           TBM_TDT_free [9]
+[28]     0.0    0.00    0.00       1         TBM_load_table [28]
+-----------------------------------------------
+                0.00    0.00       1/1           DB_find_data_row [13]
+[29]     0.0    0.00    0.00       1         TBM_save_table [29]
+                0.00    0.00       1/3           get_current_time [16]
+                0.00    0.00       1/1           get_filename [34]
+                0.00    0.00       1/1           TBM_TDT_add_table [24]
+                0.00    0.00       1/58          UNZ_byte_by_bits [1]
+-----------------------------------------------
+                0.00    0.00       1/1           start_kernel_session [37]
+[30]     0.0    0.00    0.00       1         USR_create [30]
+-----------------------------------------------
+                0.00    0.00       1/1           USR_auth [118]
+[31]     0.0    0.00    0.00       1         USR_load [31]
+-----------------------------------------------
+                0.00    0.00       1/1           main [132]
+[32]     0.0    0.00    0.00       1         cleanup_handler [32]
+-----------------------------------------------
+                0.00    0.00       1/1           USR_auth [118]
+[33]     0.0    0.00    0.00       1         cleanup_kernel [33]
+                0.00    0.00       1/4           kernel_process_command [12]
+                0.00    0.00       1/4           DB_create_database [11]
+-----------------------------------------------
+                0.00    0.00       1/1           TBM_save_table [29]
+[34]     0.0    0.00    0.00       1         get_filename [34]
+-----------------------------------------------
+                0.00    0.00       1/1           USR_save [119]
+[35]     0.0    0.00    0.00       1         kernel_free_answer [35]
+-----------------------------------------------
+                0.00    0.00       1/1           kernel_process_command [12]
+[36]     0.0    0.00    0.00       1         log_message [36]
+-----------------------------------------------
+                0.00    0.00       1/1           handle_client [129]
+[37]     0.0    0.00    0.00       1         start_kernel_session [37]
+                0.00    0.00       7/58          UNZ_byte_by_bits [1]
+                0.00    0.00       3/3           send2destination [17]
+                0.00    0.00       3/4           kernel_process_command [12]
+                0.00    0.00       2/2           close_connection [19]
+                0.00    0.00       1/1           USR_create [30]
+-----------------------------------------------
+                0.00    0.00       1/1           main [132]
+[38]     0.0    0.00    0.00       1         write_log [38]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2023 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+   [2] CMP_byte_by_bits        [9] TBM_TDT_free           [19] close_connection
+  [11] DB_create_database     [26] TBM_check_signature    [15] file_exists
+  [13] DB_find_data_row        [5] TBM_get_checksum       [16] get_current_time
+  [20] DB_load_database       [27] TBM_invoke_modules      [3] get_file_path_parts
+  [21] DB_save_database       [28] TBM_load_table         [34] get_filename
+  [22] DRM_DDT_add_directory  [29] TBM_save_table         [35] kernel_free_answer
+   [6] DRM_DDT_sync           [10] TBM_update_column_in_table [12] kernel_process_command
+   [7] DRM_get_checksum        [1] UNZ_byte_by_bits       [36] log_message
+  [23] PGM_PDT_add_page       [30] USR_create             [17] send2destination
+   [4] PGM_PDT_sync           [31] USR_load               [37] start_kernel_session
+   [8] PGM_load_page          [14] cleanup                [18] strrand
+  [24] TBM_TDT_add_table      [32] cleanup_handler        [38] write_log
+  [25] TBM_TDT_find_table     [33] cleanup_kernel

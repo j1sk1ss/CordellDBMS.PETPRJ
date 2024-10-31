@@ -2,14 +2,14 @@
 
 
 int MDL_launch_module(char* module_name, char* args, uint8_t* buffer, size_t buffer_size) {
-    memset(buffer, 0, buffer_size);
+    memset(buffer, '0', buffer_size);
     print_debug("Module [%s] invoked with [%s] args", module_name, args);
 
     char module_path[DEFAULT_PATH_SIZE];
     char command[256];
     char result[128];
 
-    sprintf(module_path, "%s%.*s.%s", MODULE_BASE_PATH, MODULE_NAME_SIZE, module_name, MODULE_EXTENSION);
+    sprintf(module_path, "%s%s.%s", MODULE_BASE_PATH, module_name, MODULE_EXTENSION);
     if (!file_exists(module_path)) {
         print_warn("Module not found");
         return -1;

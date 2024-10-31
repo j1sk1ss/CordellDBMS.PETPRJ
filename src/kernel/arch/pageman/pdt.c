@@ -16,21 +16,28 @@ static __thread page_t* PGM_PDT[PDT_SIZE] = { NULL };
 
 
 int PGM_PDT_add_page(page_t* page) {
+    if (page == NULL) return -2;
+
     int current = -1;
+    int free_current = -1;
+    int occup_current = -1;
+
     for (int i = 0; i < PDT_SIZE; i++) {
         if (PGM_PDT[i] != NULL) {
             if (PGM_PDT[i]->lock == UNLOCKED) {
-                current = i;
-                break;
+                occup_current = i;
             }
         }
         else {
-            current = i;
+            free_current = i;
             break;
         }
     }
 
-    if (current == -1) return -1;
+    if (free_current == -1 && occup_current == -1) return -1;
+    else if (free_current != -1) current = free_current;
+    else if (occup_current != -1) current = occup_current;
+
     if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
         if (PGM_PDT[current] != NULL) {
             PGM_save_page(PGM_PDT[current], NULL);

@@ -16,22 +16,28 @@ static __thread table_t* TBM_TDT[TDT_SIZE] = { NULL };
 
 
 int TBM_TDT_add_table(table_t* table) {
-    if (table == NULL) return -1;
+    if (table == NULL) return -2;
+
     int current = -1;
+    int free_current = -1;
+    int occup_current = -1;
+
     for (int i = 0; i < TDT_SIZE; i++) {
         if (TBM_TDT[i] != NULL) {
             if (TBM_TDT[i]->lock == UNLOCKED) {
-                current = i;
-                break;
+                occup_current = i;
             }
         }
         else {
-            current = i;
+            free_current = i;
             break;
         }
     }
 
-    if (current == -1) return -1;
+    if (free_current == -1 && occup_current == -1) return -1;
+    else if (free_current != -1) current = free_current;
+    else if (occup_current != -1) current = occup_current;
+
     if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
         if (TBM_TDT[current] != NULL) {
             TBM_save_table(TBM_TDT[current], NULL);

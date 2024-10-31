@@ -13,7 +13,9 @@ table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, u
 
     table_t* table  = (table_t*)malloc(sizeof(table_t));
     table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
-    memset(header, '\0', sizeof(table_header_t));
+
+    memset(table, 0, sizeof(table_t));
+    memset(header, 0, sizeof(table_header_t));
 
     header->access = access;
     header->magic  = TABLE_MAGIC;
@@ -121,21 +123,27 @@ table_t* TBM_load_table(char* path, char* name) {
             } else {
                 // Read columns from file.
                 table_t* table = (table_t*)malloc(sizeof(table_t));
-                table->columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
+                table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
+
+                memset(table, 0, sizeof(table_t));
+                memset(columns, 0, header->column_count * sizeof(table_column_t*));
+
                 for (int i = 0; i < header->column_count; i++) {
-                    table->columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
-                    fread(table->columns[i], sizeof(table_column_t), 1, file);
+                    columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
+                    fread(columns[i], sizeof(table_column_t), 1, file);
                 }
 
                 table->row_size = 0;
                 for (int i = 0; i < header->column_count; i++)
-                    table->row_size += table->columns[i]->size;
+                    table->row_size += columns[i]->size;
 
                 // Read column links from file.
-                table->column_links = (table_column_link_t**)malloc(header->column_link_count * sizeof(table_column_link_t*));
+                table_column_link_t** column_links = (table_column_link_t**)malloc(header->column_link_count * sizeof(table_column_link_t*));
+                memset(column_links, 0, header->column_link_count * sizeof(table_column_link_t*));
+
                 for (int i = 0; i < header->column_link_count; i++) {
-                    table->column_links[i] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-                    fread(table->column_links[i], sizeof(table_column_link_t), 1, file);
+                    column_links[i] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
+                    fread(column_links[i], sizeof(table_column_link_t), 1, file);
                 }
 
                 // Read directory names from file, that linked to this directory.
@@ -143,6 +151,9 @@ table_t* TBM_load_table(char* path, char* name) {
                     fread(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file);
 
                 fclose(file);
+
+                table->columns = columns;
+                table->column_links = column_links;
 
                 table->lock_owner = NO_OWNER;
                 table->lock = UNLOCKED;
@@ -198,25 +209,20 @@ uint32_t TBM_get_checksum(table_t* table) {
     table->header->checksum = 0;
 
     uint32_t checksum = 0;
-    if (table->header != NULL)
-        checksum = crc32(checksum, (const uint8_t*)table->header, sizeof(table_header_t));
-
+    if (table->header != NULL) checksum = crc32(checksum, (const uint8_t*)table->header, sizeof(table_header_t));
     if (table->columns != NULL) {
         for (uint16_t i = 0; i < table->header->column_count; i++) {
-            if (table->columns[i] != NULL)
-                checksum = crc32(checksum, (const uint8_t*)table->columns[i], sizeof(table_column_t));
+            if (table->columns[i] != NULL) checksum = crc32(checksum, (const uint8_t*)table->columns[i], sizeof(table_column_t));
         }
     }
 
     if (table->column_links != NULL) {
         for (uint16_t i = 0; i < table->header->column_link_count; i++) {
-            if (table->column_links[i] != NULL)
-                checksum = crc32(checksum, (const uint8_t*)table->column_links[i], sizeof(table_column_link_t));
+            if (table->column_links[i] != NULL) checksum = crc32(checksum, (const uint8_t*)table->column_links[i], sizeof(table_column_link_t));
         }
     }
 
     table->header->checksum = prev_checksum;
     checksum = crc32(checksum, (const uint8_t*)table->dir_names, sizeof(table->dir_names));
-
     return checksum;
 }

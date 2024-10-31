@@ -324,7 +324,7 @@ int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_in
 
 table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name) {
     table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
-    memset(column, '\0', sizeof(table_column_t));
+    memset(column, 0, sizeof(table_column_t));
 
     column->magic = COLUMN_MAGIC;
     memcpy(column->name, name, COLUMN_NAME_SIZE);
@@ -368,38 +368,30 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
                 char* formula = table->columns[i]->module_querry;
                 char* output_querry = (char*)malloc(COLUMN_MODULE_SIZE);
                 if (!output_querry) return -1;
+                strncpy(output_querry, formula, COLUMN_MODULE_SIZE);
 
-                int querry_size = 0;
                 int content_offset = 0;
-                memset(output_querry, '\0', COLUMN_MODULE_SIZE);
-                memcpy(output_querry, formula, COLUMN_MODULE_SIZE);
                 for (int j = 0; j < table->header->column_count; j++) {
                     uint8_t* content_pointer = data + content_offset;
-                    char* content_part = (char*)malloc(table->columns[j]->size);
+                    char* content_part = (char*)malloc(table->columns[j]->size + 1);
                     if (!content_part) {
                         free(output_querry);
                         return -2;
                     }
 
                     memcpy(content_part, content_pointer, table->columns[j]->size);
+                    content_part[table->columns[j]->size] = '\0';
 
-                    size_t next_output_querry_size[1];
-                    uint8_t* next_output_querry = memrep(
-                        (uint8_t*)output_querry, strlen(output_querry),
-                        (uint8_t*)table->columns[j]->name, strlen(table->columns[j]->name),
-                        (uint8_t*)content_part, table->columns[j]->size,
-                        next_output_querry_size
-                    );
-                    
-                    free(output_querry);
+                    char* next_output_querry = strrep(output_querry, table->columns[j]->name, content_part);
+
                     free(content_part);
+                    if (!next_output_querry) continue;
+                    free(output_querry);
 
                     output_querry = (char*)next_output_querry;
                     content_offset += table->columns[j]->size;
-                    querry_size = next_output_querry_size[0];
                 }
 
-                output_querry[querry_size] = '\0';
                 uint8_t* module_content_answer = data + module_offset;
                 MDL_launch_module(table->columns[i]->module_name, output_querry, module_content_answer, table->columns[i]->size);
             }
