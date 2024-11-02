@@ -13,7 +13,7 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
 
     for (int i = page_offset; i < page_offset + pages4work + 1 && size2get > 0; i++) {
         if (i > directory->header->page_count) {
-            // To  many pages. We reach directory end.
+            // Too  many pages. We reach directory end.
             return content;
         }
 
@@ -258,7 +258,7 @@ int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
     #pragma omp critical (unlink_page_from_directory)
     {
         for (int i = 0; i < directory->header->page_count; i++) {
-            if (memcmp(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
+            if (strncmp(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
                 for (int j = i; j < directory->header->page_count - 1; j++)
                     memcpy(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
 

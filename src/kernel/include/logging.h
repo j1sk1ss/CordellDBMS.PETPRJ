@@ -36,7 +36,11 @@
 
 // Note: LOG_TO_FILE option very heavy function. Prefere console logging.
 // #define LOG_TO_FILE
-#define LOG_FILE_PATH getenv("LOG_FILE_PATH") == NULL ? "cdbms.log" : getenv("LOG_FILE_PATH")
+#define LOG_FILE_PATH       ENV_GET("LOG_FILE_PATH", "")
+#define LOG_FILE_EXTENSION  ENV_GET("LOG_FILE_EXTENSION", "log")
+
+#define LOG_FILE_NAME_SIZE  16
+#define LOG_FILE_SIZE       100
 
 #ifdef DEBUG
     #define print_debug(message, ...)    log_message("DEBUG", __FILE__, __LINE__, message, ##__VA_ARGS__)

@@ -274,9 +274,9 @@ int TBM_link_column2column(table_t* master, char* master_column_name, table_t* s
 int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name) {
     for (int i = 0; i < master->header->column_link_count; i++) {
         if (
-            memcmp(master->column_links[i]->master_column_name, master_column_name, COLUMN_NAME_SIZE) == 0 &&
-            memcmp(master->column_links[i]->slave_column_name, slave_column_name, COLUMN_NAME_SIZE) == 0 &&
-            memcmp(master->column_links[i]->slave_table_name, slave->header->name, TABLE_NAME_SIZE) == 0
+            strncmp(master->column_links[i]->master_column_name, master_column_name, COLUMN_NAME_SIZE) == 0 &&
+            strncmp(master->column_links[i]->slave_column_name, slave_column_name, COLUMN_NAME_SIZE) == 0 &&
+            strncmp(master->column_links[i]->slave_table_name, slave->header->name, TABLE_NAME_SIZE) == 0
         ) {
             free(master->column_links[i]);
 
@@ -310,7 +310,7 @@ int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_in
     }
 
     for (int i = 0; i < table->header->column_count; i++) {
-        if (memcmp(table->columns[i]->name, column->name, COLUMN_NAME_SIZE) == 0) {
+        if (strncmp(table->columns[i]->name, column->name, COLUMN_NAME_SIZE) == 0) {
             if (table->columns[i]->size != column->size && table->header->dir_count != 0) return -2;
 
             SOFT_FREE(table->columns[i]);

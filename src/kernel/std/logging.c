@@ -7,8 +7,12 @@ void write_log(const char* level, const char* file, int line, const char* messag
         FILE* log_output = stdout;
 
         #ifdef LOG_TO_FILE
-            if ((LOG_FILE_PATH)[0] != '\0') {
-                log_output = fopen((LOG_FILE_PATH), "a");
+            static int log_size = 0;
+            static char* log_file_path = NULL;
+            
+            if (log_file_path == NULL) log_file_path = generate_unique_filename(LOG_FILE_PATH, LOG_FILE_NAME_SIZE, LOG_FILE_EXTENSION);
+            if ((log_file_path)[0] != '\0') {
+                log_output = fopen((log_file_path), "a");
                 if (log_output == NULL) log_output = stdout;
             }
         #endif
@@ -22,8 +26,13 @@ void write_log(const char* level, const char* file, int line, const char* messag
         fprintf(log_output, "\n");
 
         #ifdef LOG_TO_FILE
-            if (log_output != stdout)
+            if (log_output != stdout) {
                 fclose(log_output);
+                if (log_size++ >= LOG_FILE_SIZE) {
+                    log_size = 0;
+                    SOFT_FREE(log_file_path);
+                }
+            }
         #endif
     }
 }

@@ -55,8 +55,7 @@ table_t* TBM_TDT_find_table(char* name) {
     if (name == NULL) return NULL;
     for (int i = 0; i < TDT_SIZE; i++) {
         if (TBM_TDT[i] == NULL) continue;
-        if (memcmp(TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0)
-            return TBM_TDT[i];
+        if (strncmp(TBM_TDT[i]->header->name, name, TABLE_NAME_SIZE) == 0) return TBM_TDT[i];
     }
 
     return NULL;

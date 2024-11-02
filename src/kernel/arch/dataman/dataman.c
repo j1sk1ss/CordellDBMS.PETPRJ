@@ -98,7 +98,7 @@ int DB_delete_row(database_t* database, char* table_name, int row, uint8_t acces
             int master_column_offset = 0;
             table_column_t* master_column = NULL;
             for (int j = 0; j < table->header->column_count; j++) {
-                if (memcmp(table->columns[j]->name, table->column_links[i]->master_column_name, COLUMN_NAME_SIZE) == 0) {
+                if (strncmp(table->columns[j]->name, table->column_links[i]->master_column_name, COLUMN_NAME_SIZE) == 0) {
                     master_column = table->columns[j];
                     break;
                 }

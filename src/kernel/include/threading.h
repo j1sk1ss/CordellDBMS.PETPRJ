@@ -33,6 +33,7 @@
 #endif
 
 #ifdef _WIN32
+  #include <windows.h>
   #define __thread
 #else
   #include <pthread.h>

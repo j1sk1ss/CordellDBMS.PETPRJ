@@ -57,12 +57,12 @@
     #define ROLLBACK        "rollback"
     #define SYNC            "sync"
 
-    #define CREATE          "create"    // Example: db.db create table table_1 columns ( col1 10 str is_primary na col2 10 any np na )
-    #define LINK            "link"      // Example: db.db link master_table master_column slave_table slave_column ( cdel cupd capp cfnd )
-    #define DELETE          "delete"    // Example: db.db delete table table_1
-    #define APPEND          "append"    // Example: db.db append table_1 columns "hello     second col" 000
-    #define UPDATE          "update"    // Example: db.db update row table_1 by_index 0 "goodbye   hello  bye" 000
-    #define GET             "get"       // Example: db.db get row table_1 by_value "hello" column "col2" 000
+    #define CREATE          "create"
+    #define LINK            "link"
+    #define DELETE          "delete"
+    #define APPEND          "append"
+    #define UPDATE          "update"
+    #define GET             "get"
 
     #define TABLE           "table"
     #define DATABASE        "database"
@@ -110,7 +110,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.1"
+#define KERNEL_VERSION     "v2.2"
 
 
 typedef struct kernel_answer {

@@ -41,14 +41,23 @@
     #include <unistd.h>
 #endif
 
+#include "threading.h"
 #include "logging.h"
 #include "common.h"
 #include "dirman.h"
 #include "module.h"
-#include "threading.h"
 
 
 #define TDT_SIZE 10
+
+#define TABLE_MAGIC             0xAA
+#define TABLE_NAME_SIZE         8
+#define DIRECTORIES_PER_TABLE   0xFF
+
+#define TABLE_EXTENSION         ENV_GET("TABLE_EXTENSION", "tb")
+// Set here default path for save.
+// Important Note ! : This path is main for ALL tables
+#define TABLE_BASE_PATH         ENV_GET("TABLE_BASE_PATH", "")
 
 #pragma region [Access]
 
@@ -85,16 +94,6 @@
     #define CHECK_DELETE_ACCESS(uaccess, taccess) GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0
 
 #pragma endregion
-
-#define TABLE_MAGIC             0xAA
-#define TABLE_NAME_SIZE         8
-
-#define DIRECTORIES_PER_TABLE    0xFF
-
-#define TABLE_EXTENSION         getenv("TABLE_EXTENSION") == NULL ? "tb" : getenv("TABLE_EXTENSION")
-// Set here default path for save.
-// Important Note ! : This path is main for ALL tables
-#define TABLE_BASE_PATH         getenv("TABLE_BASE_PATH") == NULL ? "" : getenv("TABLE_BASE_PATH")
 
 #pragma region [Column]
 
@@ -212,7 +211,17 @@
         // Target column name
         char slave_column_name[COLUMN_NAME_SIZE];
 
-        // Link type
+        /* 
+        Link type byte store 4 flags for link.
+        In summary we have next byte:
+        0x|CF|CA|CU|CD|
+
+        Where:
+        CF - cascade find bits.
+        CA - cascade uppend bits.
+        CU - cascade update bits.
+        CD - cascade delete bits.
+        */
         uint8_t type;
     } table_column_link_t;
 

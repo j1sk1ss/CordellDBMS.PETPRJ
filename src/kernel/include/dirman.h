@@ -10,7 +10,7 @@
  *  You should have received a copy of the GNU General Public License along with this program. 
  *  If not, see https://www.gnu.org/licenses/.
  *
- *  Description
+ *  Description:
  *  Directory is the next abstraction level, that work directly with pages.
  *  Dirman - list of functions for working with directories and pages:
  *  We can:
@@ -47,10 +47,10 @@
 #include "threading.h"
 
 
-#define DIRECTORY_EXTENSION getenv("DIRECTORY_EXTENSION") == NULL ? "dr" : getenv("DIRECTORY_EXTENSION")
+#define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL directories
-#define DIRECTORY_BASE_PATH getenv("DIRECTORY_BASE_PATH") == NULL ? "" : getenv("DIRECTORY_BASE_PATH")
+#define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", "")
 
 #define DDT_SIZE            10
 
@@ -339,7 +339,7 @@
         int DRM_DDT_add_directory(directory_t* directory);
 
         /*
-        Find directory in DDT by name
+        Find directory in DDT by name.
 
         Params:
         - name - name of directory for find.
@@ -405,8 +405,8 @@
         - directory - pointer to directory.
         - owner - thread, that want lock this directory.
 
-        Return -2 if we try to lock NULL
-        Return -1 if we can`t lock directory (for some reason)
+        Return -2 if we try to lock NULL.
+        Return -1 if we can`t lock directory (for some reason).
         Return 1 if directory now locked.
         */
         int DRM_lock_directory(directory_t* directory, uint8_t owner);

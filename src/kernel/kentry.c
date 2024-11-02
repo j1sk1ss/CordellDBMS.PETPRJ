@@ -1,5 +1,3 @@
-// Loader for .csv .txt .json
-// Don't create new table
 #include "include/kentry.h"
 
 

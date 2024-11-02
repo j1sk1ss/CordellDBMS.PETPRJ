@@ -38,7 +38,7 @@
 #endif
 
 
-#define CDBMS_SERVER_PORT   getenv("CDBMS_SERVER_PORT") == NULL ? 1010 : atoi(getenv("CDBMS_SERVER_PORT"))
+#define CDBMS_SERVER_PORT   ENV_GET("CDBMS_SERVER_PORT", "7777")
 #define MESSAGE_BUFFER      2048
 #define COMMANDS_BUFFER     256
 #define MAX_SESSION_COUNT   5
@@ -63,19 +63,19 @@ void cleanup() {
 
 #pragma region [Send functions]
 
-int send2destination(int destination, void* data, size_t data_size) {
-    #ifdef _WIN32
-        send(destination, (const char*)data, data_size, 0);
-    #else
-        write(destination, data, data_size);
-    #endif
+    int send2destination(int destination, void* data, size_t data_size) {
+        #ifdef _WIN32
+            send(destination, (const char*)data, data_size, 0);
+        #else
+            write(destination, data, data_size);
+        #endif
 
-    return 1;
-}
+        return 1;
+    }
 
-int send2destination_byte(int destination, int byte) {
-    return send2destination(destination, &byte, 1);
-}
+    int send2destination_byte(int destination, int byte) {
+        return send2destination(destination, &byte, 1);
+    }
 
 #pragma endregion
 
@@ -202,14 +202,17 @@ int main()
     /*
     Enable traceback for current session.
     */
+    print_info("Cordell Database Manager Studio server-side.");
+    print_info("Current version of kernel is [%s].", KERNEL_VERSION);
+
     TB_enable();
     CL_enable();
 
     #ifdef DESKTOP
 
         kernel_answer_t* result = kernel_process_command(argc, argv, 1, CREATE_ACCESS_BYTE(3, 3, 3));
-        if (result->answer_body != NULL) print_info("%s\nCode: %i\n", result->answer_body, result->answer_code);
-        else print_info("Code: %i\n", result->answer_code);
+        if (result->answer_body != NULL) print_info("Answer body: [%s]\nAnswer code: [%i]", result->answer_body, result->answer_code);
+        else print_info("Answer code: [%i]", result->answer_code);
 
     #else
 
@@ -230,8 +233,9 @@ int main()
         struct sockaddr_in server_address;
         struct sockaddr_in client_address;
 
+        int server_port = atoi(CDBMS_SERVER_PORT);
+        server_address.sin_port = htons(server_port);
         server_address.sin_family = AF_INET;
-        server_address.sin_port = htons(CDBMS_SERVER_PORT);
         server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
         if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) < 0) {
@@ -278,5 +282,5 @@ int main()
 
     #endif
 
-	return 1;
+    return 1;
 }

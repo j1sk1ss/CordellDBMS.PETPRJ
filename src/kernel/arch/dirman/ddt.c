@@ -59,8 +59,7 @@ directory_t* DRM_DDT_find_directory(char* name) {
     if (name == NULL) return NULL;
     for (int i = 0; i < DDT_SIZE; i++) {
         if (DRM_DDT[i] == NULL) continue;
-        if (memcmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0)
-            return DRM_DDT[i];
+        if (strncmp(DRM_DDT[i]->header->name, name, DIRECTORY_NAME_SIZE) == 0) return DRM_DDT[i];
     }
 
     return NULL;
