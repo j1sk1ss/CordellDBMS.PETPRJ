@@ -224,14 +224,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         else if (strcmp(command, APPEND) == 0) {
             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (table_name == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
-                }
 
                 if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                     char* input_data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    if (input_data == NULL) {
+                    if (input_data == NULL || table_name == NULL) {
                         answer->answer_code = 5;
                         return answer;
                     }
@@ -299,11 +295,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             Command syntax: delete row <table_name> <operation_type> <options>
             */
             else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), ROW) == 0) {
+                int index = -1;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (table_name == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
-                }
 
                 /*
                 Note: Will delete entire row. (If table has links, it will cause CASCADE operations).
@@ -311,11 +304,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    int index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
-                    int result = DB_delete_row(database, table_name, index, access);
-                    answer->answer_size = -1;
-                    answer->answer_code = result;
-                    answer->commands_processed = command_index;
+                    index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
                 }
                 /*
                 Note: will delete first row, where will find value in provided column.
@@ -324,37 +313,26 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
                         char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                        if (column_name == NULL) {
-                            answer->answer_code = 5;
-                            return answer;
-                        }
 
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            if (value == NULL) {
+                            if (value == NULL || column_name == NULL || table_name == NULL) {
                                 answer->answer_code = 5;
                                 return answer;
                             }
 
-                            int row2delete = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), access);
-                            if (row2delete == -1) {
+                            index = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), access);
+                            if (index == -1) {
                                 print_error("Value not presented in table [%s].", table_name);
                                 return answer;
                             }
-
-                            int result = DB_delete_row(database, table_name, row2delete, access);
-                            if (result == 1) print_info("Row %i was deleted succesfully from %s", row2delete, table_name);
-                            else {
-                                print_error("Error code: %i", result);
-                                return answer;
-                            }
-
-                            answer->answer_size = -1;
-                            answer->answer_code = result;
-                            answer->commands_processed = command_index;
                         }
                     }
                 }
+
+                answer->answer_size = -1;
+                answer->answer_code = DB_delete_row(database, table_name, index, access);
+                answer->commands_processed = command_index;
             }
         }
         /*
@@ -366,6 +344,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             Command syntax: get row <table_name> <operation_type> <options>
             */
             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
+                int index = -1;
+                int answer_size = 0;
+                uint8_t* answer_data = NULL;
+
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
                     answer->answer_code = 5;
@@ -378,14 +360,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    int index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
+                    index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                     if (index == -1) {
                         answer->answer_code = 7;
                         return answer;
                     }
 
-                    uint8_t* data = DB_get_row(database, table_name, index, access);
-                    if (data == NULL) {
+                    answer_data = DB_get_row(database, table_name, index, access);
+                    if (answer_data == NULL) {
                         print_error(
                             "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", 
                             DATABASE_NAME_SIZE, database->header->name, table_name, index, access
@@ -396,12 +378,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     }
 
                     table_t* table = DB_get_table(database, table_name);
-                    answer->answer_body = data;
-                    answer->answer_code = index;
-                    answer->answer_size = table->row_size;
-                    answer->commands_processed = command_index;
-
-                    return answer;
+                    answer_size = table->row_size;
                 }
                 /*
                 Note: will get first row, where will find value in provided column.
@@ -410,58 +387,48 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
                         char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                        if (column_name == NULL) {
-                            answer->answer_code = 5;
-                            return answer;
-                        }
 
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            if (value == NULL) {
+                            if (value == NULL || column_name == NULL) {
                                 answer->answer_code = 5;
                                 return answer;
                             }
 
                             table_t* table = DB_get_table(database, table_name);
-                            uint8_t* data  = NULL;
-                            int offset     = 0;
-                            int data_size  = 0;
-                            int row2get    = 0;
+                            int offset = 0;
 
-                            while (row2get != -1) {
-                                row2get = DB_find_data_row(database, table_name, column_name, offset, (uint8_t*)value, strlen(value), access);
-                                if (row2get == -1) {
-                                    print_error("Value not presented in table [%s].", table_name);
-                                    return answer;
-                                }
-
-                                uint8_t* row_data = DB_get_row(database, table_name, row2get, access);
+                            while (index != -1) {
+                                index = DB_find_data_row(database, table_name, column_name, offset, (uint8_t*)value, strlen(value), access);
+                                if (index == -1) break;
+                                
+                                uint8_t* row_data = DB_get_row(database, table_name, index, access);
                                 if (row_data == NULL) {
                                     print_error(
                                         "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", 
-                                        DATABASE_NAME_SIZE, database->header->name, table_name, row2get, access
+                                        DATABASE_NAME_SIZE, database->header->name, table_name, index, access
                                     );
                                     
                                     return answer;
                                 }
 
-                                int data_start = data_size;
-                                data_size += table->row_size;
-                                offset += (row2get + 1) * table->row_size;
+                                int data_start = answer_size;
+                                answer_size += table->row_size;
+                                offset += (index + 1) * table->row_size;
 
-                                data = (uint8_t*)realloc(data, data_size);
-                                uint8_t* copy_pointer = data + data_start;
+                                answer_data = (uint8_t*)realloc(answer_data, answer_size);
+                                uint8_t* copy_pointer = answer_data + data_start;
 
                                 memcpy(copy_pointer, row_data, table->row_size);
                             }
-
-                            answer->answer_code = 1;
-                            answer->answer_body = data;
-                            answer->answer_size = data_size;
-                            answer->commands_processed = command_index;
                         }
                     }
                 }
+
+                answer->answer_body = answer_data;
+                answer->answer_code = index;
+                answer->answer_size = answer_size;
+                answer->commands_processed = command_index;
             }
         }
         /*
@@ -472,7 +439,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             /*
             Command syntax: update row <table_name> <option>
             */
-            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
+            if (strcmp(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index), ROW) == 0) {
+                int index = -1;
+                char* data = NULL;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
                     answer->answer_code = 5;
@@ -484,23 +453,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    int index  = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                    index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
-                        char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                         if (data == NULL) {
                             answer->answer_code = 5;
                             return answer;
                         }
-
-                        int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
-                        if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
-                        else {
-                            print_error("Error code: %i", result);
-                        }
-
-                        answer->answer_size = -1;
-                        answer->answer_code = result;
-                        answer->commands_processed = command_index;
                     }
                 }
                 /*
@@ -509,44 +468,30 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
                         char* col_name  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                        if (col_name == NULL) {
-                            answer->answer_code = 5;
-                            return answer;
-                        }
 
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            if (value == NULL) {
-                                answer->answer_code = 5;
-                                return answer;
-                            }
 
                             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
-                                char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                                if (data == NULL) {
+                                data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                                if (data == NULL || value == NULL || col_name == NULL) {
                                     answer->answer_code = 5;
                                     return answer;
                                 }
 
-                                int index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), access);
+                                index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), access);
                                 if (index == -1) {
                                     print_error("Value [%s] not presented in table [%s]", data, table_name);
                                     return answer;
                                 }
-
-                                int result = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
-                                if (result >= 0) print_log("Success update of row [%i] in [%s]", index, table_name);
-                                else {
-                                    print_error("Error code: %i", result);
-                                }
-
-                                answer->answer_size = -1;
-                                answer->answer_code = result;
-                                answer->commands_processed = command_index;
                             }
                         }
                     }
                 }
+                
+                answer->answer_size = -1;
+                answer->answer_code = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
+                answer->commands_processed = command_index;
             }
 
         }
@@ -573,13 +518,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     uint8_t find_link   = LINK_NOTHING;
 
                     table_t* master = DB_get_table(database, master_table);
-                    if (master == NULL) {
-                        print_error("Table [%s] not found in database!", master_table);
-                        return answer;
-                    }
-
                     table_t* slave = DB_get_table(database, slave_table);
-                    if (slave == NULL) {
+                    if (slave == NULL || master == NULL) {
                         print_error("Table [%s] not found in database!", slave_table);
                         return answer;
                     }
