@@ -79,17 +79,6 @@ Return 0 is not float / double
 int is_float(const char* str);
 
 /*
-strtok alternative
-
-Params:
-- input - pointer to string
-- delimiter - delimiter symbol
-
-Return token
-*/
-char* get_next_token(char** input, char delimiter);
-
-/*
 Example:
 Given path == "C:\\dir1\\dir2\\dir3\\file.exe"
 will return path_ as   "C:\\dir1\\dir2\\dir3"

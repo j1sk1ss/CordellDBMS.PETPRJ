@@ -41,19 +41,6 @@ int is_float(const char* str) {
     return 1;
 }
 
-char* get_next_token(char** input, char delimiter) {
-    char* token = *input;
-    char* delimiter_position = strchr(*input, delimiter);
-
-    if (delimiter_position != NULL) {
-        *delimiter_position = '\0';
-        *input = delimiter_position + 1;
-    }
-    else *input = NULL;
-
-    return token;
-}
-
 char* strrep(char* __restrict string, char* __restrict source, char* __restrict target) {
     char* result = NULL; // the return string
     char* ins = NULL;    // the next insert point
