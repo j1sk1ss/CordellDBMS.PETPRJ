@@ -1,6 +1,6 @@
 **About this project:**
 -----------------------------------------------------
-I just want to create alternative of SQL like DBMS. For example my own PostgreSQL, but simpler and lighter.
+I just want to create alternative of SQL like DBMS. For example my own PostgreSQL, but simpler and lighter. I want use this DBMS on embended systems like STM32F103C6T8 or Arduino NANO.
 
 **ToDo list:**
 -----------------------------------------------------
