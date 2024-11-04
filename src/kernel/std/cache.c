@@ -19,6 +19,7 @@ int CHC_init() {
 
 int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save) {
     if (entry == NULL) return -2;
+    print_debug("Adding to GCT [%s] entry with type [%i]", name, type);
 
     int current = -1;
     int free_current = -1;
@@ -45,7 +46,10 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
             GCT[current].save(GCT[current].pointer, NULL);
             CHC_flush_index(current);
         }
-        else return -1;
+        else {
+            print_error("Can't lock selected entry [%s] entry with type [%i] during CHC_add_entry()", GCT[current].name, GCT[current].type);
+            return -1;
+        }
     }
 
     GCT[current].pointer = entry;
@@ -59,7 +63,10 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
 void* CHC_find_entry(char* name, uint8_t type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && GCT[i].type == type) return GCT[i].pointer;
+        if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && GCT[i].type == type) {
+            print_debug("Found entry in GCT [%s] entry with type [%i]", GCT[i].name, type);
+            return GCT[i].pointer;
+        }
     }
 
     return NULL;
@@ -72,8 +79,10 @@ int CHC_sync() {
             GCT[i].save(GCT[i].pointer, NULL);
             THR_release_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num());
         }
-
-        return -1;
+        else {
+            print_error("Can't lock entry [%s] entry with type [%i] during CHC_sync()", GCT[i].name, GCT[i].type);
+            return -1;
+        }
     }
 
     return 1;
@@ -83,7 +92,10 @@ int CHC_free() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
         if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) != -1) CHC_flush_index(i);
-        else return -1;
+        else {
+            print_error("Can't lock entry [%s] entry with type [%i] during CHC_free()", GCT[i].name, GCT[i].type);
+            return -1;
+        }
     }
 
     return 1;

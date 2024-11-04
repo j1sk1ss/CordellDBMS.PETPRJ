@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "threading.h"
+#include "logging.h"
 
 
 #define ENTRY_COUNT     20

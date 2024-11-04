@@ -97,7 +97,7 @@ table_t* TBM_load_table(char* path, char* name) {
     // If path is not NULL, we use function for getting file name
     char file_name[TABLE_NAME_SIZE];
     if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
-    table_t* loaded_table = CHC_find_entry(file_name, TABLE_CACHE);
+    table_t* loaded_table = (table_t*)CHC_find_entry(file_name, TABLE_CACHE);
     if (loaded_table != NULL) {
         print_debug("Loading table [%s] from TDT", load_path);
         return loaded_table;

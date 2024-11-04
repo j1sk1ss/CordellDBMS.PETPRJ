@@ -74,7 +74,7 @@ directory_t* DRM_load_directory(char* path, char* name) {
 
     char file_name[DIRECTORY_NAME_SIZE];
     if (get_filename(name, path, file_name, DIRECTORY_NAME_SIZE) == -1) return NULL;
-    directory_t* loaded_directory = CHC_find_entry(file_name, DIRECTORY_CACHE);
+    directory_t* loaded_directory = (directory_t*)CHC_find_entry(file_name, DIRECTORY_CACHE);
     if (loaded_directory != NULL) return loaded_directory;
 
     #pragma omp critical (directory_load)

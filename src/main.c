@@ -20,6 +20,7 @@
 #include "userland/include/user.h"
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
+#include "kernel/include/cache.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,6 +208,7 @@ int main()
 
     TB_enable();
     CL_enable();
+    CHC_init();
 
     #ifdef DESKTOP
 
