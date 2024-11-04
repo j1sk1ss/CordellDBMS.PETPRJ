@@ -2,13 +2,16 @@
 
 
 uint8_t* memrep(
-    uint8_t* source, int source_size, uint8_t* sub, int sub_size, uint8_t* new, int new_size, size_t* result_len
+    uint8_t* __restrict source, int source_size, 
+    uint8_t* __restrict sub, int sub_size, 
+    uint8_t* __restrict new, int new_size, 
+    size_t* __restrict result_len
 ) {
-    uint8_t* result;   // the return array
-    uint8_t* ins;      // the next insert point
-    uint8_t* tmp;      // varies
-    size_t len_front;  // distance between source and end of last source
-    int count;         // number of replacements
+    uint8_t* result = NULL; // the return array
+    uint8_t* ins = NULL;    // the next insert point
+    uint8_t* tmp = NULL;    // varies
+    size_t len_front = 0;   // distance between source and end of last source
+    int count = 0;          // number of replacements
 
     if (!source || !sub || sub_size == 0) return NULL;
     if (!new) {

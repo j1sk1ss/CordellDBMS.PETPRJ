@@ -38,19 +38,16 @@ int DRM_DDT_add_directory(directory_t* directory) {
     else if (free_current != -1) current = free_current;
     else if (occup_current != -1) current = occup_current;
 
-    if (DRM_lock_directory(DRM_DDT[current], omp_get_thread_num()) != -1) {
-        if (DRM_DDT[current] != NULL) {
+    if (DRM_DDT[current] != NULL) {
+        if (THR_require_lock(&DRM_DDT[current]->lock, omp_get_thread_num()) != -1) {
             DRM_save_directory(DRM_DDT[current], NULL);
             DRM_DDT_flush_index(current);
         }
+        else return -1;
+    }
 
-        print_debug("Adding to DDT directory [%.*s] at index [%i]", DIRECTORY_NAME_SIZE, directory->header->name, current);
-        DRM_DDT[current] = directory;
-    }
-    else {
-        print_error("Can't lock directory [%.*s] for flushing!", DIRECTORY_NAME_SIZE, DRM_DDT[current]->header->name);
-        return -1;
-    }
+    print_debug("Adding to DDT directory [%.*s] at index [%i]", DIRECTORY_NAME_SIZE, directory->header->name, current);
+    DRM_DDT[current] = directory;
 
     return 1;
 }
@@ -68,9 +65,9 @@ directory_t* DRM_DDT_find_directory(char* name) {
 int DRM_DDT_sync() {
     for (int i = 0; i < DDT_SIZE; i++) {
         if (DRM_DDT[i] == NULL) continue;
-        if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) == 1) {
+        if (THR_require_lock(&DRM_DDT[i]->lock, omp_get_thread_num()) == 1) {
             DRM_save_directory(DRM_DDT[i], NULL);
-            DRM_release_directory(DRM_DDT[i], omp_get_thread_num());
+            THR_release_lock(&DRM_DDT[i]->lock, omp_get_thread_num());
         }
         else return -1;
     }
@@ -80,7 +77,8 @@ int DRM_DDT_sync() {
 
 int DRM_DDT_free() {
     for (int i = 0; i < DDT_SIZE; i++) {
-        if (DRM_lock_directory(DRM_DDT[i], omp_get_thread_num()) != -1) DRM_DDT_flush_index(i);
+        if (DRM_DDT[i] == NULL) continue;
+        if (THR_require_lock(&DRM_DDT[i]->lock, omp_get_thread_num()) != -1) DRM_DDT_flush_index(i);
         else {
             print_error("Can't lock directory [%.*s]", DIRECTORY_NAME_SIZE, DRM_DDT[i]->header->name);
             return -1;

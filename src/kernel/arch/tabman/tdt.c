@@ -38,15 +38,16 @@ int TBM_TDT_add_table(table_t* table) {
     else if (free_current != -1) current = free_current;
     else if (occup_current != -1) current = occup_current;
 
-    if (TBM_lock_table(TBM_TDT[current], omp_get_thread_num()) != -1) {
-        if (TBM_TDT[current] != NULL) {
+    if (TBM_TDT[current] != NULL) {
+        if (THR_require_lock(&TBM_TDT[current]->lock, omp_get_thread_num()) != -1) {
             TBM_save_table(TBM_TDT[current], NULL);
             TBM_TDT_flush_index(current);
         }
-
-        print_debug("Adding to TDT table [%.*s] at index [%i]", TABLE_NAME_SIZE, table->header->name, current);
-        TBM_TDT[current] = table;
+        else return -1;
     }
+
+    print_debug("Adding to TDT table [%.*s] at index [%i]", TABLE_NAME_SIZE, table->header->name, current);
+    TBM_TDT[current] = table;
 
     return 1;
 }
@@ -64,9 +65,9 @@ table_t* TBM_TDT_find_table(char* name) {
 int TBM_TDT_sync() {
     for (int i = 0; i < TDT_SIZE; i++) {
         if (TBM_TDT[i] == NULL) continue;
-        if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) == 1) {
+        if (THR_require_lock(&TBM_TDT[i]->lock, omp_get_thread_num()) == 1) {
             TBM_save_table(TBM_TDT[i], NULL);
-            TBM_release_table(TBM_TDT[i], omp_get_thread_num());
+            THR_release_lock(&TBM_TDT[i]->lock, omp_get_thread_num());
         }
         else return -1;
     }
@@ -76,7 +77,8 @@ int TBM_TDT_sync() {
 
 int TBM_TDT_free() {
     for (int i = 0; i < TDT_SIZE; i++) {
-        if (TBM_lock_table(TBM_TDT[i], omp_get_thread_num()) != -1) TBM_TDT_flush_index(i);
+        if (TBM_TDT[i] == NULL) continue;
+        if (THR_require_lock(&TBM_TDT[i]->lock, omp_get_thread_num()) != -1) TBM_TDT_flush_index(i);
         else {
             print_error("Can't lock table [%.*s]", TABLE_NAME_SIZE, TBM_TDT[i]->header->name);
             return -1;

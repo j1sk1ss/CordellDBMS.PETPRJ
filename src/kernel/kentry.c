@@ -439,7 +439,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             /*
             Command syntax: update row <table_name> <option>
             */
-            if (strcmp(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index), ROW) == 0) {
+            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
                 int index = -1;
                 char* data = NULL;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);

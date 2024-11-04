@@ -82,12 +82,11 @@
     } directory_header_t;
 
     typedef struct directory {
+        // Lock directory flag
+        uint16_t lock;
+
         // Directory header
         directory_header_t* header;
-
-        // Lock directory flag
-        uint8_t lock;
-        uint8_t lock_owner;
 
         // Page file names
         char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
@@ -392,49 +391,6 @@
         Return 1 if cleanup success.
         */
         int DRM_DDT_flush_directory(directory_t* directory);
-
-    #pragma endregion
-
-    #pragma region [Lock]
-
-        /*
-        Lock directory for working.
-        Note: Can cause deadlock, because we infinity wait for directory unlock.
-
-        Params:
-        - directory - pointer to directory.
-        - owner - thread, that want lock this directory.
-
-        Return -2 if we try to lock NULL.
-        Return -1 if we can`t lock directory (for some reason).
-        Return 1 if directory now locked.
-        */
-        int DRM_lock_directory(directory_t* directory, uint8_t owner);
-
-        /*
-        Check lock status of directory.
-
-        Params:
-        - directory - pointer to directory.
-        - owner - thread, that want test this directory.
-
-        Return lock status (LOCKED and UNLOCKED).
-        */
-        int DRM_lock_test(directory_t* directory, uint8_t owner);
-
-        /*
-        Realise directory for working.
-
-        Params:
-        - directory - pointer to directory.
-        - owner - thread, that want release this directory.
-
-        Return -3 if directory is NULL.
-        Return -2 if this directory has another owner.
-        Return -1 if directory was unlocked. (Nothing changed)
-        Return 1 if directory now unlocked.
-        */
-        int DRM_release_directory(directory_t* directory, uint8_t owner);
 
     #pragma endregion
 

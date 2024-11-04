@@ -9,13 +9,10 @@ directory_t* DRM_create_directory(char* name) {
     memset(header, 0, sizeof(directory_header_t));
 
     strncpy(header->name, name, DIRECTORY_NAME_SIZE);
-    header->magic = DIRECTORY_MAGIC;
+    header->magic      = DIRECTORY_MAGIC;
     header->page_count = 0;
-
-    directory->lock_owner = NO_OWNER;
-    directory->lock = UNLOCKED;
-
-    directory->header = header;
+    directory->lock    = THR_create_lock();
+    directory->header  = header;
     return directory;
 }
 
@@ -108,9 +105,7 @@ directory_t* DRM_load_directory(char* path, char* name) {
                 // Close file directory
                 fclose(file);
 
-                directory->lock_owner = NO_OWNER;
-                directory->lock = UNLOCKED;
-
+                directory->lock = THR_create_lock();
                 directory->header = header;
                 DRM_DDT_add_directory(directory);
                 loaded_directory = directory;
@@ -122,15 +117,18 @@ directory_t* DRM_load_directory(char* path, char* name) {
 }
 
 int DRM_delete_directory(directory_t* directory, int full) {
-    if (DRM_lock_directory(directory, omp_get_thread_num()) == 1) {
-        #pragma omp parallel
-        for (int i = 0; i < directory->header->page_count && full == 1; i++) {
-            char page_path[DEFAULT_PATH_SIZE];
-            sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
-            print_debug(
-                "Page [%s] was deleted and flushed with results [%i | %i]",
-                page_path, PGM_PDT_flush_page(PGM_load_page(page_path, NULL)), remove(page_path)
-            );
+    if (directory == NULL) return -1;
+    if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+        if (full) {
+            #pragma omp parallel for schedule(dynamic, 1)
+            for (int i = 0; i < directory->header->page_count; i++) {
+                char page_path[DEFAULT_PATH_SIZE];
+                sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
+                print_debug(
+                    "Page [%s] was deleted and flushed with results [%i | %i]",
+                    page_path, PGM_PDT_flush_page(PGM_load_page(page_path, NULL)), remove(page_path)
+                );
+            }
         }
 
         char delete_path[DEFAULT_PATH_SIZE];

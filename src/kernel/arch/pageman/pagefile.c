@@ -10,9 +10,7 @@ page_t* PGM_create_page(char* name, uint8_t* buffer, size_t data_size) {
 
     header->magic = PAGE_MAGIC;
     strncpy(header->name, name, PAGE_NAME_SIZE);
-
-    page->lock_owner = NO_OWNER;
-    page->lock = UNLOCKED;
+    page->lock = THR_create_lock();
 
     page->header = header;
     if (buffer != NULL) memcpy(page->content, buffer, data_size);
@@ -109,9 +107,7 @@ page_t* PGM_load_page(char* path, char* name) {
 
                 fclose(file);
 
-                page->lock_owner = NO_OWNER;
-                page->lock = UNLOCKED;
-
+                page->lock = THR_create_lock();
                 page->header = header;
                 PGM_PDT_add_page(page);
                 loaded_page = page;

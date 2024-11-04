@@ -18,7 +18,7 @@ database_t* DB_create_database(char* name) {
 
 int DB_delete_database(database_t* database, int full) {
     int result = 1;
-    #pragma omp parallel shared(result)
+    #pragma omp parallel for shared(result)
     for (int i = 0; i < database->header->table_count; i++) {
         table_t* table = DB_get_table(database, database->table_names[i]);
         if (table == NULL) continue;
@@ -43,7 +43,7 @@ int DB_free_database(database_t* database) {
     return 1;
 }
 
-database_t* DB_load_database(char* path, char* name) {
+database_t* DB_load_database(char* __restrict path, char* __restrict name) {
     char load_path[DEFAULT_PATH_SIZE];
     if (get_load_path(name, DATABASE_NAME_SIZE, path, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");

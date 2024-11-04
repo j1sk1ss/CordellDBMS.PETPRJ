@@ -30,22 +30,20 @@
   #include <sys/stat.h>
 #endif
 
-#include "threading.h"
-
 
 #define ENV_GET(key, default) getenv(key) == NULL ? default : getenv(key)
 
 #define DEFAULT_BUFFER_SIZE 256
-#define DEFAULT_PATH_SIZE   100
-#define DEFAULT_DELAY       99999999
+#define DEFAULT_PATH_SIZE   128
+#define DEFAULT_DELAY       999999999
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
-#define SOFT_FREE(ptr) do { \
-    if (ptr != NULL) {      \
-      free((ptr));          \
-      (ptr) = NULL;         \
-    }                       \
+#define SOFT_FREE(ptr) do {  \
+    if (ptr != NULL) {       \
+      free((ptr));           \
+      (ptr) = NULL;          \
+    }                        \
   } while(0)
 
 
@@ -166,9 +164,15 @@ Return 1 if exist, 0 if not.
 */
 int file_exists(const char* path);
 
+// TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
+// size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
+// size_t	file_write(const void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
+// int fclose(FILE* __restrict __stream);
+
 /*
 Replacing sub-memory in memory by new memory.
 Reference from: https://stackoverflow.com/questions/779875/what-function-is-to-replace-a-substring-from-a-string-in-c
+Note: Pointers shouldn't overlap each other!
 
 Params:
 - source - Source memory.
@@ -181,12 +185,16 @@ Params:
 Return new memory with replaced sub-memory.
 */
 uint8_t* memrep(
-    uint8_t* source, int source_size, uint8_t* sub, int sub_size, uint8_t* new, int new_size, size_t *result_len
+    uint8_t* __restrict source, int source_size, 
+    uint8_t* __restrict sub, int sub_size, 
+    uint8_t* __restrict new, int new_size, 
+    size_t* __restrict result_len
 );
 
 /*
 Replacing sub-string in string by new string.
 Took from: https://stackoverflow.com/questions/779875/what-function-is-to-replace-a-substring-from-a-string-in-c
+Note: Pointers shouldn't overlap each other!
 
 Params:
 - string - Source string.
@@ -195,6 +203,6 @@ Params:
 
 Return new string with replaced sub-memory.
 */
-char* strrep(char* string, char* source, char* target);
+char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
 #endif

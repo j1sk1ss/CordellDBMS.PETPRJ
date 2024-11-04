@@ -1,7 +1,7 @@
 #include "../../include/dataman.h"
 
 
-uint8_t* DB_get_row(database_t* database, char* table_name, int row, uint8_t access) {
+uint8_t* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return NULL;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return NULL;
@@ -17,7 +17,7 @@ uint8_t* DB_get_row(database_t* database, char* table_name, int row, uint8_t acc
     return content;
 }
 
-int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t data_size, uint8_t access) {
+int DB_append_row(database_t* __restrict database, char* __restrict table_name, uint8_t* __restrict data, size_t data_size, uint8_t access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -4;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
@@ -58,7 +58,7 @@ int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t 
     return result;
 }
 
-int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data, size_t data_size, uint8_t access) {
+int DB_insert_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t* data, size_t data_size, uint8_t access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) return -3;
@@ -74,20 +74,20 @@ int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data
     int page_offset   = row % rows_per_page;
     int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
-    if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -4;
+    if (THR_require_lock(&table->lock, omp_get_thread_num()) == -1) return -4;
     result = TBM_insert_content(table, global_offset, data, data_size);
-    TBM_release_table(table, omp_get_thread_num());
+    THR_release_lock(&table->lock, omp_get_thread_num());
 
     return result;
 }
 
-int DB_delete_row(database_t* database, char* table_name, int row, uint8_t access) {
+int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
     if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) return -3;
 
     #ifndef NO_CASCADE_DELETE
-        #pragma omp parallel
+        #pragma omp parallel for
         for (int i = 0; i < table->header->column_link_count; i++) {
             // Load slave table from disk
             table_t* slave_table = DB_get_table(database, table->column_links[i]->slave_table_name);
@@ -119,9 +119,9 @@ int DB_delete_row(database_t* database, char* table_name, int row, uint8_t acces
 
             free(master_row);
 
-            if (TBM_lock_table(slave_table, omp_get_thread_num()) == -1) continue;
+            if (THR_require_lock(&slave_table->lock, omp_get_thread_num()) == -1) continue;
             DB_delete_row(database, slave_table->header->name, slave_row, access);
-            TBM_release_table(slave_table, omp_get_thread_num());
+            THR_release_lock(&slave_table->lock, omp_get_thread_num());
         }
     #endif
 
@@ -130,9 +130,9 @@ int DB_delete_row(database_t* database, char* table_name, int row, uint8_t acces
     int page_offset   = row % rows_per_page;
     int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
-    if (TBM_lock_table(table, omp_get_thread_num()) == -1) return -3;
+    if (THR_require_lock(&table->lock, omp_get_thread_num()) == -1) return -3;
     int result = TBM_delete_content(table, global_offset, table->row_size);
-    TBM_release_table(table, omp_get_thread_num());
+    THR_release_lock(&table->lock, omp_get_thread_num());
     return result;
 }
 
@@ -149,7 +149,8 @@ int DB_cleanup_tables(database_t* database) {
 }
 
 int DB_find_data_row(
-    database_t* database, char* table_name, char* column, int offset, uint8_t* data, size_t data_size, uint8_t access
+    database_t* __restrict database, char* __restrict table_name, char* __restrict column, int offset, 
+    uint8_t* __restrict data, size_t data_size, uint8_t access
 ) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
@@ -186,7 +187,7 @@ int DB_find_data_row(
     }
 }
 
-table_t* DB_get_table(database_t* database, char* table_name) {
+table_t* DB_get_table(database_t* __restrict database, char* __restrict table_name) {
     if (database == NULL) return NULL;
     if (table_name == NULL) return NULL;
 
@@ -201,7 +202,7 @@ table_t* DB_get_table(database_t* database, char* table_name) {
     return NULL;
 }
 
-int DB_delete_table(database_t* database, char* table_name, int full) {
+int DB_delete_table(database_t* __restrict database, char* __restrict table_name, int full) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
 
@@ -209,7 +210,7 @@ int DB_delete_table(database_t* database, char* table_name, int full) {
     return TBM_delete_table(table, full);
 }
 
-int DB_link_table2database(database_t* database, table_t* table) {
+int DB_link_table2database(database_t* __restrict database, table_t* __restrict table) {
     if (database->header->table_count + 1 >= TABLES_PER_DATABASE) return -1;
 
     #pragma omp critical (link_table2database)
@@ -217,7 +218,7 @@ int DB_link_table2database(database_t* database, table_t* table) {
     return 1;
 }
 
-int DB_unlink_table_from_database(database_t* database, char* name) {
+int DB_unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
     int status = 0;
     #pragma omp critical (unlink_table_from_database)
     {

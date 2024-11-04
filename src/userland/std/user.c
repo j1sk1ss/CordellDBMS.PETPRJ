@@ -22,19 +22,17 @@ user_t* USR_load(char* path, char* name) {
     else if (path != NULL) strcpy(load_path, path);
     else return NULL;
 
-    user_t* user = NULL;
-    #pragma omp critical (usr_load)
-    {
-        FILE* file = fopen(load_path, "rb");
-        if (file == NULL) user = NULL;
-        else {
-            user = (user_t*)malloc(sizeof(user_t));
-            fread(user, sizeof(user_t), 1, file);
-            fclose(file);
-        }
+    FILE* file = fopen(load_path, "rb");
+    if (file == NULL) return NULL;
+    else {
+        user_t* user = (user_t*)malloc(sizeof(user_t));
+        fread(user, sizeof(user_t), 1, file);
+        fclose(file);
+
+        return user;
     }
 
-    return user;
+    return NULL;
 }
 
 int USR_save(user_t* user, char* path) {
@@ -42,16 +40,12 @@ int USR_save(user_t* user, char* path) {
     if (path == NULL) sprintf(save_path, "%s%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, user->name, USER_EXTENSION);
     else strcpy(save_path, path);
 
-    int result = 0;
-    #pragma omp critical (usr_save)
-    {
-        FILE* file = fopen(save_path, "wb");
-        if (file == NULL) result = -1;
-        else {
-            if (fwrite(user, sizeof(user_t), 1, file) != 1) result = -2;
-            fclose(file);
-        }
+    FILE* file = fopen(save_path, "wb");
+    if (file == NULL) return -1;
+    else {
+        if (fwrite(user, sizeof(user_t), 1, file) != 1) return -2;
+        fclose(file);
     }
 
-    return result;
+    return 1;
 }

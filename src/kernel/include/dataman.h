@@ -87,6 +87,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     /*
     Get row function return pointer to allocated data. This data don't contain RD symbols.
     Note: This is allocated data, that's why you should free row after use.
+    Note 2: Pointers shouldn't overlap each other!
 
     Params:
     - database - pointer to database. (If NULL, we don`t use database table cache)
@@ -102,12 +103,13 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong
     Return pointer to data
     */
-    uint8_t* DB_get_row(database_t* database, char* table_name, int row, uint8_t access);
+    uint8_t* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access);
 
     /*
     Append row function append data to provided table. If table not provided, it will return fail status.
     Note: This function will create new directories and pages, if current pages and directories don't have enoght space.
     Note 2: This function will fail if signature of input data different with provided table.
+    Note 3: Pointers shouldn't overlap each other!
 
     Data should have next format:
     DATA_DATA_DATA -> CD -> DATA_DATA_DATA -> ... -> DATA_DATA_DATA.
@@ -135,7 +137,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if row append cause directory creation.
     Return 2 if row append cause page creation.
     */
-    int DB_append_row(database_t* database, char* table_name, uint8_t* data, size_t data_size, uint8_t access);
+    int DB_append_row(database_t* __restrict database, char* __restrict table_name, uint8_t* __restrict data, size_t data_size, uint8_t access);
 
     /*
     Insert row function works different with row_append function. Main difference in disabling auto-creation of pages and directories.
@@ -146,6 +148,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     this function will trunc data and return specific error code. For avoiding this, prefere using delete_row, then append_row.
     This happens because dynamic creation of pages simple, but dynamic creation of directories are not.
+    Note: Pointers shouldn't overlap each other!
 
     Params:
     - database - pointer to database. (If NULL, we don`t use database table cache)
@@ -166,11 +169,14 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 0 if row insert was success
     Return 1 if row insert cause page creation
     */
-    int DB_insert_row(database_t* database, char* table_name, int row, uint8_t* data, size_t data_size, uint8_t access);
+    int DB_insert_row(
+        database_t* __restrict database, char* __restrict table_name, int row, uint8_t* __restrict data, size_t data_size, uint8_t access
+    );
 
     /*
     Delete row function iterate all database by RW symbol and delite entire row by rewriting him with PE symbol.
     For getting index of row, you can use find_data_row of find_value_row function.
+    Note: Pointers shouldn't overlap each other!
 
     Params:
     - database - pointer to database. (If NULL, we don`t use database table cache)
@@ -182,7 +188,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong
     Return 1 if row delete was success
     */
-    int DB_delete_row(database_t* database, char* table_name, int row, uint8_t access);
+    int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access);
 
     /*
     Init cascade cleanup of empty directories and empty pages in all table in database.
@@ -210,6 +216,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note 3: <DEPRECATED> In difference with find data, this function will return index of row,
             that't why result of this function can't be used as offset. For working with
             rows, use rows functions.
+    Note 4: Pointers shouldn't overlap each other!
 
     Params:
     - database - pointer to database. (If NULL, we don`t use database table cache).
@@ -228,7 +235,8 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return row index (first entry) of target data.
     */
     int DB_find_data_row(
-        database_t* database, char* table_name, char* column, int offset, uint8_t* data, size_t data_size, uint8_t access
+        database_t* __restrict database, char* __restrict table_name, char* __restrict column, 
+        int offset, uint8_t* __restrict data, size_t data_size, uint8_t access
     );
 
 #pragma endregion
@@ -240,6 +248,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note: Returned pointer shouldn't be flushed by user with TLB_free_table, because
           this is a pointer to cached table in datadabe. Please use DB_unlink_table_from_database.
           Anyway, if you want to flash table, be sure that you replace it by NULL in database cache.
+    Note 2: Pointers shouldn't overlap each other!
 
     Params:
     - table_name - name of table.
@@ -247,10 +256,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return NULL if table nfound.
     Return pointer to table.
     */
-    table_t* DB_get_table(database_t* database, char* table_name);
+    table_t* DB_get_table(database_t* __restrict database, char* __restrict table_name);
 
     /*
     Delete table from database.
+    Note: Pointers shouldn't overlap each other!
 
     Params:
     - database - Database pointer.
@@ -260,10 +270,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong.
     Return 1 if all files was delete.
     */
-    int DB_delete_table(database_t* database, char* table_name, int full);
+    int DB_delete_table(database_t* __restrict database, char* __restrict table_name, int full);
 
     /*
     Add table to database. You can add infinity count of tables.
+    Note: Pointers shouldn't overlap each other!
 
     Params:
     - database - pointer to database.
@@ -273,12 +284,13 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong.
     Return 1 if link was success.
     */
-    int DB_link_table2database(database_t* database, table_t* table);
+    int DB_link_table2database(database_t* __restrict database, table_t* __restrict table);
 
     /*
     Delete assosiation with provided table in provided database.
     Note: This function don't delete table. This function just unlink table.
           For deleting tables - manualy use C file delete (Or higher abstaction language file operation).
+    Note 2: Pointers shouldn't overlap each other!
 
     Params:
     - database - pointer to database.
@@ -287,7 +299,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong.
     Return 1 if unlink was success.
     */
-    int DB_unlink_table_from_database(database_t* database, char* name);
+    int DB_unlink_table_from_database(database_t* __restrict database, char* __restrict name);
 
     /*
     Create new empty data base with provided name.
@@ -325,6 +337,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     /*
     Load database from disk by provided path to *.db file.
+    Note: Pointers shouldn't overlap each other!
 
     Params:
     - path - path to database.db file. (Should be NULL, if provided name).
@@ -334,10 +347,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return NULL if file can't be opened, or magic is wrong.
     Return pointer to database if all was success.
     */
-    database_t* DB_load_database(char* path, char* name);
+    database_t* DB_load_database(char* __restrict path, char* __restrict name);
 
     /*
-    Save database to disk
+    Save database to disk.
+    Note: Pointers shouldn't overlap each other!
 
     Params:
     - database - pointer to database
@@ -348,7 +362,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if can`t create or open file.
     Return 1 if save was success.
     */
-    int DB_save_database(database_t* database, char* path);
+    int DB_save_database(database_t* __restrict database, char* __restrict path);
 
 #pragma endregion
 

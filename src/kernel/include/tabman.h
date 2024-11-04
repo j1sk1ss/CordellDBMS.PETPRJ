@@ -295,6 +295,9 @@
     } table_header_t;
 
     typedef struct table {
+        // Lock table flag
+        uint16_t lock;
+
         // Table header
         table_header_t* header;
 
@@ -304,10 +307,6 @@
 
         // Column links
         table_column_link_t** column_links;
-
-        // Lock table flag
-        uint8_t lock;
-        uint8_t lock_owner;
 
         // Table directories
         char dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
@@ -714,50 +713,6 @@
         Return 1 if cleanup success.
         */
         int TBM_TDT_flush_table(table_t* table);
-
-    #pragma endregion
-
-    #pragma region [Lock]
-
-        /*
-        Lock table for working.
-        Note: Can cause deadlock, because we infinity wait for table unlock. <deprecated>
-        Note 1: If we earn delay of lock try, we return -1;
-
-        Params:
-        - table - pointer to table.
-        - owner - thread, that want lock this table.
-
-        Return -2 if we try to lock NULL
-        Return -1 if we can`t lock table (for some reason)
-        Return 1 if table now locked.
-        */
-        int TBM_lock_table(table_t* table, uint8_t owner);
-
-        /*
-        Check lock status of table.
-
-        Params:
-        - table - pointer to table.
-        - owner - thread, that want test this table.
-
-        Return lock status (LOCKED and UNLOCKED).
-        */
-        int TBM_lock_test(table_t* table, uint8_t owner);
-
-        /*
-        Realise table for working.
-
-        Params:
-        - table - pointer to table.
-        - owner - thread, that want release this table.
-
-        Return -3 if table is NULL.
-        Return -2 if this table has another owner.
-        Return -1 if table was unlocked. (Nothing changed)
-        Return 1 if table now unlocked.
-        */
-        int TBM_release_table(table_t* table, uint8_t owner);
 
     #pragma endregion
 

@@ -24,7 +24,7 @@ int PGM_PDT_add_page(page_t* page) {
 
     for (int i = 0; i < PDT_SIZE; i++) {
         if (PGM_PDT[i] != NULL) {
-            if (PGM_PDT[i]->lock == UNLOCKED) {
+            if (THR_test_lock(&PGM_PDT[i]->lock, omp_get_thread_num()) == UNLOCKED) {
                 occup_current = i;
             }
         }
@@ -38,18 +38,16 @@ int PGM_PDT_add_page(page_t* page) {
     else if (free_current != -1) current = free_current;
     else if (occup_current != -1) current = occup_current;
 
-    if (PGM_lock_page(PGM_PDT[current], omp_get_thread_num()) != -1) {
-        if (PGM_PDT[current] != NULL) {
+    if (PGM_PDT[current] != NULL) {
+        if (THR_require_lock(&PGM_PDT[current]->lock, omp_get_thread_num()) != -1) {
             PGM_save_page(PGM_PDT[current], NULL);
             PGM_PDT_flush_index(current);
         }
-
-        print_debug("Adding to PDT page [%.*s] at index [%i]", PAGE_NAME_SIZE, page->header->name, current);
-        PGM_PDT[current] = page;
-    } else {
-        print_error("Can't lock page [%.*s] for flushing!", PAGE_NAME_SIZE, PGM_PDT[current]->header->name);
-        return -1;
+        else return -1;
     }
+
+    print_debug("Adding to PDT page [%.*s] at index [%i]", PAGE_NAME_SIZE, page->header->name, current);
+    PGM_PDT[current] = page;
 
     return 1;
 }
@@ -66,9 +64,9 @@ page_t* PGM_PDT_find_page(char* name) {
 int PGM_PDT_sync() {
     for (int i = 0; i < PDT_SIZE; i++) {
         if (PGM_PDT[i] == NULL) continue;
-        if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) == 1) {
+        if (THR_require_lock(&PGM_PDT[i]->lock, omp_get_thread_num()) == 1) {
             PGM_save_page(PGM_PDT[i], NULL);
-            PGM_release_page(PGM_PDT[i], omp_get_thread_num());
+            THR_release_lock(&PGM_PDT[i]->lock, omp_get_thread_num());
         }
 
         return -1;
@@ -79,7 +77,8 @@ int PGM_PDT_sync() {
 
 int PGM_PDT_free() {
     for (int i = 0; i < PDT_SIZE; i++) {
-        if (PGM_lock_page(PGM_PDT[i], omp_get_thread_num()) != -1) PGM_PDT_flush_index(i);
+        if (PGM_PDT[i] == NULL) continue;
+        if (THR_require_lock(&PGM_PDT[i]->lock, omp_get_thread_num()) != -1) PGM_PDT_flush_index(i);
         else {
             print_error("Can't lock page [%.*s]", PAGE_NAME_SIZE, PGM_PDT[i]->header->name);
             return -1;

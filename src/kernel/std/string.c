@@ -54,14 +54,14 @@ char* get_next_token(char** input, char delimiter) {
     return token;
 }
 
-char* strrep(char* string, char* source, char* target) {
-    char* result; // the return string
-    char* ins;    // the next insert point
-    char* tmp;    // varies
-    int len_source;  // length of source (the string to remove)
-    int len_target;  // length of target (the string to replace source target)
-    int len_front;   // distance between source and end of last source
-    int count;       // number of replacements
+char* strrep(char* __restrict string, char* __restrict source, char* __restrict target) {
+    char* result = NULL; // the return string
+    char* ins = NULL;    // the next insert point
+    char* tmp = NULL;    // varies
+    int len_source = 0;  // length of source (the string to remove)
+    int len_target = 0;  // length of target (the string to replace source target)
+    int len_front = 0;   // distance between source and end of last source
+    int count = 0;       // number of replacements
 
     // sanity checks and initialization
     if (!string || !source) return NULL;

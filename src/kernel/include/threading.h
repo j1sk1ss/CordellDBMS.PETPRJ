@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 
+#include "common.h"
 
 #define LOCKED    1
 #define UNLOCKED  0
@@ -41,6 +42,19 @@
 
 
 /*
+Main idea, that lock status of object can be stored in one uint16_t object.
+In first 14 bits we store info about lock owner thread number:
+0b00000000000000XX
+In second 2 bits, lock state (LOCKED/UNLOCKED and NO_OWNER)
+0bXXXXXXXXXXXXXX00
+*/
+#define PACK_LOCK(status, owner) (((status) & 0x3) << 0) | (((owner) & (0xFFFC >> 2)) << 2)
+
+#define UNPACK_STATUS(lock) (((lock) >> 0) & 0x3)
+#define UNPACK_OWNER(lock)  (((lock) >> 2) & (0xFFFC >> 2))
+
+
+/*
 Cross-platform thread creation tool.
 Note: entry should had next sighnature: void* <name>(void* args)
 
@@ -52,5 +66,49 @@ Return 1 if thread create.
 Return -1 if thread can't be created.
 */
 int THR_create_thread(void* entry, void* args);
+
+/*
+
+*/
+int THR_create_lock();
+
+/*
+Lock for working.
+Note: If we earn delay of lock try, we return -1.
+Note 2: Be sure, that lock not NULL.
+
+Params:
+- lock - pointer to object lock.
+- owner - thread, that want lock this table.
+
+Return -1 if we can`t require lock (for some reason)
+Return 1 if lock now locked.
+*/
+int THR_require_lock(uint16_t* lock, uint8_t owner);
+
+/*
+Check lock status of table.
+
+Params:
+- table - pointer to table.
+- owner - thread, that want test this table.
+
+Return lock status (LOCKED and UNLOCKED).
+*/
+int THR_test_lock(uint16_t* lock, uint8_t owner);
+
+/*
+Realise table for working.
+
+Params:
+- table - pointer to table.
+- owner - thread, that want release this table.
+
+Return -3 if table is NULL.
+Return -2 if this table has another owner.
+Return -1 if table was unlocked. (Nothing changed)
+Return 1 if table now unlocked.
+*/
+int THR_release_lock(uint16_t* lock, uint8_t owner);
 
 #endif

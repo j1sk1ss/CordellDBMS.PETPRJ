@@ -29,9 +29,7 @@ table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, u
     table->row_size     = row_size;
     table->column_links = NULL;
     
-    table->lock = UNLOCKED;
-    table->lock_owner = NO_OWNER;
-
+    table->lock = THR_create_lock();
     table->header = header;
     return table;
 }
@@ -154,9 +152,7 @@ table_t* TBM_load_table(char* path, char* name) {
 
                 table->columns = columns;
                 table->column_links = column_links;
-
-                table->lock_owner = NO_OWNER;
-                table->lock = UNLOCKED;
+                table->lock = THR_create_lock();
 
                 table->header = header;
                 TBM_TDT_add_table(table);
@@ -169,8 +165,9 @@ table_t* TBM_load_table(char* path, char* name) {
 }
 
 int TBM_delete_table(table_t* table, int full) {
-    if (TBM_lock_table(table, omp_get_thread_num()) == 1) {
-        #pragma omp parallel
+    if (table == NULL) return -1;
+    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
+        #pragma omp parallel for
         for (int i = 0; i < table->header->dir_count; i++) {
             directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
             if (directory == NULL) continue;

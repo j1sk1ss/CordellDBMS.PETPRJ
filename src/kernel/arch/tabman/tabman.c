@@ -39,18 +39,17 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
     for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
         // Load directory to memory
         directory = DRM_load_directory(NULL, table->dir_names[i]);
-        if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) {
+        if (directory == NULL) continue;
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == -1) {
             print_warn("Can't lock directory [%.*s] while get_content operation!", DIRECTORY_NAME_SIZE, table->dir_names[i]);
             continue;
         }
-
-        if (directory == NULL) continue;
 
         // Get data from directory
         // After getting data, copy it to allocated output
         int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
         uint8_t* directory_content = DRM_get_content(directory, offset, current_size);
-        DRM_release_directory(directory, omp_get_thread_num());
+        THR_release_lock(&directory->lock, omp_get_thread_num());
         if (directory_content == NULL) continue;
 
         memcpy(output_content_pointer, directory_content, current_size);
@@ -76,12 +75,12 @@ int TBM_append_content(table_t* table, uint8_t* data, size_t data_size) {
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
-        if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -2;
         if (directory == NULL) return -1;
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == -1) return -2;
         if (directory->header->page_count + size4append > PAGES_PER_DIRECTORY) continue;
 
         int result = DRM_append_content(directory, data_pointer, size4append);
-        DRM_release_directory(directory, omp_get_thread_num());
+        THR_release_lock(&directory->lock, omp_get_thread_num());
         if (result < 0) return result - 10;
         else if (result == 0 || result == 1 || result == 2) {
             return 1;
@@ -118,9 +117,9 @@ int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_si
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) return -1;
 
-        if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -4;
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == -1) return -4;
         int result = DRM_insert_content(directory, offset, data_pointer, size4insert);
-        DRM_release_directory(directory, omp_get_thread_num());
+        THR_release_lock(&directory->lock, omp_get_thread_num());
 
         if (result == -1) return -1;
         else if (result == 1 || result == 2) {
@@ -145,10 +144,10 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
-
-        if (DRM_lock_directory(directory, omp_get_thread_num()) == -1) return -4;
+        if (directory == NULL) return -1;
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == -1) return -4;
         size4delete = DRM_delete_content(directory, offset, size4delete);
-        DRM_release_directory(directory, omp_get_thread_num());
+        THR_release_lock(&directory->lock, omp_get_thread_num());
 
         if (size4delete == -1) return -1;
         else if (size4delete == 1 || size4delete == 2) return size4delete;

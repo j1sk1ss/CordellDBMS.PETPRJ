@@ -45,6 +45,7 @@
 #include "logging.h"
 #include "common.h"
 #include "threading.h"
+#include "cache.h"
 
 
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
@@ -85,12 +86,11 @@
     } page_header_t;
 
     typedef struct page {
+        // Lock page flags
+        uint16_t lock;
+
         // Page header with all special information
         page_header_t* header;
-
-        // Lock page flags
-        uint8_t lock;
-        uint8_t lock_owner;
 
         // Page content
         uint8_t content[PAGE_CONTENT_SIZE];
@@ -373,49 +373,6 @@
         Return 1 if cleanup success.
         */
         int PGM_PDT_flush_page(page_t* page);
-
-    #pragma endregion
-
-    #pragma region [Lock]
-
-        /*
-        Lock page for working.
-        Note: Can cause deadlock, decause we infinity wait for page unlock.
-
-        Params:
-        - page - pointer to page.
-        - owner - thread, that want lock this page.
-
-        Return -2 if we try to lock NULL
-        Return -1 if we can`t lock page (for some reason)
-        Return 1 if page now locked.
-        */
-        int PGM_lock_page(page_t* page, uint8_t owner);
-
-        /*
-        Check lock status of page.
-
-        Params:
-        - page - pointer to page.
-        - owner - thread, that want test this page.
-
-        Return lock status (LOCKED and UNLOCKED).
-        */
-        int PGM_lock_test(page_t* page, uint8_t owner);
-
-        /*
-        Realise page for working.
-
-        Params:
-        - page - pointer to page.
-        - owner - thread, that want release this page.
-
-        Return -3 if page is NULL.
-        Return -2 if this directory has another owner
-        Return -1 if page was unlocked. (Nothing changed)
-        Return 1 if page now unlocked.
-        */
-        int PGM_release_page(page_t* page, uint8_t owner);
 
     #pragma endregion
 
