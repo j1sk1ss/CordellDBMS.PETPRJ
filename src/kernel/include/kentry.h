@@ -155,14 +155,14 @@ Return -1 or 1.
 int kernel_free_answer(kernel_answer_t* answer);
 
 /*
-Flush TDT, DDT and PDT.
+Flush GCT
 
 Return 1 if flush success.
 */
 int flush_tables();
 
 /*
-Cleanup kernel will free all entries from TDT, DDT, and PDT.
+Cleanup kernel will free all entries from GCT.
 Also cleanup function free all database connections.
 Note: don't invoke this function. 
 */

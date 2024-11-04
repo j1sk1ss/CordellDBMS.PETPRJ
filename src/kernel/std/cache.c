@@ -122,5 +122,10 @@ int CHC_flush_index(int index) {
     if (GCT[index].pointer == NULL) return -1;
     GCT[index].free(GCT[index].pointer);
     GCT[index].pointer = NULL;
+
+    GCT[index].free = NULL;
+    GCT[index].save = NULL;
+    GCT[index].type = -1;
+
     return 1;
 }

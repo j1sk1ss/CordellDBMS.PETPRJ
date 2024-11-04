@@ -53,8 +53,6 @@
 // Important Note ! : This path is main for ALL directories
 #define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", "")
 
-#define DDT_SIZE            10
-
 #define DIRECTORY_NAME_SIZE 8
 #define DIRECTORY_MAGIC     0xCC
 

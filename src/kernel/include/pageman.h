@@ -53,7 +53,6 @@
 // Important Note ! : This path is main for ALL pages
 #define PAGE_BASE_PATH  ENV_GET("PAGE_BASE_PATH", "")
 
-#define PDT_SIZE        10
 
 #pragma region [Page memory]
 
