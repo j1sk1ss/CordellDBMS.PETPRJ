@@ -8,6 +8,7 @@
 #include "common.h"
 #include "threading.h"
 
+
 #define ENTRY_COUNT     20
 #define ENTRY_NAME_SIZE 8
 
@@ -59,7 +60,7 @@ int CHC_free();
 /*
 
 */
-int CHC_flush_entry(void* entry, char* name, uint8_t type);
+int CHC_flush_entry(void* entry, uint8_t type);
 
 /*
 

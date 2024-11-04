@@ -142,9 +142,7 @@ int DB_cleanup_tables(database_t* database) {
         TBM_cleanup_dirs(table);
     }
 
-    if (TBM_TDT_sync() != 1) return -1;
-    if (DRM_DDT_sync() != 1) return -2;
-    if (PGM_PDT_sync() != 1) return -3;
+    if (CHC_sync() != 1) return -1;
     return 1;
 }
 

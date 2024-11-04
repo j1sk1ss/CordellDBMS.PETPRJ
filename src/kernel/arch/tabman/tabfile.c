@@ -97,7 +97,7 @@ table_t* TBM_load_table(char* path, char* name) {
     // If path is not NULL, we use function for getting file name
     char file_name[TABLE_NAME_SIZE];
     if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
-    table_t* loaded_table = TBM_TDT_find_table(file_name);
+    table_t* loaded_table = CHC_find_entry(file_name, TABLE_CACHE);
     if (loaded_table != NULL) {
         print_debug("Loading table [%s] from TDT", load_path);
         return loaded_table;
@@ -155,7 +155,7 @@ table_t* TBM_load_table(char* path, char* name) {
                 table->lock = THR_create_lock();
 
                 table->header = header;
-                TBM_TDT_add_table(table);
+                CHC_add_entry(table, table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
                 loaded_table = table;
             }
         }
@@ -181,7 +181,7 @@ int TBM_delete_table(table_t* table, int full) {
         sprintf(delete_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
         remove(delete_path);
 
-        TBM_TDT_flush_table(table);
+        CHC_flush_entry(table, TABLE_CACHE);
         return 1;
     }
     

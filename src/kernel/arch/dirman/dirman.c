@@ -84,7 +84,7 @@ int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght
 
         // We link page to directory
         DRM_link_page2dir(directory, new_page);
-        PGM_PDT_add_page(new_page);
+        CHC_add_entry(new_page, new_page->header->name, PAGE_CACHE, PGM_free_page, PGM_save_page);
 
         return 2;
     }
@@ -181,7 +181,7 @@ int DRM_cleanup_pages(directory_t* directory) {
         // Also we realise page pointer in RAM.
         if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
             DRM_unlink_page_from_directory(directory, page->header->name);
-            PGM_PDT_flush_page(page);
+            CHC_flush_entry(page, PAGE_CACHE);
             print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
         }
         else {

@@ -36,6 +36,7 @@
 #include "logging.h"
 #include "common.h"
 #include "tabman.h"
+#include "cache.h"
 
 
 #define TABLES_PER_DATABASE     0xFF

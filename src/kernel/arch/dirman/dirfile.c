@@ -74,7 +74,7 @@ directory_t* DRM_load_directory(char* path, char* name) {
 
     char file_name[DIRECTORY_NAME_SIZE];
     if (get_filename(name, path, file_name, DIRECTORY_NAME_SIZE) == -1) return NULL;
-    directory_t* loaded_directory = DRM_DDT_find_directory(file_name);
+    directory_t* loaded_directory = CHC_find_entry(file_name, DIRECTORY_CACHE);
     if (loaded_directory != NULL) return loaded_directory;
 
     #pragma omp critical (directory_load)
@@ -107,7 +107,7 @@ directory_t* DRM_load_directory(char* path, char* name) {
 
                 directory->lock = THR_create_lock();
                 directory->header = header;
-                DRM_DDT_add_directory(directory);
+                CHC_add_entry(directory, directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
                 loaded_directory = directory;
             }
         }
@@ -126,14 +126,14 @@ int DRM_delete_directory(directory_t* directory, int full) {
                 sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
                 print_debug(
                     "Page [%s] was deleted and flushed with results [%i | %i]",
-                    page_path, PGM_PDT_flush_page(PGM_load_page(page_path, NULL)), remove(page_path)
+                    page_path, CHC_flush_entry(PGM_load_page(page_path, NULL), PAGE_CACHE), remove(page_path)
                 );
             }
         }
 
         char delete_path[DEFAULT_PATH_SIZE];
         sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
-        DRM_DDT_flush_directory(directory);
+        CHC_flush_entry(directory, DIRECTORY_CACHE);
         print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
 
         return 1;

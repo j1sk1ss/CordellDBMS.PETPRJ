@@ -79,7 +79,7 @@ page_t* PGM_load_page(char* path, char* name) {
 
     char file_name[PAGE_NAME_SIZE];
     if (get_filename(name, path, file_name, PAGE_NAME_SIZE) == -1) return NULL;
-    page_t* loaded_page = PGM_PDT_find_page(file_name);
+    page_t* loaded_page = (page_t*)CHC_find_entry(file_name, PAGE_CACHE);
     if (loaded_page != NULL) return loaded_page;
 
     #pragma omp critical (page_load)
@@ -109,7 +109,7 @@ page_t* PGM_load_page(char* path, char* name) {
 
                 page->lock = THR_create_lock();
                 page->header = header;
-                PGM_PDT_add_page(page);
+                CHC_add_entry(page, page->header->name, PAGE_CACHE, PGM_free_page, PGM_save_page);
                 loaded_page = page;
             }
         }

@@ -45,6 +45,7 @@
 #include "logging.h"
 #include "pageman.h"
 #include "threading.h"
+#include "cache.h"
 
 
 #define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
@@ -320,79 +321,6 @@
     Return directory checksum.
     */
     uint32_t DRM_get_checksum(directory_t* directory);
-
-#pragma region [DDT]
-
-        /*
-        Add directory to DDT table.
-        Note: It will unload old directory if we earn end of DDT.
-        Note 2: If we try to unload locked dir, we go to next, and try to unload next.
-                We can get deadlock.
-
-        Params:
-        - directory - pointer to directory (Be sure that you don't realise this directory. We save link in DDT).
-
-        Return 1 if add was success
-        Return -1 if something goes wrong
-        */
-        int DRM_DDT_add_directory(directory_t* directory);
-
-        /*
-        Find directory in DDT by name.
-
-        Params:
-        - name - name of directory for find.
-                Note: not path to file. Name of directory.
-                      Usuale names placed in directories.
-
-        Return directory struct or NULL if directory not found.
-        */
-        directory_t* DRM_DDT_find_directory(char* name);
-
-        /*
-        Save and load directories from DDT.
-
-        Return -1 if something goes wrong.
-        Return 1 if sync success.
-        */
-        int DRM_DDT_sync();
-
-        /*
-        Free DDT table. In difference with clear function, this will avoid
-        working with disk. That's why this function used in DB rollback.
-
-        Return 1 if free was correct.
-        Return -1 if function can't lock any directory from DTD.
-        */
-        int DRM_DDT_free();
-
-        /*
-        Hard cleanup of DDT. Really not recomment for use!
-        Note: It will just unload data from DDT to disk by provided index.
-        Note 2: Empty space will be marked by NULL.
-
-        Params:
-        - index - index of directory for flushing.
-
-        Return -1 if something goes wrong.
-        Return 1 if cleanup success.
-        */
-        int DRM_DDT_flush_index(int index);
-
-        /*
-        Hard cleanup of DDT. Really not recomment for use!
-        Note: It will just unload data from DDT to disk by provided index.
-        Note 2: Empty space will be marked by NULL.
-
-        Params:
-        - directory - pointer to directory for flushing.
-
-        Return -1 if something goes wrong.
-        Return 1 if cleanup success.
-        */
-        int DRM_DDT_flush_directory(directory_t* directory);
-
-    #pragma endregion
 
 #pragma endregion
 

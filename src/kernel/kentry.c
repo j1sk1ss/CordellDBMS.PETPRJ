@@ -204,7 +204,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 }
 
                 DB_link_table2database(database, new_table);
-                TBM_TDT_add_table(new_table);
+                CHC_add_entry(new_table, new_table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
 
                 print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
 
@@ -552,9 +552,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
 }
 
 int flush_tables() {
-    TBM_TDT_free();
-    DRM_DDT_free();
-    PGM_PDT_free();
+    CHC_free();
     return 1;
 }
 

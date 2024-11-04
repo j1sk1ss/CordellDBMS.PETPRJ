@@ -46,6 +46,7 @@
 #include "common.h"
 #include "dirman.h"
 #include "module.h"
+#include "cache.h"
 
 
 #define TDT_SIZE 10
@@ -643,78 +644,6 @@
     Return 1 if success.
     */
     int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type);
-
-    #pragma region [TDT]
-
-        /*
-        Add table to TDT table.
-        Note: It will unload old table if we earn end of TDT.
-        Note 1: If we try to unload locked table, we go to next, and try to unload next.
-                Also this means, that we can get deadlock.
-
-        Params:
-        - table - pointer to table (Be sure that you don't realise this table. We save link in TDT).
-
-        Return struct table pointer
-        */
-        int TBM_TDT_add_table(table_t* table);
-
-        /*
-        Find table in TDT by name
-
-        Params:
-        - name - name of table for find.
-                Note: not path to file. Name of table.
-                      Usuale names placed in databases.
-
-        Return directory struct or NULL if table not found.
-        */
-        table_t* TBM_TDT_find_table(char* name);
-
-        /*
-        Save and load tables from TDT.
-
-        Return -1 if something goes wrong.
-        Return 1 if sync success.
-        */
-        int TBM_TDT_sync();
-
-        /*
-        Free TDT table. In difference with clear function, this will avoid
-        working with disk. That's why this function used in DB rollback.
-
-        Return 1 if free was correct.
-        Return -1 if function can't lock any table from TTD.
-        */
-        int TBM_TDT_free();
-
-        /*
-        Hard cleanup of TDT. Really not recomment for use!
-        Note: It will just unload data from TDT to disk by provided index.
-        Note 2: Empty space will be marked by NULL.
-
-        Params:
-        - index - index of table for flushing.
-
-        Return -1 if something goes wrong.
-        Return 1 if cleanup success.
-        */
-        int TBM_TDT_flush_index(int index);
-
-        /*
-        Hard cleanup of TDT. Really not recomment for use!
-        Note: It will just unload data from TDT to disk by provided index.
-        Note 2: Empty space will be marked by NULL.
-
-        Params:
-        - table - pointer to table for flush.
-
-        Return -1 if something goes wrong.
-        Return 1 if cleanup success.
-        */
-        int TBM_TDT_flush_table(table_t* table);
-
-    #pragma endregion
 
 #pragma endregion
 
