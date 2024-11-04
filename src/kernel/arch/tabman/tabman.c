@@ -248,25 +248,6 @@ int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
 #pragma region [Column]
 
 int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name, uint8_t type) {
-    master->column_links = (table_column_link_t**)realloc(master->column_links, (master->header->column_link_count + 1) * sizeof(table_column_link_t*));
-    master->column_links[master->header->column_link_count] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-    memcpy(
-        master->column_links[master->header->column_link_count]->master_column_name,
-        master_column_name, COLUMN_NAME_SIZE
-    );
-
-    memcpy(
-        master->column_links[master->header->column_link_count]->slave_table_name,
-        slave->header->name, TABLE_NAME_SIZE
-    );
-
-    memcpy(
-        master->column_links[master->header->column_link_count]->slave_column_name,
-        slave_column_name, COLUMN_NAME_SIZE
-    );
-
-    master->column_links[master->header->column_link_count]->type = type;
-    master->header->column_link_count++;
     return 1;
 }
 
@@ -334,28 +315,6 @@ table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name) {
 }
 
 int TBM_check_signature(table_t* table, uint8_t* data) {
-    uint8_t* data_pointer = data;
-    for (int i = 0; i < table->header->column_count; i++) {
-        char value[COLUMN_MAX_SIZE] = { '\0' };
-        memcpy(value, data_pointer, table->columns[i]->size);
-        data_pointer += table->columns[i]->size;
-
-        uint8_t data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
-        switch (data_type) {
-            case COLUMN_TYPE_STRING:
-                break;
-            case COLUMN_TYPE_INT:
-                if (!is_integer(value)) return -2;
-                break;
-            case COLUMN_TYPE_ANY:
-                break;
-            case COLUMN_TYPE_MODULE:
-                break;
-            default:
-                return -4;
-        }
-    }
-
     return 1;
 }
 
