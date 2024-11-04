@@ -48,6 +48,8 @@
 #include "cache.h"
 
 
+#define NO_DIRECTORY_SAVE_OPTIMIZATION
+
 #define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL directories

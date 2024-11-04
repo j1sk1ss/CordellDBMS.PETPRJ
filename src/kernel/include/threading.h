@@ -55,20 +55,7 @@ In second 2 bits, lock state (LOCKED/UNLOCKED and NO_OWNER)
 
 
 /*
-Cross-platform thread creation tool.
-Note: entry should had next sighnature: void* <name>(void* args)
-
-Params:
-- entry - Thread function entry-point.
-- args - Entry args for thread.
-
-Return 1 if thread create.
-Return -1 if thread can't be created.
-*/
-int THR_create_thread(void* entry, void* args);
-
-/*
-
+Nothing.
 */
 int THR_create_lock();
 

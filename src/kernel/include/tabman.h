@@ -49,6 +49,8 @@
 #include "cache.h"
 
 
+#define NO_TABLE_SAVE_OPTIMIZATION
+
 #define TABLE_MAGIC             0xAA
 #define TABLE_NAME_SIZE         8
 #define DIRECTORIES_PER_TABLE   0xFF

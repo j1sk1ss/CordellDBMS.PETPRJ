@@ -36,7 +36,6 @@
 #include <stdint.h>
 
 #include "common.h"
-#include "sighandler.h"
 #include "dataman.h"
 #include "cache.h"
 
@@ -114,13 +113,6 @@
 #define KERNEL_VERSION     "v2.2"
 
 
-typedef struct kernel_answer {
-    uint16_t commands_processed;
-    int8_t answer_code;
-    uint16_t answer_size;
-    uint8_t* answer_body;
-} kernel_answer_t;
-
 
 /*
 Process commands and return answer structure.
@@ -132,40 +124,6 @@ Params:
 
 Return NULL or answer.
 */
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, uint8_t access, int connection);
-
-/*
-Close connection by index.
-
-Params:
-- connection - Connection index.
-
-Return 1 if success.
-*/
-int close_connection(int connection);
-
-/*
-Free answer structure.
-
-Params:
-- answer - answer pointer.
-
-Return -1 or 1.
-*/
-int kernel_free_answer(kernel_answer_t* answer);
-
-/*
-Flush GCT
-
-Return 1 if flush success.
-*/
-int flush_tables();
-
-/*
-Cleanup kernel will free all entries from GCT.
-Also cleanup function free all database connections.
-Note: don't invoke this function. 
-*/
-void cleanup_kernel();
+int main(int argc, char* argv[], uint8_t access);
 
 #endif

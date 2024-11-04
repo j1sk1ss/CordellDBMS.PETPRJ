@@ -30,7 +30,7 @@
 #include "logging.h"
 
 
-#define ENTRY_COUNT     20
+#define ENTRY_COUNT     5
 #define ENTRY_NAME_SIZE 8
 
 #define TABLE_CACHE     2

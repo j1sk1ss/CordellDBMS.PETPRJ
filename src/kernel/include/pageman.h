@@ -48,6 +48,8 @@
 #include "cache.h"
 
 
+#define NO_PAGE_SAVE_OPTIMIZATION
+
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL pages

@@ -153,14 +153,5 @@ int DRM_free_directory(directory_t* directory) {
 }
 
 uint32_t DRM_get_checksum(directory_t* directory) {
-    uint32_t prev_checksum = directory->header->checksum;
-    directory->header->checksum = 0;
-
-    uint32_t checksum = 0;
-    if (directory->header != NULL)
-        checksum = crc32(checksum, (const uint8_t*)directory->header, sizeof(directory_header_t));
-
-    directory->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const uint8_t*)directory->page_names, sizeof(directory->page_names));
-    return checksum;
+    return 1;
 }

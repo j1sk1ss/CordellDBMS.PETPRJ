@@ -1,41 +1,19 @@
 #include "include/kentry.h"
 
 
-static database_t* connections[MAX_CONNECTIONS] = { NULL };
+static database_t* database = NULL;
 
 
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, uint8_t access, int connection) {
-    kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
-
-    answer->answer_body = NULL;
-    answer->answer_code = 255;
-    answer->answer_size = 0;
-    answer->commands_processed = 0;
-
+int main(int argc, char* argv[], uint8_t access) {
     int current_start = 1;
-    database_t* database;
     char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
 
-    while (1) {
-        if (connections[connection] == NULL) {
-            database = DB_load_database(NULL, db_name);
-            if (database == NULL) {
-                print_warn("Database wasn`t found. Create a new one with [create database <name>].");
-                current_start = 1;
-            }
 
-            connections[connection] = database;
-            break;
-        }
-        else {
-            if (strncmp(connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) {
-                database = connections[connection];
-                break;
-            }
-            else {
-                DB_free_database(connections[connection]);
-                connections[connection] = NULL;
-            }
+    if (database == NULL) {
+        database = DB_load_database(NULL, db_name);
+        if (database == NULL) {
+            print_warn("Database wasn`t found. Create a new one with [create database <name>].");
+            current_start = 1;
         }
     }
 
@@ -59,25 +37,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         Handle flush command. Init transaction start. Check docs.
         Command syntax: flush
         */
-        if (strcmp(command, SYNC) == 0) {
-            answer->answer_code = DB_init_transaction(database);
-        }
+        if (strcmp(command, SYNC) == 0) return 1;
         /*
         Handle rollback command.
         Command syntax: rollback
         */
-        else if (strcmp(command, ROLLBACK) == 0) {
-            answer->answer_code = DB_rollback(&connections[connection]);
-        }
-        /*
-        Handle info command about cdbms kernel version.
-        Command syntax: version
-        */
-        else if (strcmp(command, VERSION) == 0) {
-            answer->answer_body = (uint8_t*)malloc(strlen(KERNEL_VERSION));
-            memcpy(answer->answer_body, KERNEL_VERSION, strlen(KERNEL_VERSION));
-            answer->answer_size = strlen(KERNEL_VERSION);
-        }
+        else if (strcmp(command, ROLLBACK) == 0) return 1;
         /*
         Handle creation.
         Command syntax: create <option>
@@ -90,17 +55,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             command_index++;
             if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
                 char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (database_name == NULL) return answer;
+                if (database_name == NULL) return -1;
 
                 database_t* new_database = DB_create_database(database_name);
                 int result = DB_save_database(new_database, NULL);
 
                 print_log("Database [%.*s.%s] create succes!", DATABASE_NAME_SIZE, new_database->header->name, DATABASE_EXTENSION);
                 DB_free_database(new_database);
-
-                answer->answer_code = result;
-                answer->answer_size = -1;
-                answer->commands_processed = command_index;
+                return result;
             }
             /*
             Handle table creation.
@@ -110,13 +72,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             */
             else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (table_name == NULL) return answer;
+                if (table_name == NULL) return -1;
 
-                if (DB_get_table(database, table_name) != NULL) return answer;
+                if (DB_get_table(database, table_name) != NULL) return -1;
                 char* table_access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_access == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
+                    return 5;
                 }
 
                 uint8_t access_byte = access;
@@ -126,8 +87,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     uint8_t del = table_access[2] - '0';
                     access_byte = CREATE_ACCESS_BYTE(rd, wr, del);
                     if (access_byte < access) {
-                        answer->answer_code = 6;
-                        return answer;
+                        return 6;
                     }
                 }
 
@@ -199,18 +159,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
 
                 table_t* new_table = TBM_create_table(table_name, columns, column_count, access_byte);
                 if (new_table == NULL) {
-                    answer->answer_code = 6;
-                    return answer;
+                    return 6;
                 }
 
                 DB_link_table2database(database, new_table);
                 CHC_add_entry(new_table, new_table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
 
                 print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
-
-                answer->answer_size = -1;
-                answer->answer_code = 1;
-                answer->commands_processed = command_index;
+                return 1;
             }
         }
         /*
@@ -228,8 +184,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                     char* input_data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                     if (input_data == NULL || table_name == NULL) {
-                        answer->answer_code = 5;
-                        return answer;
+                        return 5;
                     }
 
                     int result = DB_append_row(database, table_name, (uint8_t*)input_data, strlen(input_data), access);
@@ -240,10 +195,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             result, DATABASE_NAME_SIZE, database->header->name, table_name, input_data, access
                         );
                     }
-
-                    answer->answer_size = -1;
-                    answer->answer_code = result;
-                    answer->commands_processed = command_index;
+                    
+                    return result;
                 }
             }
         }
@@ -259,19 +212,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
                 char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (database_name == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
+                    return 5;
                 }
 
                 if (DB_delete_database(database, 1) != 1) print_error("Error code 1 during deleting %s", database_name);
                 else print_log("Database [%s] was delete successfully.", database_name);
 
                 database = NULL;
-                connections[connection] = NULL;
-
-                answer->answer_code = 1;
-                answer->answer_size = -1;
-                answer->commands_processed = command_index;
+                return 1;
             }
             /*
             Command syntax: delete table <name>
@@ -279,16 +227,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
+                    return 5;
                 }
 
                 if (DB_delete_table(database, table_name, 1) != 1) print_error("Error code 1 during deleting %s", table_name);
                 else print_log("Table [%s] was delete successfully.", table_name);
-
-                answer->answer_code = 1;
-                answer->answer_size = -1;
-                answer->commands_processed = command_index;
+                return 1;
             }
 
             /*
@@ -317,22 +261,18 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                             if (value == NULL || column_name == NULL || table_name == NULL) {
-                                answer->answer_code = 5;
-                                return answer;
+                                return 5;
                             }
 
                             index = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), access);
                             if (index == -1) {
-                                print_error("Value not presented in table [%s].", table_name);
-                                return answer;
+                                return 2;
                             }
                         }
                     }
                 }
 
-                answer->answer_size = -1;
-                answer->answer_code = DB_delete_row(database, table_name, index, access);
-                answer->commands_processed = command_index;
+                return DB_delete_row(database, table_name, index, access);
             }
         }
         /*
@@ -350,8 +290,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
 
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
+                    return 5;
                 }
 
                 /*
@@ -362,8 +301,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                     if (index == -1) {
-                        answer->answer_code = 7;
-                        return answer;
+                        return 7;
                     }
 
                     answer_data = DB_get_row(database, table_name, index, access);
@@ -373,8 +311,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             DATABASE_NAME_SIZE, database->header->name, table_name, index, access
                         );
 
-                        answer->answer_code = 8;
-                        return answer;
+                        return 8;
                     }
 
                     table_t* table = DB_get_table(database, table_name);
@@ -391,8 +328,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                             if (value == NULL || column_name == NULL) {
-                                answer->answer_code = 5;
-                                return answer;
+                                return 5;
                             }
 
                             table_t* table = DB_get_table(database, table_name);
@@ -409,7 +345,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                         DATABASE_NAME_SIZE, database->header->name, table_name, index, access
                                     );
                                     
-                                    return answer;
+                                    return -1;
                                 }
 
                                 int data_start = answer_size;
@@ -425,10 +361,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     }
                 }
 
-                answer->answer_body = answer_data;
-                answer->answer_code = index;
-                answer->answer_size = answer_size;
-                answer->commands_processed = command_index;
+                // TODO: Send to serial
+                // answer->answer_body = answer_data;
+                // answer->answer_size = answer_size;
+                return 1;
             }
         }
         /*
@@ -444,8 +380,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 char* data = NULL;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
+                    return 5;
                 }
 
                 /*
@@ -457,8 +392,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                         data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                         if (data == NULL) {
-                            answer->answer_code = 5;
-                            return answer;
+                            return 5;
                         }
                     }
                 }
@@ -475,23 +409,20 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                                 data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                                 if (data == NULL || value == NULL || col_name == NULL) {
-                                    answer->answer_code = 5;
-                                    return answer;
+                                    return 5;
                                 }
 
                                 index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), access);
                                 if (index == -1) {
                                     print_error("Value [%s] not presented in table [%s]", data, table_name);
-                                    return answer;
+                                    return -1;
                                 }
                             }
                         }
                     }
                 }
                 
-                answer->answer_size = -1;
-                answer->answer_code = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
-                answer->commands_processed = command_index;
+                return DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
             }
 
         }
@@ -508,8 +439,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     char* slave_table   = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                     char* slave_column  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                     if (master_table == NULL || master_column == NULL || slave_table == NULL || slave_column == NULL) {
-                        answer->answer_code = 5;
-                        return answer;
+                        return 5;
                     }
 
                     uint8_t delete_link = LINK_NOTHING;
@@ -521,7 +451,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     table_t* slave = DB_get_table(database, slave_table);
                     if (slave == NULL || master == NULL) {
                         print_error("Table [%s] not found in database!", slave_table);
-                        return answer;
+                        return -1;
                     }
 
                     if (strcmp(OPEN_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == 0) {
@@ -538,42 +468,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                     );
 
                     print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
-
-                    answer->answer_size = -1;
-                    answer->answer_code = result;
-                    answer->commands_processed = command_index;
+                    return result;
                 }
             }
         }
     }
 
-    if (auto_sync == 1) DB_init_transaction(database);
-    return answer;
-}
-
-int flush_tables() {
-    CHC_free();
-    return 1;
-}
-
-int close_connection(int connection) {
-    flush_tables();
-    if (connections[connection] == NULL) return -2;
-    DB_free_database(connections[connection]);
-    connections[connection] = NULL;
-    return 1;
-}
-
-int kernel_free_answer(kernel_answer_t* answer) {
-    if (answer->answer_body != NULL) free(answer->answer_body);
-    free(answer);
-    return 1;
-}
-
-void cleanup_kernel() {
-    flush_tables();
-    for (int i = 0; i < MAX_CONNECTIONS; i++) {
-        if (connections[i] == NULL) continue;
-        DB_free_database(connections[i]);
-    }
+    return -1;
 }

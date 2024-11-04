@@ -202,24 +202,5 @@ int TBM_free_table(table_t* table) {
 }
 
 uint32_t TBM_get_checksum(table_t* table) {
-    uint32_t prev_checksum = table->header->checksum;
-    table->header->checksum = 0;
-
-    uint32_t checksum = 0;
-    if (table->header != NULL) checksum = crc32(checksum, (const uint8_t*)table->header, sizeof(table_header_t));
-    if (table->columns != NULL) {
-        for (uint16_t i = 0; i < table->header->column_count; i++) {
-            if (table->columns[i] != NULL) checksum = crc32(checksum, (const uint8_t*)table->columns[i], sizeof(table_column_t));
-        }
-    }
-
-    if (table->column_links != NULL) {
-        for (uint16_t i = 0; i < table->header->column_link_count; i++) {
-            if (table->column_links[i] != NULL) checksum = crc32(checksum, (const uint8_t*)table->column_links[i], sizeof(table_column_link_t));
-        }
-    }
-
-    table->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const uint8_t*)table->dir_names, sizeof(table->dir_names));
-    return checksum;
+    return 1;
 }
