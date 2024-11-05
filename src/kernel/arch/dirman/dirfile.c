@@ -25,7 +25,7 @@ directory_t* DRM_create_empty_directory() {
     return DRM_create_directory(directory_name);
 }
 
-int DRM_save_directory(directory_t* directory, char* path) {
+int DRM_save_directory(directory_t* __restrict directory, char* __restrict path) {
     int status = -1;
     #pragma omp critical (directory_save)
     {
@@ -65,7 +65,7 @@ int DRM_save_directory(directory_t* directory, char* path) {
     return status;
 }
 
-directory_t* DRM_load_directory(char* path, char* name) {
+directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
     char load_path[DEFAULT_PATH_SIZE];
     if (get_load_path(name, DIRECTORY_NAME_SIZE, path, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
         print_error("Path or name should be provided!");

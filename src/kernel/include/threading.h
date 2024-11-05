@@ -43,9 +43,9 @@
 
 /*
 Main idea, that lock status of object can be stored in one uint16_t object.
-In first 14 bits we store info about lock owner thread number:
+In first 14 bits we store info about lock owner (or NO_OWNER) thread number:
 0b00000000000000XX
-In second 2 bits, lock state (LOCKED/UNLOCKED and NO_OWNER)
+In second 2 bits, lock state (LOCKED/UNLOCKED)
 0bXXXXXXXXXXXXXX00
 */
 #define PACK_LOCK(status, owner) (((status) & 0x3) << 0) | (((owner) & (0xFFFC >> 2)) << 2)

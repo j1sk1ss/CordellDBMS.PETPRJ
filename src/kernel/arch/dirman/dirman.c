@@ -56,7 +56,7 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
     return content;
 }
 
-int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght) {
+int DRM_append_content(directory_t* __restrict directory, uint8_t* __restrict data, size_t data_lenght) {
     // First we try to find fit empty place somewhere in linked pages
     // We skip this part if data_lenght larger then PAGE_CONTENT_SIZE
     if (data_lenght < PAGE_CONTENT_SIZE) {
@@ -91,7 +91,7 @@ int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght
     else return -3;
 }
 
-int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght) {
+int DRM_insert_content(directory_t* __restrict directory, uint8_t offset, uint8_t* __restrict data, size_t data_lenght) {
     int pages4work      = data_lenght / PAGE_CONTENT_SIZE;
     int page_offset     = offset / PAGE_CONTENT_SIZE;
     int current_index   = offset % PAGE_CONTENT_SIZE;
@@ -129,11 +129,11 @@ int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, si
 }
 
 int DRM_delete_content(directory_t* directory, int offset, size_t length) {
-    int page_offset     = offset / PAGE_CONTENT_SIZE;
-    int current_index   = offset % PAGE_CONTENT_SIZE;
-    int pages4work      = (int)length / PAGE_CONTENT_SIZE;
-    int current_page    = page_offset;
-    int size2delete     = (int)length;
+    int pages4work    = (int)length / PAGE_CONTENT_SIZE;
+    int page_offset   = offset / PAGE_CONTENT_SIZE;
+    int current_index = offset % PAGE_CONTENT_SIZE;
+    int size2delete   = (int)length;
+    int current_page  = page_offset;
 
     for (int i = 0; i < pages4work + 1 && size2delete > 0; i++) {
         if (current_page > directory->header->page_count) {
@@ -193,7 +193,7 @@ int DRM_cleanup_pages(directory_t* directory) {
     return 1;
 }
 
-int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size) {
+int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __restrict data, size_t data_size) {
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int pages4search  = directory->header->page_count - page_offset;
     int current_page  = page_offset;
@@ -202,16 +202,16 @@ int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t d
     int target_global_index = -1;
 
     uint8_t* data_pointer = data;
-    for (int i = 0; i < pages4search + 1 && size4seach > 0; i++) {
+    for (; pages4search > 0 && size4seach > 0; pages4search--) {
         // If we reach pages count in current directory, we return error code.
-        // We return error instead creationg a new directory, because this is not our abstraction level.
+        // We return error instead creation a new directory, because this is not our abstraction level.
         if (current_page >= directory->header->page_count) {
-            // To  many pages. We reach directory end.
+            // Too  many pages. We reach directory end.
             // That mean, we don't find any entry of target data.
             return -1;
         }
 
-        // We load current page to memory
+        // We load current page to memory.
         page_t* page = PGM_load_page(NULL, directory->page_names[current_page]);
         if (page == NULL) return -2;
 
@@ -236,8 +236,8 @@ int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t d
             target_global_index = -1;
         } else {
             // Move pointer to next position
-            size4seach      -= current_size;
-            data_pointer    += current_size;
+            size4seach   -= current_size;
+            data_pointer += current_size;
         }
 
         // Set local index to 0. We don`t need offset now.
@@ -248,14 +248,14 @@ int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t d
     return target_global_index;
 }
 
-int DRM_link_page2dir(directory_t* directory, page_t* page) {
+int DRM_link_page2dir(directory_t* __restrict directory, page_t* __restrict page) {
     if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) return -1;
     #pragma omp critical (link_page2dir)
     memcpy(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
     return 1;
 }
 
-int DRM_unlink_page_from_directory(directory_t* directory, char* page_name) {
+int DRM_unlink_page_from_directory(directory_t* __restrict directory, char* __restrict page_name) {
     int status = 0;
     #pragma omp critical (unlink_page_from_directory)
     {

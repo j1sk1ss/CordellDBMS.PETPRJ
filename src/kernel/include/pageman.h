@@ -123,7 +123,7 @@
 
     Return size of data, that can be stored in page.
     */
-    int PGM_insert_content(page_t* page, int offset, uint8_t* data, size_t data_lenght);
+    int PGM_insert_content(page_t* __restrict page, int offset, uint8_t* __restrict data, size_t data_lenght);
 
     /*
     Rewrite all line by EMPTY symbols
@@ -136,7 +136,7 @@
     Return 1 - if write was success
     Return -1 - if index not found in page
     */
-    int PGM_delete_content(page_t* page, int offset, size_t length);
+    int PGM_delete_content(page_t* __restrict page, int offset, size_t length);
 
     /*
     Find data function return index in page of provided data. (Will return first entry of data).
@@ -161,7 +161,7 @@
     Return -1 if data nfound
     Return index (first entry) of target data
     */
-    int PGM_find_content(page_t* page, int offset, uint8_t* data, size_t data_size);
+    int PGM_find_content(page_t* __restrict page, int offset, uint8_t* __restrict data, size_t data_size);
 
     /*
     Find local index of line with input value
@@ -234,7 +234,7 @@
     P.S. Function always pad content to fit default page size
          If buffer_size higher then default page-size, it will trunc
     */
-    page_t* PGM_create_page(char* name, uint8_t* buffer, size_t data_size);
+    page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_t data_size);
 
     /*
     Same function with create page, but here you can avoid name and buffer input.
@@ -262,7 +262,7 @@
     Return 0 - if something goes wrong.
     Return 1 - if saving was success.
     */
-    int PGM_save_page(page_t* page, char* path);
+    int PGM_save_page(page_t* __restrict page, char* __restrict path);
 
     /*
     Open file, load page, close file
@@ -277,7 +277,7 @@
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* path, char* name);
+    page_t* PGM_load_page(char* __restrict path, char* __restrict name);
 
     /*
     Release page

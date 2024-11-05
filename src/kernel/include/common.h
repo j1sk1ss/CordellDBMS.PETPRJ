@@ -68,17 +68,6 @@ Return 0 is not integer
 int is_integer(const char* str);
 
 /*
-Check if provided string is number with floating point
-
-Params:
-str - pointer to string
-
-Return 1 is float / double
-Return 0 is not float / double
-*/
-int is_float(const char* str);
-
-/*
 Example:
 Given path == "C:\\dir1\\dir2\\dir3\\file.exe"
 will return path_ as   "C:\\dir1\\dir2\\dir3"
@@ -157,28 +146,6 @@ int file_exists(const char* path);
 // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
 // size_t	file_write(const void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
 // int fclose(FILE* __restrict __stream);
-
-/*
-Replacing sub-memory in memory by new memory.
-Reference from: https://stackoverflow.com/questions/779875/what-function-is-to-replace-a-substring-from-a-string-in-c
-Note: Pointers shouldn't overlap each other!
-
-Params:
-- source - Source memory.
-- source_size - Size of source memory.
-- sub_string - Sub memory for replace.
-- sub_string_size - Sub memory size.
-- new_string - New sub memory.
-- new_string_size - New sub memory size.
-
-Return new memory with replaced sub-memory.
-*/
-uint8_t* memrep(
-    uint8_t* __restrict source, int source_size, 
-    uint8_t* __restrict sub, int sub_size, 
-    uint8_t* __restrict new, int new_size, 
-    size_t* __restrict result_len
-);
 
 /*
 Replacing sub-string in string by new string.

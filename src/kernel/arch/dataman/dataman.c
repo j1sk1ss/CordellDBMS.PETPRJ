@@ -137,6 +137,7 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
 }
 
 int DB_cleanup_tables(database_t* database) {
+    #pragma omp parallel for
     for (int i = 0; i < database->header->table_count; i++) {
         table_t* table = DB_get_table(database, database->table_names[i]);
         TBM_cleanup_dirs(table);
@@ -189,15 +190,17 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     if (database == NULL) return NULL;
     if (table_name == NULL) return NULL;
 
+    table_t* table = NULL;
+    #pragma omp parallel for
     for (int i = 0; i < database->header->table_count; i++) {
-        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
-            return TBM_load_table(NULL, table_name);
+        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
+            table = TBM_load_table(NULL, table_name);
         }
     }
 
     // If table not in database, we return NULL
-    print_warn("Table [%s] not in [%.*s] database!", table_name, DATABASE_NAME_SIZE, database->header->name);
-    return NULL;
+    if (table == NULL) print_warn("Table [%s] not in [%.*s] database!", table_name, DATABASE_NAME_SIZE, database->header->name);
+    return table;
 }
 
 int DB_delete_table(database_t* __restrict database, char* __restrict table_name, int full) {
@@ -212,7 +215,7 @@ int DB_link_table2database(database_t* __restrict database, table_t* __restrict 
     if (database->header->table_count + 1 >= TABLES_PER_DATABASE) return -1;
 
     #pragma omp critical (link_table2database)
-    memcpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
+    strncpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
     return 1;
 }
 
@@ -223,7 +226,7 @@ int DB_unlink_table_from_database(database_t* __restrict database, char* __restr
         for (int i = 0; i < database->header->table_count; i++) {
             if (strncmp(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
                 for (int j = i; j < database->header->table_count - 1; j++) {
-                    memcpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
+                    strncpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
                 }
 
                 database->header->table_count--;

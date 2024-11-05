@@ -250,17 +250,17 @@ int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
 int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name, uint8_t type) {
     master->column_links = (table_column_link_t**)realloc(master->column_links, (master->header->column_link_count + 1) * sizeof(table_column_link_t*));
     master->column_links[master->header->column_link_count] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-    memcpy(
+    strncpy(
         master->column_links[master->header->column_link_count]->master_column_name,
         master_column_name, COLUMN_NAME_SIZE
     );
 
-    memcpy(
+    strncpy(
         master->column_links[master->header->column_link_count]->slave_table_name,
         slave->header->name, TABLE_NAME_SIZE
     );
 
-    memcpy(
+    strncpy(
         master->column_links[master->header->column_link_count]->slave_column_name,
         slave_column_name, COLUMN_NAME_SIZE
     );
@@ -278,7 +278,6 @@ int TBM_unlink_column_from_column(table_t* master, char* master_column_name, tab
             strncmp(master->column_links[i]->slave_table_name, slave->header->name, TABLE_NAME_SIZE) == 0
         ) {
             free(master->column_links[i]);
-
             for (int j = i; j < master->header->column_link_count - 1; j++)
                 master->column_links[j] = master->column_links[j + 1];
 
@@ -298,27 +297,19 @@ int TBM_unlink_column_from_column(table_t* master, char* master_column_name, tab
 }
 
 int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_index) {
-    if (by_index != -1) {
-        if (by_index > table->header->column_count) return -1;
-        if (table->columns[by_index]->size != column->size && table->header->dir_count != 0) return -2;
-
-        SOFT_FREE(table->columns[by_index]);
-        table->columns[by_index] = column;
-
-        return 1;
-    }
-
-    for (int i = 0; i < table->header->column_count; i++) {
-        if (strncmp(table->columns[i]->name, column->name, COLUMN_NAME_SIZE) == 0) {
-            if (table->columns[i]->size != column->size && table->header->dir_count != 0) return -2;
-
-            SOFT_FREE(table->columns[i]);
-            table->columns[i] = column;
-            return 1;
+    if (by_index == -1) {
+        for (by_index = 0; by_index < table->header->column_count; by_index++) {
+            if (strncmp(table->columns[by_index]->name, column->name, COLUMN_NAME_SIZE) == 0) {
+                if (table->columns[by_index]->size != column->size && table->header->dir_count != 0) return -2;
+                break;
+            }
         }
     }
 
-    return -1;
+    SOFT_FREE(table->columns[by_index]);
+    table->columns[by_index] = column;
+
+    return 1;
 }
 
 table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name) {
@@ -342,17 +333,13 @@ int TBM_check_signature(table_t* table, uint8_t* data) {
 
         uint8_t data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
         switch (data_type) {
-            case COLUMN_TYPE_STRING:
-                break;
             case COLUMN_TYPE_INT:
                 if (!is_integer(value)) return -2;
                 break;
-            case COLUMN_TYPE_ANY:
-                break;
-            case COLUMN_TYPE_MODULE:
-                break;
-            default:
-                return -4;
+            case COLUMN_TYPE_STRING: break;
+            case COLUMN_TYPE_ANY: break;
+            case COLUMN_TYPE_MODULE: break;
+            default: return -4;
         }
     }
 

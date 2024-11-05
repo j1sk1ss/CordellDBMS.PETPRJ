@@ -29,7 +29,7 @@ table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, u
     table->row_size     = row_size;
     table->column_links = NULL;
     
-    table->lock = THR_create_lock();
+    table->lock   = THR_create_lock();
     table->header = header;
     return table;
 }

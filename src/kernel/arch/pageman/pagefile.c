@@ -1,7 +1,7 @@
 #include "../../include/pageman.h"
 
 
-page_t* PGM_create_page(char* name, uint8_t* buffer, size_t data_size) {
+page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_t data_size) {
     page_t* page = (page_t*)malloc(sizeof(page_t));
     page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
 
@@ -27,7 +27,7 @@ page_t* PGM_create_empty_page() {
     return PGM_create_page(page_name, NULL, 0);
 }
 
-int PGM_save_page(page_t* page, char* path) {
+int PGM_save_page(page_t* __restrict page, char* __restrict path) {
     int status = -1;
     #pragma omp critical (page_save)
     {
@@ -70,7 +70,7 @@ int PGM_save_page(page_t* page, char* path) {
     return status;
 }
 
-page_t* PGM_load_page(char* path, char* name) {
+page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
     char load_path[DEFAULT_PATH_SIZE];
     if (get_load_path(name, PAGE_NAME_SIZE, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
