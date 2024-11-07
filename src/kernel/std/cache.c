@@ -3,7 +3,7 @@
 /*
 Global Cache Table used for caching results of I/O operations.
 */
-static __thread cache_t GCT[ENTRY_COUNT];
+static cache_t GCT[ENTRY_COUNT];
 
 
 int CHC_init() {

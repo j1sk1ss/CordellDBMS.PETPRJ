@@ -113,6 +113,20 @@
 #define KERNEL_VERSION     "v2.3"
 
 
+typedef struct commands {
+    char** argv;
+    int argc;
+} commands_t;
+
+/*
+Process command input
+
+Params:
+- buffer - Input string.
+
+Return pointer to commands struct.
+*/
+commands_t* process_command(char* buffer);
 
 /*
 Process commands and return answer structure.

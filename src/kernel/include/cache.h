@@ -33,9 +33,9 @@
 #define ENTRY_COUNT     5
 #define ENTRY_NAME_SIZE 8
 
-#define TABLE_CACHE     2
-#define DIRECTORY_CACHE 1
-#define PAGE_CACHE      0
+#define TABLE_CACHE     0x02
+#define DIRECTORY_CACHE 0x01
+#define PAGE_CACHE      0x00
 
 
 typedef struct cache_body {

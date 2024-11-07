@@ -4,10 +4,49 @@
 static database_t* database = NULL;
 
 
-int main(int argc, char* argv[], uint8_t access) {
+#ifdef DEBUG
+int main(int argc, char* argv[]) {}
+#endif
+
+commands_t* process_command(char* buffer) {
+    commands_t* commands = (commands_t*)malloc(sizeof(commands_t));
+    commands->argv = (char**)malloc(sizeof(char*) * MAX_COMMANDS);
+    commands->argc = 1;
+
+    char* current_arg = NULL;
+    int in_quotes = 0;
+
+    for (char *p = (char*)buffer; *p != '\0'; p++) {
+        if (*p == '"') {
+            in_quotes = !in_quotes;
+            if (in_quotes) current_arg = p + 1;
+            else {
+                *p = '\0';
+                commands->argv[commands->argc++] = current_arg;
+                current_arg  = NULL;
+            }
+        }
+        else if (!in_quotes && (*p == ' ' || *p == '\t')) {
+            *p = '\0';
+            if (current_arg) {
+                commands->argv[commands->argc++] = current_arg;
+                current_arg  = NULL;
+            }
+        }
+        else if (!current_arg) current_arg = p;
+    }
+
+    if (current_arg) commands->argv[commands->argc++] = current_arg;
+    return commands;
+}
+
+int kernel(char* querry) {
+    commands_t* input_commands = process_command(querry);
+    char** argv = input_commands->argv;
+    int argc = input_commands->argc;
+
     int current_start = 1;
     char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
-
 
     if (database == NULL) {
         database = DB_load_database(NULL, db_name);
@@ -361,9 +400,7 @@ int main(int argc, char* argv[], uint8_t access) {
                     }
                 }
 
-                // TODO: Send to serial
-                // answer->answer_body = answer_data;
-                // answer->answer_size = answer_size;
+                print_info("%.*s", answer_size, answer_data);
                 return 1;
             }
         }
