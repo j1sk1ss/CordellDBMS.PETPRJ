@@ -623,17 +623,6 @@
     int TBM_free_table(table_t* table);
 
     /*
-    Generate table checksum. Checksum is sum of all bytes of table name,
-    all bytes of dir names, all bytes of columns and links.
-
-    Params:
-    - table - table pointer.
-
-    Return table checksum.
-    */
-    uint32_t TBM_get_checksum(table_t* table);
-
-    /*
     Invoke modules in table and change input data.
 
     Params:

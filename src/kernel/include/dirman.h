@@ -311,17 +311,6 @@
     */
     int DRM_free_directory(directory_t* directory);
 
-    /*
-    Generate directory checksum. Checksum is sum of all bytes of directory name,
-    all bytes of page names.
-
-    Params:
-    - directory - directory pointer.
-
-    Return directory checksum.
-    */
-    uint32_t DRM_get_checksum(directory_t* directory);
-
 #pragma endregion
 
 #endif

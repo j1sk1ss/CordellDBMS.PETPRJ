@@ -32,7 +32,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
     #pragma omp critical (page_save)
     {
         #ifndef NO_PAGE_SAVE_OPTIMIZATION
-        if (PGM_get_checksum(page) != page->header->checksum)
+        // if (PGM_get_checksum(page) != page->header->checksum)
         #endif
         {
             // We generate default path
@@ -50,7 +50,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
                 int page_size = PGM_find_value(page, 0, PAGE_END);
                 if (page_size <= 0) page_size = 0;
 
-                page->header->checksum = PGM_get_checksum(page);
+                page->header->checksum = 1; // PGM_get_checksum(page);
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
                 if (fwrite(page->content, sizeof(uint8_t), page_size, file) != (size_t)page_size) status = -3;
 
@@ -123,9 +123,5 @@ int PGM_free_page(page_t* page) {
     SOFT_FREE(page->header);
     SOFT_FREE(page);
 
-    return 1;
-}
-
-uint32_t PGM_get_checksum(page_t* page) {
     return 1;
 }

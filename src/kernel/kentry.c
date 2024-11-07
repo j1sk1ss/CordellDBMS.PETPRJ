@@ -5,7 +5,7 @@ static database_t* database = NULL;
 
 
 #ifdef DEBUG
-int main(int argc, char* argv[]) {}
+int main(int argc, char* argv[]) { return 1; }
 #endif
 
 commands_t* process_command(char* buffer) {

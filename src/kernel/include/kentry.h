@@ -138,6 +138,6 @@ Params:
 
 Return NULL or answer.
 */
-int main(int argc, char* argv[], uint8_t access);
+int main(int argc, char* argv[]);
 
 #endif
