@@ -18,7 +18,7 @@ database_t* DB_create_database(char* name) {
 
 int DB_delete_database(database_t* database, int full) {
     int result = 1;
-    #pragma omp parallel for shared(result)
+    #pragma omp parallel for schedule(dynamic, 1) shared(result)
     for (int i = 0; i < database->header->table_count; i++) {
         table_t* table = DB_get_table(database, database->table_names[i]);
         if (table == NULL) continue;

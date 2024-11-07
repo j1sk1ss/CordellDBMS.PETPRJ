@@ -21,14 +21,6 @@ int is_integer(const char* str) {
     return 1;
 }
 
-int is_float(const char* str) {
-    return 1;
-}
-
-char* get_next_token(char** input, char delimiter) {
-    return NULL;
-}
-
 char* strrep(char* __restrict string, char* __restrict source, char* __restrict target) {
     char* result = NULL; // the return string
     char* ins = NULL;    // the next insert point

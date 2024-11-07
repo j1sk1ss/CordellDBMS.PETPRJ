@@ -150,7 +150,7 @@
     Return -3 if data size too large for one page. Check [pageman.h] docs for explanation.
     Return size, that can`t fit to this directory, if we reach page limit in directory.
     */
-    int DRM_append_content(directory_t* directory, uint8_t* data, size_t data_lenght);
+    int DRM_append_content(directory_t* __restrict directory, uint8_t* __restrict data, size_t data_lenght);
 
     /*
     Insert content to directory. This function don't move page_end in first empty page symbol to new location.
@@ -168,7 +168,7 @@
     Return -1 if something goes wrong.
     Return data size, that can't be stored in existed pages if we reach directory end.
     */
-    int DRM_insert_content(directory_t* directory, uint8_t offset, uint8_t* data, size_t data_lenght);
+    int DRM_insert_content(directory_t* __restrict directory, uint8_t offset, uint8_t* __restrict data, size_t data_lenght);
 
     /*
     Find data function return global index in directory of provided data. (Will return first entry of data).
@@ -195,7 +195,7 @@
     Return -1 if data nfound.
     Return global index (first entry) of target data .
     */
-    int DRM_find_content(directory_t* directory, int offset, uint8_t* data, size_t data_size);
+    int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __restrict data, size_t data_size);
 
 #pragma endregion
 
@@ -213,7 +213,7 @@
     Return -1 - if we can`t create file.
     Return 1 if file create success.
     */
-    int DRM_save_directory(directory_t* directory, char* path);
+    int DRM_save_directory(directory_t* __restrict directory, char* __restrict path);
 
     /*
     Link current page to this directory.
@@ -229,7 +229,7 @@
     If sighnature wrong, return 0.
     If all okey - return 1.
     */
-    int DRM_link_page2dir(directory_t* directory, page_t* page);
+    int DRM_link_page2dir(directory_t* __restrict directory, page_t* __restrict page);
 
     /*
     Unlink page from directory. This function just remove page name from directory structure.
@@ -243,7 +243,7 @@
     Return 0 if page not found.
     Return 1 if unlink was success.
     */
-    int DRM_unlink_page_from_directory(directory_t* directory, char* page_name);
+    int DRM_unlink_page_from_directory(directory_t* __restrict directory, char* __restrict page_name);
 
     /*
     Allocate memory and create new directory.
@@ -279,7 +279,7 @@
     Return -1 if file nfound. Check path.
     Return locked directory pointer.
     */
-    directory_t* DRM_load_directory(char* path, char* name);
+    directory_t* DRM_load_directory(char* __restrict path, char* __restrict name);
 
     /*
     Delete directory from disk.

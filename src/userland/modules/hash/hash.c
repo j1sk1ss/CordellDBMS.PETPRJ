@@ -1,3 +1,5 @@
+// Ubuntu: sudo apt install libssl-dev
+// tcc hash.c -o hash.mdl -lssl -lcrypto
 #include <openssl/sha.h>
 #include <stdio.h>
 #include <stdlib.h>

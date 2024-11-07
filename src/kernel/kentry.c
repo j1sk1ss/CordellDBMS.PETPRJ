@@ -248,7 +248,7 @@ int main(int argc, char* argv[], uint8_t access) {
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                    index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                 }
                 /*
                 Note: will delete first row, where will find value in provided column.
@@ -388,7 +388,7 @@ int main(int argc, char* argv[], uint8_t access) {
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    index = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, command_index));
+                    index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                         data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                         if (data == NULL) {
