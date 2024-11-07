@@ -30,7 +30,7 @@ int MDL_launch_module(char* module_name, char* args, uint8_t* buffer, size_t buf
         int exit_code = WEXITSTATUS(status);
         print_log("Module [%s] exit code: [%d]", module_name, exit_code);
         if (exit_code == 100) {
-            print_debug("Result: [%s]", result);
+            print_debug("Module [%s] result: [%s]", module_name, result);
             size_t result_len = strlen(result);
             size_t offset = buffer_size > result_len ? buffer_size - result_len : 0;
             memcpy(buffer + offset, result, MIN(buffer_size, result_len));

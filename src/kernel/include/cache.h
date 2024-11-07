@@ -26,20 +26,39 @@
 #include <stdint.h>
 
 #include "common.h"
-#include "threading.h"
 #include "logging.h"
+#include "threading.h"
 
 
-#define ENTRY_COUNT     20
+#define ENTRY_COUNT     10
 #define ENTRY_NAME_SIZE 8
 
+#define CACHE_TYPES_COUNT   3
 #define TABLE_CACHE     2
 #define DIRECTORY_CACHE 1
 #define PAGE_CACHE      0
 
+/*
+This defined vars guaranty, that database will take only:
+2 * 2080 bytes (for table_t)
+4 * 2056 bytes (for directory_t)
+4 * 4112 bytes (for page_t)
+
+In summary, whole GCT will take 28KB of RAM.
+Reduction of ENTRY_COUNT and MAX_TABLE_ENTRY, MAX_DIRECTORY_ENTRY, MAX_PAGE_ENTRY
+will decrease usage of RAM by next formula:
+X * 2080 bytes (for table_t)
+Y * 2056 bytes (for directory_t)
+Z * 4112 bytes (for page_t)
+*/
+#define MAX_TABLE_ENTRY     2
+#define MAX_DIRECTORY_ENTRY 4
+#define MAX_PAGE_ENTRY      4 
+
 
 typedef struct cache_body {
     uint16_t lock;
+    uint8_t is_cached;
     void* body;
 } cache_body_t;
 
@@ -70,6 +89,7 @@ Params:
 - free - Pointer to object free function | free(void* entry).
 - save - Pointer to object save file function | save(void* entry, char* path).
 
+Return -3 if entry type reach limit in GCT.
 Return -2 if entry is NULL.
 Return -1 if by some reason, function can't lock entry.
 Return 1 if add was success.

@@ -11,8 +11,10 @@ directory_t* DRM_create_directory(char* name) {
     strncpy(header->name, name, DIRECTORY_NAME_SIZE);
     header->magic      = DIRECTORY_MAGIC;
     header->page_count = 0;
-    directory->lock    = THR_create_lock();
-    directory->header  = header;
+
+    directory->lock      = THR_create_lock();
+    directory->header    = header;
+    directory->is_cached = 0;
     return directory;
 }
 
@@ -75,14 +77,17 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
     char file_name[DIRECTORY_NAME_SIZE];
     if (get_filename(name, path, file_name, DIRECTORY_NAME_SIZE) == -1) return NULL;
     directory_t* loaded_directory = (directory_t*)CHC_find_entry(file_name, DIRECTORY_CACHE);
-    if (loaded_directory != NULL) return loaded_directory;
+    if (loaded_directory != NULL) {
+        print_debug("Loading directory [%s] from GCT", load_path);
+        return loaded_directory;
+    }
 
     #pragma omp critical (directory_load)
     {
         // Open file directory
         FILE* file = fopen(load_path, "rb");
         print_debug("Loading directory [%s]", load_path);
-        if (file == NULL) print_error("Directory not found! Path: [%s]\n", load_path);
+        if (file == NULL) print_error("Directory not found! Path: [%s]", load_path);
         else {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
@@ -105,10 +110,11 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
                 // Close file directory
                 fclose(file);
 
-                directory->lock = THR_create_lock();
+                directory->lock   = THR_create_lock();
                 directory->header = header;
-                CHC_add_entry(directory, directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
-                loaded_directory = directory;
+                loaded_directory  = directory;
+
+                CHC_add_entry(loaded_directory, loaded_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
             }
         }
     }
@@ -142,6 +148,14 @@ int DRM_delete_directory(directory_t* directory, int full) {
         print_error("Can't lock directory [%.*s]", DIRECTORY_NAME_SIZE, directory->header->name);
         return -1;
     }
+}
+
+int DRM_flush_directory(directory_t* directory) {
+    if (directory == NULL) return -2;
+    if (directory->is_cached == 1) return -1;
+
+    DRM_save_directory(directory, NULL);
+    return DRM_free_directory(directory);
 }
 
 int DRM_free_directory(directory_t* directory) {

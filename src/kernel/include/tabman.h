@@ -296,6 +296,7 @@
     typedef struct table {
         // Lock table flag
         uint16_t lock;
+        uint8_t is_cached;
 
         // Table header
         table_header_t* header;
@@ -346,7 +347,7 @@
     Return 0 if row append was success
     Return 1 if row append was success and we create new pages
     */
-    int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_size);
+    int TBM_insert_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size);
 
     /*
     Append data to content pages in directories
@@ -367,7 +368,7 @@
     Return 1 if append was success and we create new pages
     Return 2 if append was success and we create new directories
     */
-    int TBM_append_content(table_t* table, uint8_t* data, size_t data_size);
+    int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size_t data_size);
 
     /*
     Delete content in table. All steps below:
@@ -427,7 +428,7 @@
     Return -1 if data nfound
     Return global index (first entry) of target data
     */
-    int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size);
+    int TBM_find_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size);
 
 #pragma endregion
 
@@ -451,7 +452,7 @@
     Return -1 if something goes wrong.
     Return 1 if link was success.
     */
-    int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name, uint8_t type);
+    int TBM_link_column2column(table_t* __restrict master, char* master_column_name, table_t* __restrict slave, char* slave_column_name, uint8_t type);
 
     /*
     Delete link from slave column.
@@ -466,7 +467,7 @@
     Return 0 if column name not found.
     Return 1 if unlink was success.
     */
-    int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name);
+    int TBM_unlink_column_from_column(table_t* __restrict master, char* master_column_name, table_t* __restrict slave, char* slave_column_name);
 
     /*
     Update column in provided table.
@@ -482,7 +483,7 @@
     Return -1 if we don't find column with same name.
     Return 1 if update was success.
     */
-    int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_index);
+    int TBM_update_column_in_table(table_t* __restrict table, table_column_t* __restrict column, int by_index);
 
     /*
     Create column and allocate memory for.
@@ -517,7 +518,7 @@
               This error indicates, that data to small for this column count.
     Return 1 if signature is correct.
     */
-    int TBM_check_signature(table_t* table, uint8_t* data);
+    int TBM_check_signature(table_t* __restrict table, uint8_t* __restrict data);
 
     /*
     Link directory to table
@@ -530,7 +531,7 @@
     Return 0 - if something goes wrong
     Return 1 - if link was success
     */
-    int TBM_link_dir2table(table_t* table, directory_t* directory);
+    int TBM_link_dir2table(table_t* __restrict table, directory_t* __restrict directory);
 
     /*
     Unlink directory from table. This function just remove directory name from table structure.
@@ -557,7 +558,7 @@
 
     Return pointer to new table
     */
-    table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access);
+    table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, uint8_t access);
 
     /*
     Save table to the disk
@@ -574,7 +575,7 @@
     Return 0 - if something goes wrong
     Return 1 - if save was success
     */
-    int TBM_save_table(table_t* table, char* path);
+    int TBM_save_table(table_t* __restrict table, char* __restrict path);
 
     /*
     Load table from .tb bin file
@@ -587,7 +588,7 @@
 
     Return allocated table from disk
     */
-    table_t* TBM_load_table(char* path, char* name);
+    table_t* TBM_load_table(char* __restrict path, char* __restrict name);
 
     /*
     Delete table from disk.
@@ -601,6 +602,18 @@
     Return 1 if all files was delete.
     */
     int TBM_delete_table(table_t* table, int full);
+
+    /*
+    In difference with TBM_free_table, TBM_flush_table will free table in case, when
+    table not cached in GCT.
+
+    Params:
+    - table - pointer to table.
+
+    Return -1 - if table in GCT.
+    Return 1 - if Release was success.
+    */
+    int TBM_flush_table(table_t* table);
 
     /*
     Release table.
@@ -641,7 +654,7 @@
 
     Return 1 if success.
     */
-    int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type);
+    int TBM_invoke_modules(table_t* __restrict table, uint8_t* __restrict data, uint8_t type);
 
 #pragma endregion
 

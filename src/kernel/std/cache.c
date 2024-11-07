@@ -3,7 +3,8 @@
 /*
 Global Cache Table used for caching results of I/O operations.
 */
-static __thread cache_t GCT[ENTRY_COUNT];
+static cache_t GCT[ENTRY_COUNT];
+static int GCT_TYPES[CACHE_TYPES_COUNT];
 
 
 int CHC_init() {
@@ -14,12 +15,21 @@ int CHC_init() {
         GCT[i].pointer = NULL;
     }
 
+    for (int i = 0; i < CACHE_TYPES_COUNT; i++) {
+        GCT_TYPES[i] = 0;
+    }
+
     return 1;
 }
 
 int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save) {
     if (entry == NULL) return -2;
-    print_debug("Adding to GCT [%s] entry with type [%i]", name, type);
+    ((cache_body_t*)entry)->is_cached = 0;
+
+    int entry_count = GCT_TYPES[type];
+    if (type == PAGE_CACHE) { if (entry_count >= MAX_PAGE_ENTRY) return -3; }
+    else if (type == DIRECTORY_CACHE) { if (entry_count >= MAX_DIRECTORY_ENTRY) return -3; }
+    else if (type == TABLE_CACHE) { if (entry_count >= MAX_TABLE_ENTRY) return -3; }
 
     int current = -1;
     int free_current = -1;
@@ -37,12 +47,17 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
         }
     }
 
-    if (free_current == -1 && occup_current == -1) return -1;
+    if (free_current == -1 && occup_current == -1) {
+        print_error("Can't find empty space for entry [%s] with type [%i]", name, type);
+        return -1;
+    }
     else if (free_current != -1) current = free_current;
     else if (occup_current != -1) current = occup_current;
 
     if (GCT[current].pointer != NULL) {
         if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, omp_get_thread_num()) != -1) {
+            #pragma omp critical (gct_types_decreese)
+            GCT_TYPES[GCT[current].type]--;
             GCT[current].save(GCT[current].pointer, NULL);
             CHC_flush_index(current);
         }
@@ -52,11 +67,16 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
         }
     }
 
+    ((cache_body_t*)entry)->is_cached = 1;
+
     GCT[current].pointer = entry;
     strncpy(GCT[current].name, name, ENTRY_NAME_SIZE);
     GCT[current].type = type;
     GCT[current].free = free;
     GCT[current].save = save;
+
+    #pragma omp critical (gct_types_increase)
+    GCT_TYPES[type]++;
     return 1;
 }
 
@@ -64,7 +84,6 @@ void* CHC_find_entry(char* name, uint8_t type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
         if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && GCT[i].type == type) {
-            print_debug("Found entry in GCT [%s] entry with type [%i]", GCT[i].name, type);
             return GCT[i].pointer;
         }
     }
