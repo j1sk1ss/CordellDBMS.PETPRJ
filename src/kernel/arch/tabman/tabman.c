@@ -149,8 +149,8 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
         size4delete = DRM_delete_content(directory, offset, size4delete);
         THR_release_lock(&directory->lock, omp_get_thread_num());
 
-        if (size4delete == -1) return -1;
-        else if (size4delete == 1 || size4delete == 2) return size4delete;
+        if (size4delete < 0) return -1;
+        else if (size4delete >= 0) return size4delete;
     }
 
     // If we reach end, return error code.
@@ -158,6 +158,7 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 }
 
 int TBM_cleanup_dirs(table_t* table) {
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < table->header->dir_count; i++) {
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         DRM_cleanup_pages(directory);
@@ -243,109 +244,6 @@ int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
     return status;
 }
 
-#pragma endregion
-
-#pragma region [Column]
-
-int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name, uint8_t type) {
-    master->column_links = (table_column_link_t**)realloc(master->column_links, (master->header->column_link_count + 1) * sizeof(table_column_link_t*));
-    master->column_links[master->header->column_link_count] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-    strncpy(
-        master->column_links[master->header->column_link_count]->master_column_name,
-        master_column_name, COLUMN_NAME_SIZE
-    );
-
-    strncpy(
-        master->column_links[master->header->column_link_count]->slave_table_name,
-        slave->header->name, TABLE_NAME_SIZE
-    );
-
-    strncpy(
-        master->column_links[master->header->column_link_count]->slave_column_name,
-        slave_column_name, COLUMN_NAME_SIZE
-    );
-
-    master->column_links[master->header->column_link_count]->type = type;
-    master->header->column_link_count++;
-    return 1;
-}
-
-int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name) {
-    for (int i = 0; i < master->header->column_link_count; i++) {
-        if (
-            strncmp(master->column_links[i]->master_column_name, master_column_name, COLUMN_NAME_SIZE) == 0 &&
-            strncmp(master->column_links[i]->slave_column_name, slave_column_name, COLUMN_NAME_SIZE) == 0 &&
-            strncmp(master->column_links[i]->slave_table_name, slave->header->name, TABLE_NAME_SIZE) == 0
-        ) {
-            free(master->column_links[i]);
-            for (int j = i; j < master->header->column_link_count - 1; j++)
-                master->column_links[j] = master->column_links[j + 1];
-
-            table_column_link_t** new_links = (table_column_link_t**)realloc(
-                master->column_links, (master->header->column_link_count - 1) * sizeof(table_column_link_t*)
-            );
-
-            if (new_links || master->header->column_link_count - 1 == 0) master->column_links = new_links;
-            else return -1;
-
-            master->header->column_link_count--;
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_index) {
-    if (by_index == -1) {
-        for (by_index = 0; by_index < table->header->column_count; by_index++) {
-            if (strncmp(table->columns[by_index]->name, column->name, COLUMN_NAME_SIZE) == 0) {
-                if (table->columns[by_index]->size != column->size && table->header->dir_count != 0) return -2;
-                break;
-            }
-        }
-    }
-
-    SOFT_FREE(table->columns[by_index]);
-    table->columns[by_index] = column;
-
-    return 1;
-}
-
-table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name) {
-    table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
-    memset(column, 0, sizeof(table_column_t));
-
-    column->magic = COLUMN_MAGIC;
-    memcpy(column->name, name, COLUMN_NAME_SIZE);
-    column->type = type;
-    column->size = size;
-
-    return column;
-}
-
-int TBM_check_signature(table_t* table, uint8_t* data) {
-    uint8_t* data_pointer = data;
-    for (int i = 0; i < table->header->column_count; i++) {
-        char value[COLUMN_MAX_SIZE] = { '\0' };
-        memcpy(value, data_pointer, table->columns[i]->size);
-        data_pointer += table->columns[i]->size;
-
-        uint8_t data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
-        switch (data_type) {
-            case COLUMN_TYPE_INT:
-                if (!is_integer(value)) return -2;
-                break;
-            case COLUMN_TYPE_STRING: break;
-            case COLUMN_TYPE_ANY: break;
-            case COLUMN_TYPE_MODULE: break;
-            default: return -4;
-        }
-    }
-
-    return 1;
-}
-
 int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
     int module_offset = 0;
     for (int i = 0; i < table->header->column_count; i++) {
@@ -365,9 +263,7 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
                         return -2;
                     }
 
-                    memcpy(content_part, content_pointer, table->columns[j]->size);
-                    content_part[table->columns[j]->size] = '\0';
-
+                    strncpy(content_part, (char*)content_pointer, table->columns[j]->size);
                     char* next_output_querry = strrep(output_querry, table->columns[j]->name, content_part);
 
                     free(content_part);
@@ -378,8 +274,7 @@ int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type) {
                     content_offset += table->columns[j]->size;
                 }
 
-                uint8_t* module_content_answer = data + module_offset;
-                MDL_launch_module(table->columns[i]->module_name, output_querry, module_content_answer, table->columns[i]->size);
+                MDL_launch_module(table->columns[i]->module_name, output_querry, data + module_offset, table->columns[i]->size);
             }
         }
 

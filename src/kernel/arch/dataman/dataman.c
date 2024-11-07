@@ -11,10 +11,10 @@ uint8_t* DB_get_row(database_t* __restrict database, char* __restrict table_name
     int page_offset   = row % rows_per_page;
     int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
-    uint8_t* content = TBM_get_content(table, global_offset, table->row_size);
-    TBM_invoke_modules(table, content, COLUMN_MODULE_POSTLOAD);
+    uint8_t* data = TBM_get_content(table, global_offset, table->row_size);
+    TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
 
-    return content;
+    return data;
 }
 
 int DB_append_row(database_t* __restrict database, char* __restrict table_name, uint8_t* __restrict data, size_t data_size, uint8_t access) {
@@ -31,22 +31,18 @@ int DB_append_row(database_t* __restrict database, char* __restrict table_name, 
     // Get primary column and column offset
     int column_offset = 0;
     table_column_t* primary_column_name = NULL;
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < table->header->column_count; i++) {
-        if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) {
-            primary_column_name = table->columns[i];
-            break;
+        if (primary_column_name == NULL) {
+            if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) primary_column_name = table->columns[i];
+            column_offset += table->columns[i]->size;
         }
-
-        column_offset += table->columns[i]->size;
     }
 
     // If in provided table presented primary column
     if (primary_column_name != NULL) {
-        uint8_t* data_pointer = data;
-        data_pointer += column_offset;
-
         int row = DB_find_data_row(
-            database, table_name, primary_column_name->name, 0, data_pointer, primary_column_name->size, access
+            database, table_name, primary_column_name->name, 0, data + column_offset, primary_column_name->size, access
         );
 
         // If in table already presented this value.
@@ -87,7 +83,7 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
     if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) return -3;
 
     #ifndef NO_CASCADE_DELETE
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(dynamic, 1)
         for (int i = 0; i < table->header->column_link_count; i++) {
             // Load slave table from disk
             table_t* slave_table = DB_get_table(database, table->column_links[i]->slave_table_name);
@@ -137,7 +133,7 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
 }
 
 int DB_cleanup_tables(database_t* database) {
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
         table_t* table = DB_get_table(database, database->table_names[i]);
         TBM_cleanup_dirs(table);
@@ -191,7 +187,7 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     if (table_name == NULL) return NULL;
 
     table_t* table = NULL;
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
         if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
             table = TBM_load_table(NULL, table_name);

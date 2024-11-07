@@ -111,7 +111,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.2"
+#define KERNEL_VERSION     "v2.3"
 
 
 typedef struct kernel_answer {

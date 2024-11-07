@@ -170,24 +170,25 @@ int DRM_delete_content(directory_t* directory, int offset, size_t length) {
 }
 
 int DRM_cleanup_pages(directory_t* directory) {
+    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < directory->header->page_count; i++) {
         char page_path[DEFAULT_PATH_SIZE];
         sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
         page_t* page = PGM_load_page(NULL, directory->page_names[i]);
-        if (page == NULL) return -1;
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == -1) return -4;
-
-        // If page, after delete operation, full empty, we delete page.
-        // Also we realise page pointer in RAM.
-        if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
-            DRM_unlink_page_from_directory(directory, page->header->name);
-            CHC_flush_entry(page, PAGE_CACHE);
-            print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
+        if (page != NULL) {
+            if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+                // If page, after delete operation, full empty, we delete page.
+                // Also we realise page pointer in RAM.
+                if (PGM_get_free_space(page, PAGE_START) == PAGE_CONTENT_SIZE) {
+                    DRM_unlink_page_from_directory(directory, page->header->name);
+                    CHC_flush_entry(page, PAGE_CACHE);
+                    print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
+                }
+                else {
+                    THR_release_lock(&page->lock, omp_get_thread_num());
+                }
+            }
         }
-        else {
-            THR_release_lock(&page->lock, omp_get_thread_num());
-        }
-
     }
 
     return 1;

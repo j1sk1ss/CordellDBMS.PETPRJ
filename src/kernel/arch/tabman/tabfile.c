@@ -167,7 +167,7 @@ table_t* TBM_load_table(char* path, char* name) {
 int TBM_delete_table(table_t* table, int full) {
     if (table == NULL) return -1;
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        #pragma omp parallel for
+        #pragma omp parallel for schedule(dynamic, 1)
         for (int i = 0; i < table->header->dir_count; i++) {
             directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
             if (directory == NULL) continue;

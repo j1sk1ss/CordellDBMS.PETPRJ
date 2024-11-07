@@ -1,3 +1,4 @@
+// tcc calc.c -o calc.mdl -lm
 #ifndef CALCULATOR_H_
 #define CALCULATOR_H_
 

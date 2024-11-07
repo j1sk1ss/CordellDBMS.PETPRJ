@@ -1,3 +1,4 @@
+// tss timer.c -o timer.mdl
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
