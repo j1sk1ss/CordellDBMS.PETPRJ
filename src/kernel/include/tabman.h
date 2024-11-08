@@ -35,7 +35,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <zlib.h>
 
 #ifndef _WIN32
     #include <unistd.h>
@@ -47,6 +46,7 @@
 #include "dirman.h"
 #include "module.h"
 #include "cache.h"
+#include "io.h"
 
 
 #define NO_TABLE_SAVE_OPTIMIZATION

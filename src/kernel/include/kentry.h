@@ -129,15 +129,20 @@ Return pointer to commands struct.
 commands_t* process_command(char* buffer);
 
 /*
-Process commands and return answer structure.
+Dummy entry point.
+
+Return 1.
+*/
+int main(int argc, char* argv[]);
+
+/*
+Kernel entry point.
 
 Params:
-- argc - args count.
-- argv - args body.
-- auto_sync - flag for auto sync command
+- querry - Command querry.
 
-Return NULL or answer.
+Return exit code.
 */
-int main(int argc, char* argv[], uint8_t access);
+int kernel(char* querry);
 
 #endif

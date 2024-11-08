@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <zlib.h>
 
 #ifndef _WIN32
     #include <unistd.h>
@@ -46,6 +45,7 @@
 #include "pageman.h"
 #include "threading.h"
 #include "cache.h"
+#include "io.h"
 
 
 #define NO_DIRECTORY_SAVE_OPTIMIZATION
