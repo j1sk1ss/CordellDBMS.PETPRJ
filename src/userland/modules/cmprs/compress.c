@@ -1,4 +1,4 @@
-#include "../include/compress.h"
+#include "compress.h"
 
 
 int CMP_byte_by_bits(uint8_t* data, size_t data_size, uint8_t* output) {

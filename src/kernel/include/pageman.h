@@ -63,8 +63,10 @@
 
 #pragma endregion
 
-#define PAGE_MAGIC          0xCA
-#define PAGE_NAME_SIZE      8
+#define PAGE_MAGIC 0xCA
+// 128^5 = 34.359.738.368 - unique page names.
+// 128^5 * PAGE_CONTENT_SIZE = 128 TB
+#define PAGE_NAME_SIZE 6
 
 // We have *.pg bin file, where at start placed header
 //================================================

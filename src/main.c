@@ -1,20 +1,32 @@
 /*
- * Main file. This is main Cordell Database Manager Studio File, where
- * placed init stuff with server side.
+ *  License:
+ *  Copyright (C) 2024 Nikolaj Fot
  *
- * Cordell DBMS is a light weight data base manager studio. Main idea
- * that we can work with big data by using very light weighten app.
+ *  This program is free software: you can redistribute it and/or modify it under the terms of 
+ *  the GNU General Public License as published by the Free Software Foundation, version 3.
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+ *  See the GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License along with this program. 
+ *  If not, see https://www.gnu.org/licenses/.
  *
- * <DEPRECATED | USE MAKEFILE INSTEAD MANUAL COMMAND BUILD>
- * Unix:
- * building without OMP: ...
- * building with OMP: ...
- *
- * Win10/Win11:
- * building without OMP: ...
- * building with OMP: ...
- *
- * Base code of sockets took from: https://devhops.ru/code/c/sockets.php
+ *  Description:
+ *  Main file. This is main Cordell Database Manager Studio File, where
+ *  placed init stuff with server side.
+ * 
+ *  Cordell DBMS is a light weight data base manager studio. Main idea
+ *  that we can work with big data by using very light weighten app.
+ * 
+ *  <DEPRECATED | USE MAKEFILE INSTEAD MANUAL COMMAND BUILD>
+ *  Unix:
+ *  building without OMP: ...
+ *  building with OMP: ...
+ * 
+ *  Win10/Win11:
+ *  building without OMP: ...
+ *  building with OMP: ...
+ * 
+ *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
 
 #include "userland/include/user.h"

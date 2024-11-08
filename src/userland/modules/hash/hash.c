@@ -1,5 +1,7 @@
 // Ubuntu: sudo apt install libssl-dev
-// tcc hash.c -o hash.mdl -lssl -lcrypto
+// - tcc hash.c -o hash.mdl -lssl -lcrypto
+// MacOS: brew install openssh
+// - gcc-14 hash.c -o hash.mdl -I$(brew --prefix openssl)/include -L$(brew --prefix openssl)/lib -lssl -lcrypto
 #include <openssl/sha.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +12,7 @@ char* hash_string(const char* input, size_t output_size) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
-    SHA256_Update(&sha256, input, strlen(input));
+    SHA256_Update(&sha256, (void*)input, strlen(input));
     SHA256_Final(hash, &sha256);
 
     size_t full_hash_length = SHA256_DIGEST_LENGTH * 2;
@@ -32,8 +34,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    size_t output_size = atoi(argv[2]);
-    char* hash_result = hash_string(argv[1], output_size);
+    char* hash_result = hash_string(argv[1], atoi(argv[2]));
     if (!hash_result) {
         fprintf(stderr, "Error: Failed to allocate memory or invalid output size.\n");
         return 3;
