@@ -296,16 +296,6 @@
     */
     int PGM_free_page(page_t* page);
 
-    /*
-    Generate page checksum.
-
-    Params:
-    - page - page pointer.
-
-    Return page checksum.
-    */
-    uint32_t PGM_get_checksum(page_t* page);
-
 #pragma endregion
 
 #endif

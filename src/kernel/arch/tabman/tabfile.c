@@ -39,7 +39,7 @@ int TBM_save_table(table_t* table, char* path) {
     #pragma omp critical (table_save)
     {
         #ifndef NO_TABLE_SAVE_OPTIMIZATION
-        if (TBM_get_checksum(table) != table->header->checksum)
+        // if (TBM_get_checksum(table) != table->header->checksum)
         #endif
         {
             // We generate default path
@@ -53,7 +53,7 @@ int TBM_save_table(table_t* table, char* path) {
             else {
                 // Write header
                 status = 1;
-                table->header->checksum = TBM_get_checksum(table);
+                table->header->checksum = 1; // TBM_get_checksum(table);
                 if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
 
                 // Write table data to open file
@@ -198,9 +198,5 @@ int TBM_free_table(table_t* table) {
     SOFT_FREE(table->columns);
     SOFT_FREE(table);
 
-    return 1;
-}
-
-uint32_t TBM_get_checksum(table_t* table) {
     return 1;
 }
