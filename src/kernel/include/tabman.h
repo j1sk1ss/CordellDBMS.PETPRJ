@@ -35,9 +35,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <zlib.h>
 
 #ifndef _WIN32
+    #include <zlib.h>
     #include <unistd.h>
 #endif
 

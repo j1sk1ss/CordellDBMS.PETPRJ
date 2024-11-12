@@ -40,9 +40,8 @@ int THR_require_lock(uint16_t* lock, uint8_t owner) {
 int THR_test_lock(uint16_t* lock, uint8_t owner) {
     if (lock == NULL) return -1;
     uint16_t lock_owner = UNPACK_OWNER(*lock);
-    uint8_t lock_state = UNPACK_STATUS(*lock);
     if (lock_owner == NO_OWNER) return UNLOCKED;
-    if (lock_owner != owner) return lock_state;
+    if (lock_owner != owner) return UNPACK_STATUS(*lock);
     return UNLOCKED;
 }
 
