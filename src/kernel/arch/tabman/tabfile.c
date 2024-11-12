@@ -23,11 +23,9 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
 
     header->dir_count         = 0;
     header->column_count      = col_count;
-    header->column_link_count = 0;
 
     table->columns      = columns;
     table->row_size     = row_size;
-    table->column_links = NULL;
     
     table->is_cached = 0;
     table->lock      = THR_create_lock();
@@ -61,11 +59,6 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
                 for (int i = 0; i < table->header->column_count; i++)
                     if (fwrite(table->columns[i], sizeof(table_column_t), 1, file) != 1) {
                         status = -3;
-                    }
-
-                for (int i = 0; i < table->header->column_link_count; i++)
-                    if (fwrite(table->column_links[i], sizeof(table_column_link_t), 1, file) != 1) {
-                        status = -4;
                     }
 
                 for (int i = 0; i < table->header->dir_count; i++)
@@ -136,22 +129,12 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                 for (int i = 0; i < header->column_count; i++)
                     table->row_size += columns[i]->size;
 
-                // Read column links from file.
-                table_column_link_t** column_links = (table_column_link_t**)malloc(header->column_link_count * sizeof(table_column_link_t*));
-                memset(column_links, 0, header->column_link_count * sizeof(table_column_link_t*));
-
-                for (int i = 0; i < header->column_link_count; i++) {
-                    column_links[i] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-                    fread(column_links[i], sizeof(table_column_link_t), 1, file);
-                }
-
                 // Read directory names from file, that linked to this directory.
                 for (int i = 0; i < header->dir_count; i++)
                     fread(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file);
 
                 fclose(file);
 
-                table->column_links = column_links;
                 table->columns   = columns;
                 table->lock      = THR_create_lock();
                 table->is_cached = 0;
@@ -200,11 +183,8 @@ int TBM_flush_table(table_t* table) {
 
 int TBM_free_table(table_t* table) {
     if (table == NULL) return -1;
-    
     for (int i = 0; i < table->header->column_count; i++) SOFT_FREE(table->columns[i]);
-    for (int i = 0; i < table->header->column_link_count; i++) SOFT_FREE(table->column_links[i]);
 
-    SOFT_FREE(table->column_links);
     SOFT_FREE(table->columns);
     SOFT_FREE(table);
 
@@ -220,12 +200,6 @@ uint32_t TBM_get_checksum(table_t* table) {
     if (table->columns != NULL) {
         for (uint16_t i = 0; i < table->header->column_count; i++) {
             if (table->columns[i] != NULL) checksum = crc32(checksum, (const uint8_t*)table->columns[i], sizeof(table_column_t));
-        }
-    }
-
-    if (table->column_links != NULL) {
-        for (uint16_t i = 0; i < table->header->column_link_count; i++) {
-            if (table->column_links[i] != NULL) checksum = crc32(checksum, (const uint8_t*)table->column_links[i], sizeof(table_column_link_t));
         }
     }
 
