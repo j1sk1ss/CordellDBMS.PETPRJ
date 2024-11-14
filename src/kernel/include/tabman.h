@@ -110,7 +110,7 @@
     Row delimiter equals column delimiter, but says, that this is a different column and different row
     */
     #define ROW_DELIMITER       0xEF
-    #define COLUMN_MAX_SIZE     0xFF
+    #define COLUMN_MAX_SIZE     0xFFF
 
     #define COLUMN_MAGIC        0xEA
     /*
@@ -181,7 +181,7 @@
         uint8_t type;
 
         // Column size
-        uint8_t size;
+        uint16_t size;
 
         // Column name with fixed size
         // Column name
@@ -388,13 +388,14 @@
     Note 2: If you want use any value (disable in-build check), use TYPE_ANY type.
 
     Params:
-    - type - column type
-    - name - column name (Should equals or smaller then column max size).
+    - type - Column type.
+    - size - Size of columns. Remember, that max size of row - PAGE_CONTENT_SIZE.
+    - name - Column name (Should equals or smaller then column max size).
            If it large then max size, name will trunc for fit.
 
-    Return pointer to column
+    Return pointer to column.
     */
-    table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name);
+    table_column_t* TBM_create_column(uint8_t type, uint16_t size, char* name);
 
 #pragma endregion
 

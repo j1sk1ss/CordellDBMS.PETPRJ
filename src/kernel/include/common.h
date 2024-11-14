@@ -48,22 +48,28 @@
 
 
 /*
-Create rundom string
-Took from: https://stackoverflow.com/questions/15767691/whats-the-c-library-function-to-generate-random-string
-
-dest - pointer to place, where mamory for string allocated
-length - length of string that will be generated bu function
-*/
-void strrand(char* dest, size_t length);
-
-/*
-Check if provided string is integer
+Create rundom string.
+Reference from: https://stackoverflow.com/questions/15767691/whats-the-c-library-function-to-generate-random-string
+Note: This function not random. It generates next name by offset.
+Note 2: Offset should not be grater then 65^length.
 
 Params:
-str - pointer to string
+- dest - Pointer to place, where mamory for string allocated.
+- length - Length of string that will be generated bu function.
+- offset - Offset of rand string.
 
-Return 1 is integer
-Return 0 is not integer
+Return NULL.
+*/
+void strrand(char* dest, size_t length, int offset);
+
+/*
+Check if provided string is integer.
+
+Params:
+- str - pointer to string.
+
+Return 1 is integer.
+Return 0 is not integer.
 */
 int is_integer(const char* str);
 

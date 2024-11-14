@@ -53,9 +53,9 @@
 // Important Note ! : This path is main for ALL directories.
 #define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", "")
 
-// 128^4 * PAGES_PER_DIRECTORY = 68.451.041.280 maximum pages in database.
-// 128^4 * 4096 = 3.7 * 10^12 KB = MIN(255TB, 128TB) - Maximum size of database.
-#define DIRECTORY_NAME_SIZE 5
+// 62^5 * PAGES_PER_DIRECTORY = 233.613.872.160 maximum pages in database.
+// 62^5 * 4096 = 233.6 * 10^9 KB = MIN(255TB, 211TB) - Maximum size of database.
+#define DIRECTORY_NAME_SIZE 6
 #define DIRECTORY_MAGIC     0xCC
 
 #define PAGES_PER_DIRECTORY 0xFF

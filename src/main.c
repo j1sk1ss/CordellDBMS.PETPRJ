@@ -137,25 +137,20 @@ void start_kernel_session(int source, int destination, int session) {
         print_info("Session [%i]: [%s]", session, buffer);
 
         if (user == NULL) {
-            char username[USERNAME_SIZE];
-            char password[128];
+            char username[USERNAME_SIZE] = { 0 };
+            char password[128] = { 0 };
             sscanf((char*)buffer, "%[^:]:%s", username, password);
 
-            #ifndef USER_DEBUG
-                user = USR_auth(username, password);
-                if (user == NULL) {
-                    print_error("Wrong password [%s] for user [%s] at session [%i]", user->name, password, session);
-                    send2destination_byte(destination, 0);
-                }
-                else {
-                    print_info("User [%s] auth succes in session [%i]", user->name, session);
-                    send2destination_byte(destination, 1);
-                }
-            #else
-                user = USR_create(username, password, CREATE_ACCESS_BYTE(0, 0, 0));
-                USR_save(user, NULL);
+            user = USR_auth(username, password);
+            if (user == NULL) {
+                print_error("Wrong password [%s] for user [%s] at session [%i]", user->name, password, session);
+                send2destination_byte(destination, 0);
+            }
+            else {
+                print_info("User [%s] auth succes in session [%i]", user->name, session);
                 send2destination_byte(destination, 1);
-            #endif
+            }
+
             continue;
         }
 

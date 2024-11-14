@@ -1,20 +1,27 @@
 #include "../include/common.h"
 
 
-void strrand(char* dest, size_t length) {
-    static int seeded = 0;
-    if (!seeded) {
-        srand(time(0));
-        seeded = 1;
-    }
-    
+void strrand(char* dest, size_t length, int offset) {
     char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    while (length-- > 1) {
-        size_t index = (double)rand() / RAND_MAX * (sizeof charset - 1);
-        *dest++ = charset[index];
+    size_t charset_size = sizeof(charset) - 1;
+    
+    for (size_t i = 0; i < length - 1; i++) {
+        int index = offset % charset_size;
+        if (index > strlen(charset)) {
+            dest[0] = 0;
+            return;
+        }
+
+        dest[i] = charset[index];
+        offset /= charset_size;
     }
 
-    *dest = '\0';
+    dest[length - 1] = '\0';
+    for (size_t i = 0, j = length - 2; i < j; i++, j--) {
+        char temp = dest[i];
+        dest[i] = dest[j];
+        dest[j] = temp;
+    }
 }
 
 int is_integer(const char* str) {

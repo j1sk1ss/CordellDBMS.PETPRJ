@@ -2,19 +2,19 @@
 
 
 void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
-    char* base;
-    char* ext;
+    char* base = NULL;
+    char* ext  = NULL;
 
-    char nameKeep[DEFAULT_BUFFER_SIZE];
-    char pathKeep[DEFAULT_BUFFER_SIZE];
-    char pathKeep2[DEFAULT_BUFFER_SIZE];
-    char File_Ext[40];
-    char baseK[40];
+    char nameKeep[DEFAULT_BUFFER_SIZE]  = { 0 };
+    char pathKeep[DEFAULT_BUFFER_SIZE]  = { 0 };
+    char pathKeep2[DEFAULT_BUFFER_SIZE] = { 0 };
+    char File_Ext[40] = { 0 };
+    char baseK[40]    = { 0 };
 
-    int lenFullPath, lenExt_, lenBase_;
-    char* sDelim = { 0 };
+    int lenFullPath = 0, lenExt_ = 0, lenBase_ = 0;
+    char* sDelim = NULL;
     int iDelim = 0;
-    int rel = 0, i;
+    int rel = 0, i = 0;
 
     if (path) {
         if ((strlen(path) > 1) &&
@@ -51,15 +51,15 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
                     strcat(path, sDelim);
                     if (path_ != NULL) path_[0] = 0;
                     if (base_ != NULL) base_[0] = 0;
-                    if (ext_ != NULL) ext_[0]  = 0;
+                    if (ext_ != NULL) ext_[0] = 0;
                 }
             }
             else {
-                nameKeep[0]   = 0; // works target C:\\dir1\file.txt
-                pathKeep[0]   = 0;
-                pathKeep2[0]  = 0; // preserves *path
-                File_Ext[0]   = 0;
-                baseK[0]      = 0;
+                nameKeep[0]  = 0; // works target C:\\dir1\file.txt
+                pathKeep[0]  = 0;
+                pathKeep2[0] = 0; // preserves *path
+                File_Ext[0]  = 0;
+                baseK[0]     = 0;
 
                 // Get lenth of full path
                 lenFullPath = strlen(path);
@@ -117,13 +117,11 @@ int get_load_path(char* name, int name_size, char* path, char* buffer, char* bas
 }
 
 int get_filename(char* name, char* path, char* buffer, int name_size) {
-    if (path != NULL) {
-        char temp_path[DEFAULT_PATH_SIZE];
+    if (name != NULL) strncpy(buffer, name, name_size);
+    else if (path != NULL && name == NULL) {
+        char temp_path[DEFAULT_PATH_SIZE] = { 0 };
         strcpy(temp_path, path);
         get_file_path_parts(temp_path, NULL, buffer, NULL);
-    }
-    else if (name != NULL) {
-        strncpy(buffer, name, name_size);
     }
 
     return 1;
@@ -131,15 +129,15 @@ int get_filename(char* name, char* path, char* buffer, int name_size) {
 
 char* generate_unique_filename(char* base_path, int name_size, char* extension) {
     char* name = (char*)malloc(name_size * sizeof(char));
-    char save_path[DEFAULT_PATH_SIZE];
+    char save_path[DEFAULT_PATH_SIZE] = { 0 };
 
-    int delay = DEFAULT_DELAY;
+    int offset = 0;
     while (1) {
-        strrand(name, name_size);
+        strrand(name, name_size, offset++);
         sprintf(save_path, "%s%.*s.%s", base_path, name_size, name, extension);
 
         if (file_exists(save_path)) {
-            if (--delay <= 0) {
+            if (name[0] == 0) {
                 free(name);
                 return NULL;
             }

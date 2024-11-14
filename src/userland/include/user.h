@@ -26,18 +26,6 @@ typedef struct user {
 
 
 /*
-Create new user with provided name and access byte.
-
-Params:
-- name - Name of new user.
-- password - Password of new user.
-- access - Access of new user.
-
-Return new allocated user in RAM.
-*/
-user_t* USR_create(char* name, char* password, uint8_t access);
-
-/*
 Load user by name and compare passwords.
 
 Params:
@@ -61,18 +49,5 @@ Return NULL if user file not found.
 Return allocated user struct if file was load success.
 */
 user_t* USR_load(char* path, char* name);
-
-/*
-Save allocated user struct to file.
-Note: If path is NULL, function will generate default path to save.
-
-Params:
-- user - Pointer to user struct.
-- path - Path to saving. (Can be NULL).
-
-Return 1 if save was success.
-Return -1 if something was wrong.
-*/
-int USR_save(user_t* user, char* path);
 
 #endif
