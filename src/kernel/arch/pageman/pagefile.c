@@ -20,20 +20,19 @@ page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_
 }
 
 page_t* PGM_create_empty_page() {
-    char page_name[PAGE_NAME_SIZE] = { '\0' };
     char* unique_name = generate_unique_filename(PAGE_BASE_PATH, PAGE_NAME_SIZE, PAGE_EXTENSION);
-    strncpy(page_name, unique_name, PAGE_NAME_SIZE);
+    page_t* page = PGM_create_page(unique_name, NULL, 0);
     free(unique_name);
-
-    return PGM_create_page(page_name, NULL, 0);
+    return page;
 }
 
 int PGM_save_page(page_t* __restrict page, char* __restrict path) {
     int status = -1;
     #pragma omp critical (page_save)
     {
+        uint32_t page_cheksum = PGM_get_checksum(page);
         #ifndef NO_PAGE_SAVE_OPTIMIZATION
-        if (PGM_get_checksum(page) != page->header->checksum)
+        if (page_cheksum != page->header->checksum)
         #endif
         {
             // We generate default path
@@ -51,7 +50,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
                 int page_size = PGM_find_value(page, 0, PAGE_END);
                 if (page_size <= 0) page_size = 0;
 
-                page->header->checksum = PGM_get_checksum(page);
+                page->header->checksum = page_cheksum;
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
                 if (fwrite(page->content, sizeof(uint8_t), page_size, file) != (size_t)page_size) status = -3;
 

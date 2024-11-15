@@ -235,6 +235,7 @@
 
         // Table header
         table_header_t* header;
+        uint8_t append_offset;
 
         // Column names
         table_column_t** columns;

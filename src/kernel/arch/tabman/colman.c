@@ -33,18 +33,19 @@ table_column_t* TBM_create_column(uint8_t type, uint16_t size, char* name) {
 int TBM_check_signature(table_t* __restrict table, uint8_t* __restrict data) {
     uint8_t* data_pointer = data;
     for (int i = 0; i < table->header->column_count; i++) {
-        char value[table->columns[i]->size];
-        strncpy(value, data_pointer, table->columns[i]->size);
+        char value[COLUMN_MAX_SIZE] = { 0 };
+        strncpy(value, (char*)data_pointer, table->columns[i]->size);
         data_pointer += table->columns[i]->size;
 
         uint8_t data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
         switch (data_type) {
-            case COLUMN_TYPE_STRING: 
-            case COLUMN_TYPE_ANY: 
-            case COLUMN_TYPE_MODULE: break;
             case COLUMN_TYPE_INT:
                 if (!is_integer(value)) return -2;
                 break;
+
+            case COLUMN_TYPE_STRING: 
+            case COLUMN_TYPE_ANY: 
+            case COLUMN_TYPE_MODULE: break;
             default: return -4;
         }
     }

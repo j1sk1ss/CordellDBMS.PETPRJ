@@ -89,6 +89,7 @@
 
         // Directory header
         directory_header_t* header;
+        uint8_t append_offset;
 
         // Page file names
         char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];

@@ -15,6 +15,7 @@ directory_t* DRM_create_directory(char* name) {
     directory->lock      = THR_create_lock();
     directory->header    = header;
     directory->is_cached = 0;
+    directory->append_offset = 0;
     return directory;
 }
 
@@ -113,6 +114,7 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
                 directory->lock   = THR_create_lock();
                 directory->header = header;
                 loaded_directory  = directory;
+                directory->append_offset = 0;
 
                 CHC_add_entry(loaded_directory, loaded_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
             }

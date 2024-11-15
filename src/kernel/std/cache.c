@@ -4,19 +4,34 @@
 Global Cache Table used for caching results of I/O operations.
 */
 static cache_t GCT[ENTRY_COUNT];
-static int GCT_TYPES[CACHE_TYPES_COUNT];
+static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
+
+/*
+This defined vars guaranty, that database will take only:
+2 * 2080 bytes (for table_t)
+4 * 2056 bytes (for directory_t)
+4 * 4112 bytes (for page_t)
+
+In summary, whole GCT will take 28KB of RAM.
+Reduction of ENTRY_COUNT and MAX_TABLE_ENTRY, MAX_DIRECTORY_ENTRY, MAX_PAGE_ENTRY
+will decrease usage of RAM by next formula:
+X * 2080 bytes (for table_t)
+Y * 2056 bytes (for directory_t)
+Z * 4112 bytes (for page_t)
+
+0 index - pages,
+1 index - directories,
+2 index - tables
+*/
+static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
 
 
 int CHC_init() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         GCT[i].free = NULL;
         GCT[i].save = NULL;
-        GCT[i].type = -1;
+        GCT[i].type = ANY_CACHE;
         GCT[i].pointer = NULL;
-    }
-
-    for (int i = 0; i < CACHE_TYPES_COUNT; i++) {
-        GCT_TYPES[i] = 0;
     }
 
     return 1;
@@ -26,19 +41,22 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
     if (entry == NULL) return -2;
     ((cache_body_t*)entry)->is_cached = 0;
 
-    int entry_count = GCT_TYPES[type];
-    if (type == PAGE_CACHE) { if (entry_count >= MAX_PAGE_ENTRY) return -3; }
-    else if (type == DIRECTORY_CACHE) { if (entry_count >= MAX_DIRECTORY_ENTRY) return -3; }
-    else if (type == TABLE_CACHE) { if (entry_count >= MAX_TABLE_ENTRY) return -3; }
-
     int current = -1;
     int free_current = -1;
     int occup_current = -1;
 
+    int should_replace = 0;
+    int found_replace = 0;
+
+    if (GCT_TYPES[type] >= GCT_TYPES_MAX[type]) should_replace = 1;
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer != NULL) {
             if (THR_test_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) == UNLOCKED) {
                 occup_current = i;
+                if (GCT[i].type == type && should_replace == 1) {
+                    found_replace = 1;
+                    break;
+                }
             }
         }
         else {
@@ -54,10 +72,14 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
     else if (free_current != -1) current = free_current;
     else if (occup_current != -1) current = occup_current;
 
+    if (should_replace == 1 && found_replace == 0) return -3;
+    else if (should_replace == 1 && found_replace == 1 && occup_current != -1) current = occup_current;
+    else if (should_replace == 1 && found_replace == 1 && occup_current == -1) return -4;
+
     if (GCT[current].pointer != NULL) {
         if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, omp_get_thread_num()) != -1) {
             #pragma omp critical (gct_types_decreese)
-            GCT_TYPES[GCT[current].type]--;
+            GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
             GCT[current].save(GCT[current].pointer, NULL);
             CHC_flush_index(current);
         }
@@ -76,14 +98,14 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
     GCT[current].save = save;
 
     #pragma omp critical (gct_types_increase)
-    GCT_TYPES[type]++;
+    GCT_TYPES[type] = MIN(GCT_TYPES[type] + 1, GCT_TYPES_MAX[type]);
     return 1;
 }
 
 void* CHC_find_entry(char* name, uint8_t type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && GCT[i].type == type) {
+        if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && (GCT[i].type == type || type == ANY_CACHE)) {
             return GCT[i].pointer;
         }
     }
@@ -144,7 +166,7 @@ int CHC_flush_index(int index) {
 
     GCT[index].free = NULL;
     GCT[index].save = NULL;
-    GCT[index].type = -1;
+    GCT[index].type = ANY_CACHE;
 
     return 1;
 }

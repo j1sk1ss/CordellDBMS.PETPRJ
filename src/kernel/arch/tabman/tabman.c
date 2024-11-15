@@ -73,7 +73,7 @@ int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size
     int size4append = (int)data_size;
 
     // Iterate existed directories. Maybe we can store data here?
-    for (int i = 0; i < table->header->dir_count; i++) {
+    for (int i = table->append_offset; i < table->header->dir_count; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory != NULL) {
@@ -101,9 +101,10 @@ int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size
     directory_t* new_directory = DRM_create_empty_directory();
     if (new_directory == NULL) return -1;
 
+    table->append_offset = table->header->dir_count;
     int append_result = DRM_append_content(new_directory, data_pointer, size4append);
     if (append_result < 0) {
-        DRM_flush_directory(new_directory);
+        DRM_free_directory(new_directory);
         return append_result - 10;
     }
 
@@ -111,6 +112,7 @@ int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size
 
     // Save directory to DDT
     CHC_add_entry(new_directory, new_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
+    DRM_flush_directory(new_directory);
     return 1;
 }
 
@@ -157,6 +159,8 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) return -1;
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            table->append_offset = i;
+
             size4delete = DRM_delete_content(directory, offset, size4delete);
             THR_release_lock(&directory->lock, omp_get_thread_num());
             DRM_flush_directory(directory);

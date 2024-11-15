@@ -7,7 +7,7 @@ void strrand(char* dest, size_t length, int offset) {
     
     for (size_t i = 0; i < length - 1; i++) {
         int index = offset % charset_size;
-        if (index > strlen(charset)) {
+        if (index > (int)strlen(charset)) {
             dest[0] = 0;
             return;
         }

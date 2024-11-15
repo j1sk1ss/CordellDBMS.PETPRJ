@@ -30,6 +30,8 @@
   #include <sys/stat.h>
 #endif
 
+#include "cache.h"
+
 
 #define ENV_GET(key, default) getenv(key) == NULL ? default : getenv(key)
 
@@ -146,7 +148,7 @@ Params:
 
 Return 1 if exist, 0 if not.
 */
-int file_exists(const char* path);
+int file_exists(const char* path, const char* filename);
 
 // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
 // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);

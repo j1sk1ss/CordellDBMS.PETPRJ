@@ -29,16 +29,10 @@ char* hash_string(const char* input, size_t output_size) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <string_to_hash> <output_size>\n", argv[0]);
-        exit(1);
-    }
+    if (argc != 3) return 1;
 
     char* hash_result = hash_string(argv[1], atoi(argv[2]));
-    if (!hash_result) {
-        fprintf(stderr, "Error: Failed to allocate memory or invalid output size.\n");
-        return 3;
-    }
+    if (!hash_result) return 3;
 
     printf("%s", hash_result);
     free(hash_result);

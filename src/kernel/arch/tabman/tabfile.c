@@ -21,12 +21,13 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     header->magic  = TABLE_MAGIC;
     strncpy(header->name, name, TABLE_NAME_SIZE);
 
-    header->dir_count         = 0;
-    header->column_count      = col_count;
+    header->dir_count    = 0;
+    header->column_count = col_count;
 
-    table->columns      = columns;
-    table->row_size     = row_size;
+    table->columns  = columns;
+    table->row_size = row_size;
     
+    table->append_offset = 0;
     table->is_cached = 0;
     table->lock      = THR_create_lock();
     table->header    = header;
@@ -138,6 +139,7 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                 table->columns   = columns;
                 table->lock      = THR_create_lock();
                 table->is_cached = 0;
+                table->append_offset = 0;
 
                 table->header = header;
                 CHC_add_entry(table, table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
