@@ -11,16 +11,14 @@ void write_log(const char* level, const char* file, int line, const char* messag
             static char* log_file_path = NULL;
             
             if (log_file_path == NULL) log_file_path = generate_unique_filename(LOG_FILE_PATH, LOG_FILE_NAME_SIZE, LOG_FILE_EXTENSION);
-            if ((log_file_path)[0] != '\0') {
+            if (log_file_path != NULL) {
                 log_output = fopen(log_file_path, "a");
                 if (log_output == NULL) log_output = stdout;
             }
         #endif
 
-        char* time = get_current_time();
         if (message == NULL) message = "(null)";
-        if (time != NULL) fprintf(log_output, "[%s] [%s] (%s:%i) ", level, time, file, line);
-        SOFT_FREE(time);
+        fprintf(log_output, "[%s] [%s] (%s:%i) ", level, get_current_time(), file, line);
 
         vfprintf(log_output, message, args);
         fprintf(log_output, "\n");
