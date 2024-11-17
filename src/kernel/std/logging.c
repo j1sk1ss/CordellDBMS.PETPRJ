@@ -12,7 +12,7 @@ void write_log(const char* level, const char* file, int line, const char* messag
             
             if (log_file_path == NULL) log_file_path = generate_unique_filename(LOG_FILE_PATH, LOG_FILE_NAME_SIZE, LOG_FILE_EXTENSION);
             if ((log_file_path)[0] != '\0') {
-                log_output = fopen((log_file_path), "a");
+                log_output = fopen(log_file_path, "a");
                 if (log_output == NULL) log_output = stdout;
             }
         #endif

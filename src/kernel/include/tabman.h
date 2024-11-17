@@ -37,6 +37,7 @@
 #include <stdio.h>
 
 #ifndef _WIN32
+    #include <zlib.h>
     #include <unistd.h>
 #endif
 
@@ -112,7 +113,7 @@
     Row delimiter equals column delimiter, but says, that this is a different column and different row
     */
     #define ROW_DELIMITER       0xEF
-    #define COLUMN_MAX_SIZE     0xFF
+    #define COLUMN_MAX_SIZE     0xFFF
 
     #define COLUMN_MAGIC        0xEA
     /*
@@ -157,43 +158,6 @@
     #define CREATE_COLUMN_TYPE_BYTE(is_primary, column_data_type, column_type) \
         (((is_primary & 0b11) << 4) | ((column_data_type & 0b11) << 2) | (column_type & 0b11))
 
-    #pragma region [Column link]
-
-        // Link type, when we delete all rows in linked columns.
-        #define LINK_CASCADE_DELETE  0x01
-        // Link type, when we update all rows in linked columns.
-        // This mean, that we update only linked column data (we take it from provided data).
-        #define LINK_CASCADE_UPDATE  0x01
-        // Link type, when we add data to linked columns with dummy data.
-        // Note: Useless flag, but you can use it in tour special cases.
-        #define LINK_CASCADE_APPEND  0x01
-        // Link type, where we return from find row function index of all rows, that was found. <WIP>
-        #define LINK_CASCADE_FIND    0x01
-        // Do nothing flag.
-        #define LINK_NOTHING         0x00
-
-        // Macros for getting column link cf status.
-        #define GET_CF_LINK_FLAG(type) ((type >> 6) & 0b11)
-        // Macros for getting column link ca status.
-        #define GET_CA_LINK_FLAG(type) ((type >> 4) & 0b11)
-        // Macros for getting column link cu status.
-        #define GET_CU_LINK_FLAG(type) ((type >> 2) & 0b11)
-        // Macros for getting column link cd status.
-        #define GET_CD_LINK_FLAG(type) (type & 0b11)
-
-        /*
-        Create link type for link. Input flags for link specification.
-        Note: If you have less flags, then 4, use NOTHING flag.
-        cf - Cascade find flag or NOTHING
-        ca - Cascade append flag or NOTHING
-        cu - Cascade update flag or NOTHING
-        cd - Cascade delete flag or NOTHING
-        */
-        #define CREATE_LINK_TYPE_BYTE(cf, ca, cu, cd) \
-             (((cf & 0b11) << 6) | ((ca & 0b11) << 4) | ((cu & 0b11) << 2) | (cd & 0b11))
-
-    #pragma endregion
-
 #pragma endregion
 
 
@@ -201,30 +165,6 @@
 //========================================================================================================================================
 // HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) -> | LINKS -> | DIR_NAMES -> dyn. -> end |
 //========================================================================================================================================
-
-    typedef struct table_column_link {
-        // Source name of column in source table
-        char master_column_name[COLUMN_NAME_SIZE];
-
-        // Source table name
-        char slave_table_name[TABLE_NAME_SIZE];
-
-        // Target column name
-        char slave_column_name[COLUMN_NAME_SIZE];
-
-        /* 
-        Link type byte store 4 flags for link.
-        In summary we have next byte:
-        0x|CF|CA|CU|CD|
-
-        Where:
-        CF - cascade find bits.
-        CA - cascade uppend bits.
-        CU - cascade update bits.
-        CD - cascade delete bits.
-        */
-        uint8_t type;
-    } table_column_link_t;
 
     typedef struct table_column {
         // Column magic byte
@@ -244,7 +184,7 @@
         uint8_t type;
 
         // Column size
-        uint8_t size;
+        uint16_t size;
 
         // Column name with fixed size
         // Column name
@@ -283,10 +223,6 @@
         // How much columns in this table
         uint8_t column_count;
 
-        // Column link count
-        // How much links in this table
-        uint8_t column_link_count;
-
         // Dir count in this table
         // How much directories in this table
         uint8_t dir_count;
@@ -298,16 +234,15 @@
     typedef struct table {
         // Lock table flag
         uint16_t lock;
+        uint8_t is_cached;
 
         // Table header
         table_header_t* header;
+        uint8_t append_offset;
 
         // Column names
         table_column_t** columns;
         uint16_t row_size;
-
-        // Column links
-        table_column_link_t** column_links;
 
         // Table directories
         char dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
@@ -348,7 +283,7 @@
     Return 0 if row append was success
     Return 1 if row append was success and we create new pages
     */
-    int TBM_insert_content(table_t* table, int offset, uint8_t* data, size_t data_size);
+    int TBM_insert_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size);
 
     /*
     Append data to content pages in directories
@@ -369,7 +304,7 @@
     Return 1 if append was success and we create new pages
     Return 2 if append was success and we create new directories
     */
-    int TBM_append_content(table_t* table, uint8_t* data, size_t data_size);
+    int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size_t data_size);
 
     /*
     Delete content in table. All steps below:
@@ -429,46 +364,11 @@
     Return -1 if data nfound
     Return global index (first entry) of target data
     */
-    int TBM_find_content(table_t* table, int offset, uint8_t* data, size_t data_size);
+    int TBM_find_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size);
 
 #pragma endregion
 
 #pragma region [Column]
-
-    /*
-    Link column to foreing key. In summary we link provided column to column from master table.
-    Note: This function don't check column. It means, that you can easily link this column to master table.
-    Note 1: This function also don't check signature. If you try link string column to existed int column,
-            you don't see any warns.
-    Note 2: You can link slave column to not existed column in master. It can cause, because function don't
-            check columns in master table. That's why be sure in master column name.
-
-    Params:
-    - master - Master table pointer.
-    - master_column_name - Foreing key in master table.
-    - slave - Slave table, where will be saves link data.
-    - slave_column_name - Slave column name in slave table.
-    - type - Link type. Check link docs.
-
-    Return -1 if something goes wrong.
-    Return 1 if link was success.
-    */
-    int TBM_link_column2column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name, uint8_t type);
-
-    /*
-    Delete link from slave column.
-
-    Params:
-    - master - Master table pointer.
-    - master_column_name - Foreing key in master table.
-    - slave - Slave table, where will be deleted link data.
-    - slave_column_name - Slave column name in slave table.
-
-    Return -1 if something goes wrong.
-    Return 0 if column name not found.
-    Return 1 if unlink was success.
-    */
-    int TBM_unlink_column_from_column(table_t* master, char* master_column_name, table_t* slave, char* slave_column_name);
 
     /*
     Update column in provided table.
@@ -484,7 +384,7 @@
     Return -1 if we don't find column with same name.
     Return 1 if update was success.
     */
-    int TBM_update_column_in_table(table_t* table, table_column_t* column, int by_index);
+    int TBM_update_column_in_table(table_t* __restrict table, table_column_t* __restrict column, int by_index);
 
     /*
     Create column and allocate memory for.
@@ -492,13 +392,14 @@
     Note 2: If you want use any value (disable in-build check), use TYPE_ANY type.
 
     Params:
-    - type - column type
-    - name - column name (Should equals or smaller then column max size).
+    - type - Column type.
+    - size - Size of columns. Remember, that max size of row - PAGE_CONTENT_SIZE.
+    - name - Column name (Should equals or smaller then column max size).
            If it large then max size, name will trunc for fit.
 
-    Return pointer to column
+    Return pointer to column.
     */
-    table_column_t* TBM_create_column(uint8_t type, uint8_t size, char* name);
+    table_column_t* TBM_create_column(uint8_t type, uint16_t size, char* name);
 
 #pragma endregion
 
@@ -519,7 +420,7 @@
               This error indicates, that data to small for this column count.
     Return 1 if signature is correct.
     */
-    int TBM_check_signature(table_t* table, uint8_t* data);
+    int TBM_check_signature(table_t* __restrict table, uint8_t* __restrict data);
 
     /*
     Link directory to table
@@ -532,7 +433,7 @@
     Return 0 - if something goes wrong
     Return 1 - if link was success
     */
-    int TBM_link_dir2table(table_t* table, directory_t* directory);
+    int TBM_link_dir2table(table_t* __restrict table, directory_t* __restrict directory);
 
     /*
     Unlink directory from table. This function just remove directory name from table structure.
@@ -559,7 +460,7 @@
 
     Return pointer to new table
     */
-    table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access);
+    table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, uint8_t access);
 
     /*
     Save table to the disk
@@ -576,7 +477,7 @@
     Return 0 - if something goes wrong
     Return 1 - if save was success
     */
-    int TBM_save_table(table_t* table, char* path);
+    int TBM_save_table(table_t* __restrict table, char* __restrict path);
 
     /*
     Load table from .tb bin file
@@ -589,7 +490,7 @@
 
     Return allocated table from disk
     */
-    table_t* TBM_load_table(char* path, char* name);
+    table_t* TBM_load_table(char* __restrict path, char* __restrict name);
 
     /*
     Delete table from disk.
@@ -603,6 +504,18 @@
     Return 1 if all files was delete.
     */
     int TBM_delete_table(table_t* table, int full);
+
+    /*
+    In difference with TBM_free_table, TBM_flush_table will free table in case, when
+    table not cached in GCT.
+
+    Params:
+    - table - pointer to table.
+
+    Return -1 - if table in GCT.
+    Return 1 - if Release was success.
+    */
+    int TBM_flush_table(table_t* table);
 
     /*
     Release table.
@@ -632,7 +545,7 @@
 
     Return 1 if success.
     */
-    int TBM_invoke_modules(table_t* table, uint8_t* data, uint8_t type);
+    int TBM_invoke_modules(table_t* __restrict table, uint8_t* __restrict data, uint8_t type);
 
 #pragma endregion
 

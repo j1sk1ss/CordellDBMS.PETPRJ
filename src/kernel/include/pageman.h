@@ -37,6 +37,7 @@
 #include <string.h>
 
 #ifndef _WIN32
+    #include <zlib.h>
     #include <unistd.h>
     #include <libgen.h>
 #endif
@@ -65,8 +66,10 @@
 
 #pragma endregion
 
-#define PAGE_MAGIC          0xCA
-#define PAGE_NAME_SIZE      8
+#define PAGE_MAGIC 0xCA
+// 64^6 = 56.800.235.584 - unique page names.
+// 64^6 * PAGE_CONTENT_SIZE = 211 TB
+#define PAGE_NAME_SIZE 7
 
 // We have *.pg bin file, where at start placed header
 //================================================
@@ -89,6 +92,7 @@
     typedef struct page {
         // Lock page flags
         uint16_t lock;
+        uint8_t is_cached;
 
         // Page header with all special information
         page_header_t* header;
@@ -282,6 +286,18 @@
     page_t* PGM_load_page(char* __restrict path, char* __restrict name);
 
     /*
+    In difference with PGM_free_page, PGM_flush_page will free page in case, when
+    page not cached in GCT.
+
+    Params:
+    - page - pointer to page.
+
+    Return -1 - if page in GCT.
+    Return 1 - if Release was success.
+    */
+    int PGM_flush_page(page_t* page);
+
+    /*
     Release page
     Imoortant Note!: Usualy page, if we use load_page function,
     saved in PDT, that's means, that you should avoid free_page with pages,
@@ -289,10 +305,10 @@
     Note 1: Use this function with pages, that was created by create_page function.
 
     Params:
-    - page - pointer to page
+    - page - pointer to page.
 
-    Return 0 - if something goes wrong
-    Return 1 - if Release was success
+    Return 0 - if something goes wrong.
+    Return 1 - if Release was success.
     */
     int PGM_free_page(page_t* page);
 

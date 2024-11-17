@@ -30,6 +30,8 @@
   #include <sys/stat.h>
 #endif
 
+#include "cache.h"
+
 
 #define ENV_GET(key, default) getenv(key) == NULL ? default : getenv(key)
 
@@ -48,22 +50,28 @@
 
 
 /*
-Create rundom string
-Took from: https://stackoverflow.com/questions/15767691/whats-the-c-library-function-to-generate-random-string
-
-dest - pointer to place, where mamory for string allocated
-length - length of string that will be generated bu function
-*/
-void strrand(char* dest, size_t length);
-
-/*
-Check if provided string is integer
+Create rundom string.
+Reference from: https://stackoverflow.com/questions/15767691/whats-the-c-library-function-to-generate-random-string
+Note: This function not random. It generates next name by offset.
+Note 2: Offset should not be grater then 65^length.
 
 Params:
-str - pointer to string
+- dest - Pointer to place, where mamory for string allocated.
+- length - Length of string that will be generated bu function.
+- offset - Offset of rand string.
 
-Return 1 is integer
-Return 0 is not integer
+Return NULL.
+*/
+void strrand(char* dest, size_t length, int offset);
+
+/*
+Check if provided string is integer.
+
+Params:
+- str - pointer to string.
+
+Return 1 is integer.
+Return 0 is not integer.
 */
 int is_integer(const char* str);
 
@@ -140,7 +148,7 @@ Params:
 
 Return 1 if exist, 0 if not.
 */
-int file_exists(const char* path);
+int file_exists(const char* path, const char* filename);
 
 // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
 // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);

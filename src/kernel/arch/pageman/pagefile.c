@@ -11,6 +11,7 @@ page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_
     header->magic = PAGE_MAGIC;
     strncpy(header->name, name, PAGE_NAME_SIZE);
     page->lock = THR_create_lock();
+    page->is_cached = 0;
 
     page->header = header;
     if (buffer != NULL) memcpy(page->content, buffer, data_size);
@@ -19,18 +20,17 @@ page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_
 }
 
 page_t* PGM_create_empty_page() {
-    char page_name[PAGE_NAME_SIZE] = { '\0' };
     char* unique_name = generate_unique_filename(PAGE_BASE_PATH, PAGE_NAME_SIZE, PAGE_EXTENSION);
-    strncpy(page_name, unique_name, PAGE_NAME_SIZE);
+    page_t* page = PGM_create_page(unique_name, NULL, 0);
     free(unique_name);
-
-    return PGM_create_page(page_name, NULL, 0);
+    return page;
 }
 
 int PGM_save_page(page_t* __restrict page, char* __restrict path) {
     int status = -1;
     #pragma omp critical (page_save)
     {
+        uint32_t page_cheksum = PGM_get_checksum(page);
         #ifndef NO_PAGE_SAVE_OPTIMIZATION
         // if (PGM_get_checksum(page) != page->header->checksum)
         #endif
@@ -80,7 +80,10 @@ page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
     char file_name[PAGE_NAME_SIZE];
     if (get_filename(name, path, file_name, PAGE_NAME_SIZE) == -1) return NULL;
     page_t* loaded_page = (page_t*)CHC_find_entry(file_name, PAGE_CACHE);
-    if (loaded_page != NULL) return loaded_page;
+    if (loaded_page != NULL) {
+        print_debug("Loading page [%s] from GCT", load_path);
+        return loaded_page;
+    }
 
     #pragma omp critical (page_load)
     {
@@ -107,10 +110,12 @@ page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
 
                 fclose(file);
 
-                page->lock = THR_create_lock();
-                page->header = header;
-                CHC_add_entry(page, page->header->name, PAGE_CACHE, PGM_free_page, PGM_save_page);
-                loaded_page = page;
+                page->is_cached = 0;
+                page->lock      = THR_create_lock();
+                page->header    = header;
+                loaded_page     = page;
+
+                CHC_add_entry(loaded_page, loaded_page->header->name, PAGE_CACHE, PGM_free_page, PGM_save_page);
             }
         }
     }
@@ -118,8 +123,17 @@ page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
     return loaded_page;
 }
 
+int PGM_flush_page(page_t* page) {
+    if (page == NULL) return -2;
+    if (page->is_cached == 1) return -1;
+
+    PGM_save_page(page, NULL);
+    return PGM_free_page(page);
+}
+
 int PGM_free_page(page_t* page) {
     if (page == NULL) return -1;
+
     SOFT_FREE(page->header);
     SOFT_FREE(page);
 

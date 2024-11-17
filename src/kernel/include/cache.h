@@ -26,20 +26,23 @@
 #include <stdint.h>
 
 #include "common.h"
-#include "threading.h"
 #include "logging.h"
+#include "threading.h"
 
 
-#define ENTRY_COUNT     5
+#define ENTRY_COUNT     10
 #define ENTRY_NAME_SIZE 8
 
-#define TABLE_CACHE     0x02
-#define DIRECTORY_CACHE 0x01
-#define PAGE_CACHE      0x00
+#define CACHE_TYPES_COUNT   3
+#define ANY_CACHE       0xFF
+#define TABLE_CACHE     2
+#define DIRECTORY_CACHE 1
+#define PAGE_CACHE      0
 
 
 typedef struct cache_body {
     uint16_t lock;
+    uint8_t is_cached;
     void* body;
 } cache_body_t;
 
@@ -70,6 +73,7 @@ Params:
 - free - Pointer to object free function | free(void* entry).
 - save - Pointer to object save file function | save(void* entry, char* path).
 
+Return -3 if entry type reach limit in GCT.
 Return -2 if entry is NULL.
 Return -1 if by some reason, function can't lock entry.
 Return 1 if add was success.

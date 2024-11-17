@@ -1,7 +1,7 @@
 #include "../../include/tabman.h"
 
 
-table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, uint8_t access) {
+table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, uint8_t access) {
     int row_size = 0;
     for (int i = 0; i < col_count; i++)
         row_size += columns[i]->size;
@@ -21,20 +21,20 @@ table_t* TBM_create_table(char* name, table_column_t** columns, int col_count, u
     header->magic  = TABLE_MAGIC;
     strncpy(header->name, name, TABLE_NAME_SIZE);
 
-    header->dir_count         = 0;
-    header->column_count      = col_count;
-    header->column_link_count = 0;
+    header->dir_count    = 0;
+    header->column_count = col_count;
 
-    table->columns      = columns;
-    table->row_size     = row_size;
-    table->column_links = NULL;
+    table->columns  = columns;
+    table->row_size = row_size;
     
-    table->lock   = THR_create_lock();
-    table->header = header;
+    table->append_offset = 0;
+    table->is_cached = 0;
+    table->lock      = THR_create_lock();
+    table->header    = header;
     return table;
 }
 
-int TBM_save_table(table_t* table, char* path) {
+int TBM_save_table(table_t* __restrict table, char* __restrict path) {
     int status = -1;
     #pragma omp critical (table_save)
     {
@@ -62,11 +62,6 @@ int TBM_save_table(table_t* table, char* path) {
                         status = -3;
                     }
 
-                for (int i = 0; i < table->header->column_link_count; i++)
-                    if (fwrite(table->column_links[i], sizeof(table_column_link_t), 1, file) != 1) {
-                        status = -4;
-                    }
-
                 for (int i = 0; i < table->header->dir_count; i++)
                     if (fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, 1, file) != 1) {
                         status = -5;
@@ -87,7 +82,7 @@ int TBM_save_table(table_t* table, char* path) {
     return status;
 }
 
-table_t* TBM_load_table(char* path, char* name) {
+table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
     char load_path[DEFAULT_PATH_SIZE];
     if (get_load_path(name, TABLE_NAME_SIZE, path, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
@@ -99,7 +94,7 @@ table_t* TBM_load_table(char* path, char* name) {
     if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
     table_t* loaded_table = (table_t*)CHC_find_entry(file_name, TABLE_CACHE);
     if (loaded_table != NULL) {
-        print_debug("Loading table [%s] from TDT", load_path);
+        print_debug("Loading table [%s] from GCT", load_path);
         return loaded_table;
     }
 
@@ -135,24 +130,16 @@ table_t* TBM_load_table(char* path, char* name) {
                 for (int i = 0; i < header->column_count; i++)
                     table->row_size += columns[i]->size;
 
-                // Read column links from file.
-                table_column_link_t** column_links = (table_column_link_t**)malloc(header->column_link_count * sizeof(table_column_link_t*));
-                memset(column_links, 0, header->column_link_count * sizeof(table_column_link_t*));
-
-                for (int i = 0; i < header->column_link_count; i++) {
-                    column_links[i] = (table_column_link_t*)malloc(sizeof(table_column_link_t));
-                    fread(column_links[i], sizeof(table_column_link_t), 1, file);
-                }
-
                 // Read directory names from file, that linked to this directory.
                 for (int i = 0; i < header->dir_count; i++)
                     fread(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file);
 
                 fclose(file);
 
-                table->columns = columns;
-                table->column_links = column_links;
-                table->lock = THR_create_lock();
+                table->columns   = columns;
+                table->lock      = THR_create_lock();
+                table->is_cached = 0;
+                table->append_offset = 0;
 
                 table->header = header;
                 CHC_add_entry(table, table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
@@ -188,13 +175,18 @@ int TBM_delete_table(table_t* table, int full) {
     return -1;
 }
 
+int TBM_flush_table(table_t* table) {
+    if (table == NULL) return -2;
+    if (table->is_cached == 1) return -1;
+
+    TBM_save_table(table, NULL);
+    return TBM_free_table(table);
+}
+
 int TBM_free_table(table_t* table) {
     if (table == NULL) return -1;
-
     for (int i = 0; i < table->header->column_count; i++) SOFT_FREE(table->columns[i]);
-    for (int i = 0; i < table->header->column_link_count; i++) SOFT_FREE(table->column_links[i]);
 
-    SOFT_FREE(table->column_links);
     SOFT_FREE(table->columns);
     SOFT_FREE(table);
 

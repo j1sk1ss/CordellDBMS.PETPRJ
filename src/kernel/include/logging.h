@@ -33,6 +33,7 @@
 #define WARNINGS
 #define ERRORS
 #define INFORMING
+#define SPECIAL
 
 // Note: LOG_TO_FILE option very heavy function. Prefere console logging.
 // #define LOG_TO_FILE
@@ -70,6 +71,12 @@
     #define print_info(message, ...)   log_message("INFO", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_info(message, ...)
+#endif
+
+#ifdef SPECIAL
+    #define print_spec(message, ...)   log_message("SPEC", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
+    #define print_spec(message, ...)
 #endif
 
 

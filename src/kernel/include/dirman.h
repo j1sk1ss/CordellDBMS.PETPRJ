@@ -37,6 +37,7 @@
 #include <string.h>
 
 #ifndef _WIN32
+    #include <zlib.h>
     #include <unistd.h>
 #endif
 
@@ -52,10 +53,12 @@
 
 #define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
 // Set here default path for save.
-// Important Note ! : This path is main for ALL directories
+// Important Note ! : This path is main for ALL directories.
 #define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", "")
 
-#define DIRECTORY_NAME_SIZE 8
+// 62^5 * PAGES_PER_DIRECTORY = 233.613.872.160 maximum pages in database.
+// 62^5 * 4096 = 233.6 * 10^9 KB = MIN(255TB, 211TB) - Maximum size of database.
+#define DIRECTORY_NAME_SIZE 6
 #define DIRECTORY_MAGIC     0xCC
 
 #define PAGES_PER_DIRECTORY 0xFF
@@ -85,9 +88,11 @@
     typedef struct directory {
         // Lock directory flag
         uint16_t lock;
+        uint8_t is_cached;
 
         // Directory header
         directory_header_t* header;
+        uint8_t append_offset;
 
         // Page file names
         char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
@@ -269,6 +274,7 @@
     /*
     Open file, load directory and page names, close file.
     Note: This function invoke create_directory function.
+    Note 2: Don't forget about DRM_flush_directory after using this pointer.
 
     Params:
     - path - path to directory.dr file. (Should be NULL, if provided name).
@@ -295,10 +301,22 @@
     int DRM_delete_directory(directory_t* directory, int full);
 
     /*
+    In difference with DRM_free_directory, DRM_flush_directory will free directory in case, when
+    directory not cached in GCT.
+
+    Params:
+    - directory - pointer to directory.
+
+    Return -1 - if directory in GCT.
+    Return 1 - if Release was success.
+    */
+    int DRM_flush_directory(directory_t* directory);
+
+    /*
     Release directory.
     Imoortant Note!: that usualy directory, if we use load_directory function,
     saved in DDT, that's means, that you should avoid free_directory with dirs,
-    that was created by load_directory.
+    that was created by load_directory. Use directory flush.
     Note 1: Use this function with dirs, that was created by create_directory function.
     Note 2: If tou anyway want to free directory, prefere using flush_directory insted free_directory.
             Difference in part, where flush_directory first try to find provided directory in DDT, then
