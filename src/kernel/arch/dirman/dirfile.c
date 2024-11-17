@@ -12,7 +12,6 @@ directory_t* DRM_create_directory(char* name) {
     header->magic      = DIRECTORY_MAGIC;
     header->page_count = 0;
 
-    directory->lock      = THR_create_lock();
     directory->header    = header;
     directory->is_cached = 0;
     directory->append_offset = 0;
@@ -111,7 +110,6 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
                 // Close file directory
                 fclose(file);
 
-                directory->lock   = THR_create_lock();
                 directory->header = header;
                 loaded_directory  = directory;
                 directory->append_offset = 0;
@@ -126,30 +124,24 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
 
 int DRM_delete_directory(directory_t* directory, int full) {
     if (directory == NULL) return -1;
-    if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-        if (full) {
-            #pragma omp parallel for schedule(dynamic, 1)
-            for (int i = 0; i < directory->header->page_count; i++) {
-                char page_path[DEFAULT_PATH_SIZE];
-                sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
-                print_debug(
-                    "Page [%s] was deleted and flushed with results [%i | %i]",
-                    page_path, CHC_flush_entry(PGM_load_page(page_path, NULL), PAGE_CACHE), remove(page_path)
-                );
-            }
+    if (full) {
+        #pragma omp parallel for schedule(dynamic, 1)
+        for (int i = 0; i < directory->header->page_count; i++) {
+            char page_path[DEFAULT_PATH_SIZE];
+            sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
+            print_debug(
+                "Page [%s] was deleted and flushed with results [%i | %i]",
+                page_path, CHC_flush_entry(PGM_load_page(page_path, NULL), PAGE_CACHE), remove(page_path)
+            );
         }
-
-        char delete_path[DEFAULT_PATH_SIZE];
-        sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
-        CHC_flush_entry(directory, DIRECTORY_CACHE);
-        print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
-
-        return 1;
     }
-    else {
-        print_error("Can't lock directory [%.*s]", DIRECTORY_NAME_SIZE, directory->header->name);
-        return -1;
-    }
+
+    char delete_path[DEFAULT_PATH_SIZE];
+    sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
+    CHC_flush_entry(directory, DIRECTORY_CACHE);
+    print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
+
+    return 1;
 }
 
 int DRM_flush_directory(directory_t* directory) {

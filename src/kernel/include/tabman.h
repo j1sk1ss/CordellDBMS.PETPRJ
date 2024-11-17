@@ -41,13 +41,12 @@
     #include <unistd.h>
 #endif
 
-#include "threading.h"
 #include "logging.h"
 #include "common.h"
 #include "dirman.h"
 #include "module.h"
 #include "cache.h"
-#include "io.h"
+#include "lfs.h"
 
 
 #define NO_TABLE_SAVE_OPTIMIZATION

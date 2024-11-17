@@ -27,7 +27,6 @@
 
 #include "common.h"
 #include "logging.h"
-#include "threading.h"
 
 
 #define ENTRY_COUNT     10

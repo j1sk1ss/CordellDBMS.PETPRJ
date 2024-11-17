@@ -44,9 +44,8 @@
 
 #include "logging.h"
 #include "common.h"
-#include "threading.h"
 #include "cache.h"
-#include "io.h"
+#include "lfs.h"
 
 
 #define NO_PAGE_SAVE_OPTIMIZATION

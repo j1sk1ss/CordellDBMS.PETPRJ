@@ -29,7 +29,6 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     
     table->append_offset = 0;
     table->is_cached = 0;
-    table->lock      = THR_create_lock();
     table->header    = header;
     return table;
 }
@@ -137,7 +136,6 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                 fclose(file);
 
                 table->columns   = columns;
-                table->lock      = THR_create_lock();
                 table->is_cached = 0;
                 table->append_offset = 0;
 
@@ -153,26 +151,22 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
 
 int TBM_delete_table(table_t* table, int full) {
     if (table == NULL) return -1;
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        #pragma omp parallel for schedule(dynamic, 1)
-        for (int i = 0; i < table->header->dir_count; i++) {
-            directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
-            if (directory == NULL) continue;
+    #pragma omp parallel for schedule(dynamic, 1)
+    for (int i = 0; i < table->header->dir_count; i++) {
+        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
+        if (directory == NULL) continue;
 
-            TBM_unlink_dir_from_table(table, table->dir_names[i]);
-            DRM_delete_directory(directory, full);
-        }
-
-        // Delete table from disk by provided, generated path
-        char delete_path[DEFAULT_PATH_SIZE];
-        sprintf(delete_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
-        remove(delete_path);
-
-        CHC_flush_entry(table, TABLE_CACHE);
-        return 1;
+        TBM_unlink_dir_from_table(table, table->dir_names[i]);
+        DRM_delete_directory(directory, full);
     }
-    
-    return -1;
+
+    // Delete table from disk by provided, generated path
+    char delete_path[DEFAULT_PATH_SIZE];
+    sprintf(delete_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
+    remove(delete_path);
+
+    CHC_flush_entry(table, TABLE_CACHE);
+    return 1;
 }
 
 int TBM_flush_table(table_t* table) {

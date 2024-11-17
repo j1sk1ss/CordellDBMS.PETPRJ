@@ -44,9 +44,8 @@
 #include "common.h"
 #include "logging.h"
 #include "pageman.h"
-#include "threading.h"
 #include "cache.h"
-#include "io.h"
+#include "lfs.h"
 
 
 #define NO_DIRECTORY_SAVE_OPTIMIZATION

@@ -10,7 +10,6 @@ page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_
 
     header->magic = PAGE_MAGIC;
     strncpy(header->name, name, PAGE_NAME_SIZE);
-    page->lock = THR_create_lock();
     page->is_cached = 0;
 
     page->header = header;
@@ -111,7 +110,6 @@ page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
                 fclose(file);
 
                 page->is_cached = 0;
-                page->lock      = THR_create_lock();
                 page->header    = header;
                 loaded_page     = page;
 

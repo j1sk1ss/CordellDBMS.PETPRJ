@@ -466,52 +466,6 @@ int kernel(char* querry) {
             }
 
         }
-        /*
-        Handle link command.
-        Command syntax: link master <master_table> <master_column> to_slave <slave_table> <slave_column> ( flags )
-        */
-        else if (strcmp(command, LINK) == 0) {
-            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), MASTER) == 0) {
-                char* master_table  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                char* master_column = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-
-                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), TO_SLAVE) == 0) {
-                    char* slave_table   = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    char* slave_column  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    if (master_table == NULL || master_column == NULL || slave_table == NULL || slave_column == NULL) {
-                        return 5;
-                    }
-
-                    uint8_t delete_link = LINK_NOTHING;
-                    uint8_t update_link = LINK_NOTHING;
-                    uint8_t append_link = LINK_NOTHING;
-                    uint8_t find_link   = LINK_NOTHING;
-
-                    table_t* master = DB_get_table(database, master_table);
-                    table_t* slave = DB_get_table(database, slave_table);
-                    if (slave == NULL || master == NULL) {
-                        print_error("Table [%s] not found in database!", slave_table);
-                        return -1;
-                    }
-
-                    if (strcmp(OPEN_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == 0) {
-                        while (strcmp(CLOSE_BRACKET, SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != 0) {
-                            if (strcmp(CASCADE_DEL, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) delete_link = LINK_CASCADE_DELETE;
-                            else if (strcmp(CASCADE_UPD, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) update_link = LINK_CASCADE_UPDATE;
-                            else if (strcmp(CASCADE_APP, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) append_link = LINK_CASCADE_APPEND;
-                            else if (strcmp(CASCADE_FND, SAFE_GET_VALUE_S(commands, argc, command_index)) == 0) find_link = LINK_CASCADE_FIND;
-                        }
-                    }
-
-                    int result = TBM_link_column2column(
-                        master, master_column, slave, slave_column, CREATE_LINK_TYPE_BYTE(find_link, append_link, update_link, delete_link)
-                    );
-
-                    print_log("Result [%i] of linking table [%s] with table [%s]", result, master_table, slave_table);
-                    return result;
-                }
-            }
-        }
     }
 
     return -1;

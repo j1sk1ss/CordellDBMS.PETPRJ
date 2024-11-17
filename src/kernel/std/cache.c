@@ -51,12 +51,10 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
     if (GCT_TYPES[type] >= GCT_TYPES_MAX[type]) should_replace = 1;
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer != NULL) {
-            if (THR_test_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) == UNLOCKED) {
-                occup_current = i;
-                if (GCT[i].type == type && should_replace == 1) {
-                    found_replace = 1;
-                    break;
-                }
+            occup_current = i;
+            if (GCT[i].type == type && should_replace == 1) {
+                found_replace = 1;
+                break;
             }
         }
         else {
@@ -77,16 +75,10 @@ int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save)
     else if (should_replace == 1 && found_replace == 1 && occup_current == -1) return -4;
 
     if (GCT[current].pointer != NULL) {
-        if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, omp_get_thread_num()) != -1) {
-            #pragma omp critical (gct_types_decreese)
-            GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
-            GCT[current].save(GCT[current].pointer, NULL);
-            CHC_flush_index(current);
-        }
-        else {
-            print_error("Can't lock selected entry [%s] entry with type [%i] during CHC_add_entry()", GCT[current].name, GCT[current].type);
-            return -1;
-        }
+        #pragma omp critical (gct_types_decreese)
+        GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
+        GCT[current].save(GCT[current].pointer, NULL);
+        CHC_flush_index(current);
     }
 
     ((cache_body_t*)entry)->is_cached = 1;
@@ -116,14 +108,7 @@ void* CHC_find_entry(char* name, uint8_t type) {
 int CHC_sync() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) == 1) {
-            GCT[i].save(GCT[i].pointer, NULL);
-            THR_release_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num());
-        }
-        else {
-            print_error("Can't lock entry [%s] entry with type [%i] during CHC_sync()", GCT[i].name, GCT[i].type);
-            return -1;
-        }
+        GCT[i].save(GCT[i].pointer, NULL);
     }
 
     return 1;
@@ -132,11 +117,7 @@ int CHC_sync() {
 int CHC_free() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) != -1) CHC_flush_index(i);
-        else {
-            print_error("Can't lock entry [%s] entry with type [%i] during CHC_free()", GCT[i].name, GCT[i].type);
-            return -1;
-        }
+        CHC_flush_index(i);
     }
 
     return 1;

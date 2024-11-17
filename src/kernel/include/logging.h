@@ -24,7 +24,6 @@
 #include <stdarg.h>
 #include <time.h>
 
-#include "threading.h"
 #include "common.h"
 
 

@@ -42,24 +42,21 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
         // Load directory to memory
         directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) continue;
-        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            // Get data from directory
-            // After getting data, copy it to allocated output
-            int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
-            uint8_t* directory_content = DRM_get_content(directory, offset, current_size);
-            THR_release_lock(&directory->lock, omp_get_thread_num());
-            if (directory_content != NULL) {
-                memcpy(output_content_pointer, directory_content, current_size);
+        // Get data from directory
+        // After getting data, copy it to allocated output
+        int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
+        uint8_t* directory_content = DRM_get_content(directory, offset, current_size);
+        if (directory_content != NULL) {
+            memcpy(output_content_pointer, directory_content, current_size);
 
-                // Realise data
-                free(directory_content);
+            // Realise data
+            free(directory_content);
 
-                // Set offset to 0, because we go to next directory
-                // Update size of getcontent
-                offset = 0;
-                content2get_size       -= current_size;
-                output_content_pointer += current_size;
-            }
+            // Set offset to 0, because we go to next directory
+            // Update size of getcontent
+            offset = 0;
+            content2get_size       -= current_size;
+            output_content_pointer += current_size;
         }
 
         DRM_flush_directory(directory);
@@ -77,15 +74,12 @@ int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size
         // Load directory to memory
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory != NULL) {
-            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-                if (directory->header->page_count + size4append <= PAGES_PER_DIRECTORY) {
-                    int result = DRM_append_content(directory, data_pointer, size4append);
-                    THR_release_lock(&directory->lock, omp_get_thread_num());
-                    DRM_flush_directory(directory);
-                    if (result < 0) return result - 10;
-                    else if (result == 0 || result == 1 || result == 2) {
-                        return 1;
-                    }
+            if (directory->header->page_count + size4append <= PAGES_PER_DIRECTORY) {
+                int result = DRM_append_content(directory, data_pointer, size4append);
+                DRM_flush_directory(directory);
+                if (result < 0) return result - 10;
+                else if (result == 0 || result == 1 || result == 2) {
+                    return 1;
                 }
             }
         }
@@ -128,21 +122,18 @@ int TBM_insert_content(table_t* __restrict table, int offset, uint8_t* __restric
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) return -1;
 
-        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            int result = DRM_insert_content(directory, offset, data_pointer, size4insert);
-            THR_release_lock(&directory->lock, omp_get_thread_num());
-            DRM_flush_directory(directory);
+        int result = DRM_insert_content(directory, offset, data_pointer, size4insert);
+        DRM_flush_directory(directory);
 
-            if (result == -1) return -1;
-            else if (result == 1 || result == 2) {
-                return result;
-            }
-
-            // Move append data pointer.
-            int loaded_data = size4insert - result;
-            data_pointer += loaded_data;
-            size4insert = result;
+        if (result == -1) return -1;
+        else if (result == 1 || result == 2) {
+            return result;
         }
+
+        // Move append data pointer.
+        int loaded_data = size4insert - result;
+        data_pointer += loaded_data;
+        size4insert = result;
     }
 
     // If we reach end, return error code.
@@ -158,16 +149,13 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) return -1;
-        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            table->append_offset = i;
+        table->append_offset = i;
 
-            size4delete = DRM_delete_content(directory, offset, size4delete);
-            THR_release_lock(&directory->lock, omp_get_thread_num());
-            DRM_flush_directory(directory);
+        size4delete = DRM_delete_content(directory, offset, size4delete);
+        DRM_flush_directory(directory);
 
-            if (size4delete < 0) return -1;
-            else if (size4delete >= 0) return size4delete;
-        }
+        if (size4delete < 0) return -1;
+        else if (size4delete >= 0) return size4delete;
     }
 
     // If we reach end, return error code.

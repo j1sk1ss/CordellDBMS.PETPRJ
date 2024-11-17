@@ -97,11 +97,7 @@ int DB_insert_row(database_t* __restrict database, char* __restrict table_name, 
     int page_offset   = row % rows_per_page;
     int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_insert_content(table, global_offset, data, data_size);
-        THR_release_lock(&table->lock, omp_get_thread_num());
-    }
-
+    result = TBM_insert_content(table, global_offset, data, data_size);
     TBM_flush_table(table);
     return result;
 }
@@ -120,11 +116,7 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
     int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
     int result = -1;
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_delete_content(table, global_offset, table->row_size);
-        THR_release_lock(&table->lock, omp_get_thread_num());
-    }
-
+    result = TBM_delete_content(table, global_offset, table->row_size);
     TBM_flush_table(table);
     return result;
 }
