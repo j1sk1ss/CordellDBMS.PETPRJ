@@ -14,12 +14,12 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     table_t* table  = (table_t*)malloc(sizeof(table_t));
     table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
 
-    memset(table, 0, sizeof(table_t));
-    memset(header, 0, sizeof(table_header_t));
+    memset_s(table, 0, sizeof(table_t));
+    memset_s(header, 0, sizeof(table_header_t));
 
     header->access = access;
     header->magic  = TABLE_MAGIC;
-    strncpy(header->name, name, TABLE_NAME_SIZE);
+    strncpy_s(header->name, name, TABLE_NAME_SIZE);
 
     header->dir_count    = 0;
     header->column_count = col_count;
@@ -45,7 +45,7 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             if (path == NULL) sprintf(save_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
-            else strcpy(save_path, path);
+            else strcpy_s(save_path, path);
 
             // Open or create file
             FILE* file = fopen(save_path, "wb");
@@ -118,8 +118,8 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                 table_t* table = (table_t*)malloc(sizeof(table_t));
                 table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
 
-                memset(table, 0, sizeof(table_t));
-                memset(columns, 0, header->column_count * sizeof(table_column_t*));
+                memset_s(table, 0, sizeof(table_t));
+                memset_s(columns, 0, header->column_count * sizeof(table_column_t*));
 
                 for (int i = 0; i < header->column_count; i++) {
                     columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
@@ -197,15 +197,15 @@ unsigned int TBM_get_checksum(table_t* table) {
     unsigned int prev_checksum = table->header->checksum;
     table->header->checksum = 0;
 
-    unsigned int checksum = 0;
-    if (table->header != NULL) checksum = crc32(checksum, (const unsigned char*)table->header, sizeof(table_header_t));
+    unsigned int _checksum = 0;
+    if (table->header != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->header, sizeof(table_header_t));
     if (table->columns != NULL) {
         for (unsigned short i = 0; i < table->header->column_count; i++) {
-            if (table->columns[i] != NULL) checksum = crc32(checksum, (const unsigned char*)table->columns[i], sizeof(table_column_t));
+            if (table->columns[i] != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->columns[i], sizeof(table_column_t));
         }
     }
 
     table->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const unsigned char*)table->dir_names, sizeof(table->dir_names));
-    return checksum;
+    _checksum = checksum(_checksum, (const unsigned char*)table->dir_names, sizeof(table->dir_names));
+    return _checksum;
 }

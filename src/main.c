@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -62,7 +61,6 @@ int _send2destination(int destination, void* data, size_t data_size);
 int _send2destination_byte(int destination, int byte);
 void* _handle_client(void* client_socket_fd);
 void _start_kernel_session(int source, int destination, int session);
-int setup_server();
 
 
 static int sessions[MAX_SESSION_COUNT] = { 0 };

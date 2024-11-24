@@ -6,7 +6,7 @@
 /* Stack implementation */
 void stack_init(simple_stack_t *s) {
     s->pos = -1;
-    memset(s->data, 0x00, sizeof(s->data));
+    memset_s(s->data, 0x00, sizeof(s->data));
 }
 
 void stack_push(int64_t data, simple_stack_t *s) {
@@ -32,7 +32,7 @@ int64_t stack_peek(const simple_stack_t *s) {
 /* Queue implementation */
 void queue_init(simple_queue_t* q) {
     q->front = q->back = -1;
-    memset(q->data, 0x00, sizeof(q->data));
+    memset_s(q->data, 0x00, sizeof(q->data));
 }
 
 void queue_enqueue(token_t data, simple_queue_t* q) {
@@ -84,7 +84,7 @@ void shunting_yard(const char* input, simple_stack_t* ops, simple_queue_t* outpu
     simple_stack_t parenthesis; /* Check balanced parenthesis */
     stack_init(&parenthesis);
 
-    while (i < strlen(input)) {
+    while (i < strlen_s(input)) {
         char c = input[i];
         token_t new_token = {0};
 

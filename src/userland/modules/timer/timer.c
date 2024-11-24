@@ -19,14 +19,14 @@ char* get_current_time() {
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     char* time_str = asctime(timeinfo);
-    time_str[strlen(time_str) - 1] = '\0';
+    time_str[strlen_s(time_str) - 1] = '\0';
 
     return time_str;
 }
 
 int main(int argc, char* argv[]) {
     if (argc != 2) exit(1);
-    if (strcmp(argv[1], NOW) == 0) {
+    if (strcmp_s(argv[1], NOW) == 0) {
         printf("%s", get_current_time());
         return 100;
     }

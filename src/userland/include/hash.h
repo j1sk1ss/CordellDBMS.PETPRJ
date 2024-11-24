@@ -8,8 +8,6 @@
 #ifndef HASH_H_
 #define HASH_H_
 
-#include <string.h>
-
 #define SALT    "CordellDBMS_SHA"
 #define MAGIC   8
 

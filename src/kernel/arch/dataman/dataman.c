@@ -4,17 +4,12 @@
 unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return NULL;
-    if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
+    if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
         TBM_flush_table(table);
         return NULL;
     }
 
-    int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
-
-    unsigned char* data = TBM_get_content(table, global_offset, table->row_size);
+    unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
     TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
     TBM_flush_table(table);
 
@@ -91,14 +86,8 @@ int DB_insert_row(database_t* __restrict database, char* __restrict table_name, 
     }
 
     TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
-
-    int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
-
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_insert_content(table, global_offset, data, data_size);
+        result = TBM_insert_content(table, _get_global_offset(table->row_size, row), data, data_size);
         THR_release_lock(&table->lock, omp_get_thread_num());
     }
 
@@ -114,14 +103,9 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
         return -3;
     }
 
-    int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
-
     int result = -1;
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_delete_content(table, global_offset, table->row_size);
+        result = TBM_delete_content(table, _get_global_offset(table->row_size, row), table->row_size);
         THR_release_lock(&table->lock, omp_get_thread_num());
     }
 
@@ -157,7 +141,7 @@ int DB_find_data_row(
     int column_size   = -1;
     for (int i = 0; i < table->header->column_count; i++) {
         if (column != NULL) {
-            if (strncmp(table->columns[i]->name, column, COLUMN_NAME_SIZE) == 0) {
+            if (strncmp_s(table->columns[i]->name, column, COLUMN_NAME_SIZE) == 0) {
                 column_offset = row_size;
                 column_size = table->columns[i]->size;
             }
@@ -191,7 +175,7 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     table_t* table = NULL;
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
-        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
+        if (strncmp_s(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
             table = TBM_load_table(NULL, table_name);
         }
     }
@@ -213,7 +197,7 @@ int DB_link_table2database(database_t* __restrict database, table_t* __restrict 
     if (database->header->table_count + 1 >= TABLES_PER_DATABASE) return -1;
 
     #pragma omp critical (link_table2database)
-    strncpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
+    strncpy_s(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
     return 1;
 }
 
@@ -222,9 +206,9 @@ int DB_unlink_table_from_database(database_t* __restrict database, char* __restr
     #pragma omp critical (unlink_table_from_database)
     {
         for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
+            if (strncmp_s(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
                 for (int j = i; j < database->header->table_count - 1; j++) {
-                    strncpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
+                    strncpy_s(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
                 }
 
                 database->header->table_count--;
@@ -235,4 +219,12 @@ int DB_unlink_table_from_database(database_t* __restrict database, char* __restr
     }
 
     return status;
+}
+
+int _get_global_offset(int row_size, int row) {
+    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+    int pages_offset  = row / rows_per_page;
+    int page_offset   = row % rows_per_page;
+    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
+    return global_offset;
 }

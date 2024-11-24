@@ -4,7 +4,7 @@
 unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size) {
     unsigned char* content = (unsigned char*)malloc(size);
     unsigned char* content_pointer = content;
-    memset(content_pointer, 0, size);
+    memset_s(content_pointer, 0, size);
 
     int pages4work    = (int)size / PAGE_CONTENT_SIZE;
     int page_offset   = offset / PAGE_CONTENT_SIZE;
@@ -40,7 +40,7 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size) 
 
                 // We work with page
                 int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2get);
-                memcpy(content_pointer, page_content_pointer, current_size);
+                memcpy_s(content_pointer, page_content_pointer, current_size);
 
                 // We reload local index and update size2get
                 // Also we move content pointer to next location
@@ -273,7 +273,7 @@ int DRM_find_content(directory_t* __restrict directory, int offset, unsigned cha
 
 int DRM_link_page2dir(directory_t* __restrict directory, page_t* __restrict page) {
     #pragma omp critical (link_page2dir)
-    strncpy(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
+    strncpy_s(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
     return 1;
 }
 
@@ -282,9 +282,9 @@ int DRM_unlink_page_from_directory(directory_t* __restrict directory, char* __re
     #pragma omp critical (unlink_page_from_directory)
     {
         for (int i = 0; i < directory->header->page_count; i++) {
-            if (strncmp(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
+            if (strncmp_s(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
                 for (int j = i; j < directory->header->page_count - 1; j++)
-                    memcpy(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
+                    memcpy_s(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
 
                 directory->header->page_count--;
                 status = 1;

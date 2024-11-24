@@ -12,7 +12,7 @@ char* hash_string(const char* input, size_t output_size) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
-    SHA256_Update(&sha256, (void*)input, strlen(input));
+    SHA256_Update(&sha256, (void*)input, strlen_s(input));
     SHA256_Final(hash, &sha256);
 
     size_t full_hash_length = SHA256_DIGEST_LENGTH * 2;

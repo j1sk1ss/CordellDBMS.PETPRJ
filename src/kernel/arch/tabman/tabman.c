@@ -49,7 +49,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
             unsigned char* directory_content = DRM_get_content(directory, offset, current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
             if (directory_content != NULL) {
-                memcpy(output_content_pointer, directory_content, current_size);
+                memcpy_s(output_content_pointer, directory_content, current_size);
 
                 // Realise data
                 free(directory_content);
@@ -240,7 +240,7 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
 
 int TBM_link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
     #pragma omp critical (link_dir2table)
-    strncpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
+    strncpy_s(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
     return 1;
 }
 
@@ -249,9 +249,9 @@ int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
     #pragma omp critical (unlink_dir_from_table)
     {
         for (int i = 0; i < table->header->dir_count; i++) {
-            if (strncmp(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
+            if (strncmp_s(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
                 for (int j = i; j < table->header->dir_count - 1; j++) {
-                    memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
+                    memcpy_s(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
                 }
 
                 table->header->dir_count--;
@@ -272,7 +272,7 @@ int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data
                 char* formula = table->columns[i]->module_querry;
                 char* output_querry = (char*)malloc(COLUMN_MODULE_SIZE);
                 if (!output_querry) return -1;
-                strncpy(output_querry, formula, COLUMN_MODULE_SIZE);
+                strncpy_s(output_querry, formula, COLUMN_MODULE_SIZE);
 
                 int content_offset = 0;
                 for (int j = 0; j < table->header->column_count; j++) {
@@ -283,7 +283,7 @@ int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data
                         return -2;
                     }
 
-                    strncpy(content_part, (char*)content_pointer, table->columns[j]->size);
+                    strncpy_s(content_part, (char*)content_pointer, table->columns[j]->size);
                     char* next_output_querry = strrep(output_querry, table->columns[j]->name, content_part);
 
                     free(content_part);

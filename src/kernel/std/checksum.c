@@ -68,7 +68,7 @@ static const unsigned int crc32_table[] = {
     0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
 };
 
-unsigned int crc32(unsigned int init, const unsigned char* buf, int len) {
+unsigned int checksum(unsigned int init, const unsigned char* buf, int len) {
     unsigned int crc = init;
     while (len--) {
         crc = (crc << 8) ^ crc32_table[((crc >> 24) ^ *buf) & 255];

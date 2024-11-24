@@ -31,13 +31,12 @@
 #ifndef KENTRY_H_
 #define KENTRY_H_
 
-#include <string.h>
 #include <stdio.h>
 
-#include "common.h"
-#include "sighandler.h"
-#include "dataman.h"
 #include "cache.h"
+#include "common.h"
+#include "dataman.h"
+#include "sighandler.h"
 
 
 #define SAFE_GET_VALUE(argv, max, index)            index >= max ? NULL : argv[index]

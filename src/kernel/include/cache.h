@@ -21,7 +21,6 @@
 #ifndef CACHE_H_
 #define CACHE_H_
 
-#include <string.h>
 #include <stdlib.h>
 
 #include "common.h"

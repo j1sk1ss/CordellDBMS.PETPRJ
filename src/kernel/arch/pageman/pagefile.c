@@ -5,16 +5,16 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
     page_t* page = (page_t*)malloc(sizeof(page_t));
     page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
 
-    memset(page, 0, sizeof(page_t));
-    memset(header, 0, sizeof(page_header_t));
+    memset_s(page, 0, sizeof(page_t));
+    memset_s(header, 0, sizeof(page_header_t));
 
     header->magic = PAGE_MAGIC;
-    strncpy(header->name, name, PAGE_NAME_SIZE);
+    strncpy_s(header->name, name, PAGE_NAME_SIZE);
     page->lock = THR_create_lock();
     page->is_cached = 0;
 
     page->header = header;
-    if (buffer != NULL) memcpy(page->content, buffer, data_size);
+    if (buffer != NULL) memcpy_s(page->content, buffer, data_size);
     for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
     return page;
 }
@@ -38,7 +38,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             if (path == NULL) sprintf(save_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, page->header->name, PAGE_EXTENSION);
-            else strcpy(save_path, path);
+            else strcpy_s(save_path, path);
 
             // Open or create file
             FILE* file = fopen(save_path, "wb");
@@ -94,7 +94,7 @@ page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
-            memset(header, 0, sizeof(page_header_t));
+            memset_s(header, 0, sizeof(page_header_t));
             fread(header, sizeof(page_header_t), 1, file);
 
             // Check page magic
@@ -105,7 +105,7 @@ page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
             } else {
                 // Allocate memory for page structure
                 page_t* page = (page_t*)malloc(sizeof(page_t));
-                memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
+                memset_s(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
                 fread(page->content, sizeof(unsigned char), PAGE_CONTENT_SIZE, file);
 
                 fclose(file);
@@ -144,11 +144,11 @@ unsigned int PGM_get_checksum(page_t* page) {
     unsigned int prev_checksum = page->header->checksum;
     page->header->checksum = 0;
 
-    unsigned int checksum = 0;
+    unsigned int _checksum = 0;
     if (page->header != NULL)
-        checksum = crc32(checksum, (const unsigned char*)page->header, sizeof(page_header_t));
+        _checksum = checksum(_checksum, (const unsigned char*)page->header, sizeof(page_header_t));
 
     page->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const unsigned char*)page->content, sizeof(page->content));
-    return checksum;
+    _checksum = checksum(_checksum, (const unsigned char*)page->content, sizeof(page->content));
+    return _checksum;
 }

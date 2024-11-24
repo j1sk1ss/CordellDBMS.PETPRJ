@@ -5,11 +5,11 @@ database_t* DB_create_database(char* name) {
     database_t* database = (database_t*)malloc(sizeof(database_t));
     database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
 
-    memset(database, 0, sizeof(database_t));
-    memset(header, 0, sizeof(database_header_t));
+    memset_s(database, 0, sizeof(database_t));
+    memset_s(header, 0, sizeof(database_header_t));
 
     header->magic = DATABASE_MAGIC;
-    strncpy(header->name, name, DATABASE_NAME_SIZE);
+    strncpy_s(header->name, name, DATABASE_NAME_SIZE);
     header->table_count = 0;
 
     database->header = header;
@@ -58,7 +58,7 @@ database_t* DB_load_database(char* __restrict path, char* __restrict name) {
         if (file == NULL) print_error("Database file not found! [%s]", load_path);
         else {
             database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
-            memset(header, 0, sizeof(database_header_t));
+            memset_s(header, 0, sizeof(database_header_t));
             fread(header, sizeof(database_header_t), 1, file);
 
             if (header->magic != DATABASE_MAGIC) {
@@ -67,7 +67,7 @@ database_t* DB_load_database(char* __restrict path, char* __restrict name) {
                 fclose(file);
             } else {
                 database_t* database = (database_t*)malloc(sizeof(database_t));
-                memset(database, 0, sizeof(database_t));
+                memset_s(database, 0, sizeof(database_t));
                 for (int i = 0; i < header->table_count; i++)
                     fread(database->table_names[i], TABLE_NAME_SIZE, 1, file);
 
@@ -89,7 +89,7 @@ int DB_save_database(database_t* database, char* path) {
         // We generate default path
         char save_path[DEFAULT_PATH_SIZE] = { 0 };
         if (path == NULL) sprintf(save_path, "%s%.*s.%s", DATABASE_BASE_PATH, DATABASE_NAME_SIZE, database->header->name, DATABASE_EXTENSION);
-        else strcpy(save_path, path);
+        else strcpy_s(save_path, path);
 
         FILE* file = fopen(save_path, "wb");
         if (file == NULL) print_error("Can`t create or open file: [%s]", save_path);

@@ -92,7 +92,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
     ((cache_body_t*)entry)->is_cached = 1;
 
     GCT[current].pointer = entry;
-    strncpy(GCT[current].name, name, ENTRY_NAME_SIZE);
+    strncpy_s(GCT[current].name, name, ENTRY_NAME_SIZE);
     GCT[current].type = type;
     GCT[current].free = free;
     GCT[current].save = save;
@@ -105,7 +105,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
 void* CHC_find_entry(char* name, unsigned char type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && (GCT[i].type == type || type == ANY_CACHE)) {
+        if (strncmp_s(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && (GCT[i].type == type || type == ANY_CACHE)) {
             return GCT[i].pointer;
         }
     }
