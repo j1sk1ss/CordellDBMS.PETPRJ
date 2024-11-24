@@ -1,6 +1,14 @@
 #include "../../include/dataman.h"
 
 
+int _get_global_offset(int row_size, int row) {
+    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+    int pages_offset  = row / rows_per_page;
+    int page_offset   = row % rows_per_page;
+    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
+    return global_offset;
+}
+
 unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return NULL;
@@ -9,12 +17,7 @@ unsigned char* DB_get_row(database_t* __restrict database, char* __restrict tabl
         return NULL;
     }
 
-    int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
-
-    unsigned char* data = TBM_get_content(table, global_offset, table->row_size);
+    unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
     TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
     TBM_flush_table(table);
 
@@ -92,13 +95,8 @@ int DB_insert_row(database_t* __restrict database, char* __restrict table_name, 
 
     TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
 
-    int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
-
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_insert_content(table, global_offset, data, data_size);
+        result = TBM_insert_content(table, _get_global_offset(table->row_size, row), data, data_size);
         THR_release_lock(&table->lock, omp_get_thread_num());
     }
 
@@ -114,14 +112,9 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
         return -3;
     }
 
-    int rows_per_page = PAGE_CONTENT_SIZE / table->row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
-
     int result = -1;
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_delete_content(table, global_offset, table->row_size);
+        result = TBM_delete_content(table, _get_global_offset(table->row_size, row), table->row_size);
         THR_release_lock(&table->lock, omp_get_thread_num());
     }
 

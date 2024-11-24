@@ -62,7 +62,6 @@ int _send2destination(int destination, void* data, size_t data_size);
 int _send2destination_byte(int destination, int byte);
 void* _handle_client(void* client_socket_fd);
 void _start_kernel_session(int source, int destination, int session);
-int setup_server();
 
 
 static int sessions[MAX_SESSION_COUNT] = { 0 };
@@ -80,7 +79,7 @@ void _cleanup() {
         #ifdef _WIN32
             send(destination, (const char*)data, data_size, 0);
         #else
-            write(destination, data, data_size);
+            if (write(destination, data, data_size) != (ssize_t)data_size) print_warn("Data send size != data write");
         #endif
 
         return 1;

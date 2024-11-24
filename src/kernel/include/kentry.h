@@ -110,7 +110,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.4"
+#define KERNEL_VERSION     "v2.5 (main)"
 
 
 typedef struct kernel_answer {

@@ -34,6 +34,7 @@ int is_integer(const char* str) {
 }
 
 char* strrep(char* __restrict string, char* __restrict source, char* __restrict target) {
+    print_debug("Input: {%s} Source: {%s} Target: {%s}", string, source, target);
     char* result = NULL; // the return string
     char* ins = NULL;    // the next insert point
     char* tmp = NULL;    // varies
