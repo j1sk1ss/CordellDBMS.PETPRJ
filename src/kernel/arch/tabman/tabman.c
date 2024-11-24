@@ -42,7 +42,6 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
         // Load directory to memory
         directory = DRM_load_directory(NULL, table->dir_names[i]);
         if (directory == NULL) continue;
-        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
             // Get data from directory
             // After getting data, copy it to allocated output
             int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);

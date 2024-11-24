@@ -80,9 +80,6 @@
         // Page filename
         // With this name we can save pages / compare pages
         char name[PAGE_NAME_SIZE];
-
-        // Table checksum
-        unsigned int checksum;
     } page_header_t;
 
     typedef struct page {
@@ -307,16 +304,6 @@
     Return 1 - if Release was success.
     */
     int PGM_free_page(page_t* page);
-
-    /*
-    Generate page checksum.
-
-    Params:
-    - page - page pointer.
-
-    Return page checksum.
-    */
-    unsigned int PGM_get_checksum(page_t* page);
 
 #pragma endregion
 

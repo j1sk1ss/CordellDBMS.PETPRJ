@@ -52,7 +52,6 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
             else {
                 // Write header
                 status = 1;
-                table->header->checksum = 1; // TBM_get_checksum(table);
                 if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
 
                 // Write table data to open file
@@ -185,21 +184,4 @@ int TBM_free_table(table_t* table) {
     SOFT_FREE(table);
 
     return 1;
-}
-
-unsigned int TBM_get_checksum(table_t* table) {
-    unsigned int prev_checksum = table->header->checksum;
-    table->header->checksum = 0;
-
-    unsigned int _checksum = 0;
-    if (table->header != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->header, sizeof(table_header_t));
-    if (table->columns != NULL) {
-        for (unsigned short i = 0; i < table->header->column_count; i++) {
-            if (table->columns[i] != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->columns[i], sizeof(table_column_t));
-        }
-    }
-
-    table->header->checksum = prev_checksum;
-    _checksum = checksum(_checksum, (const unsigned char*)table->dir_names, sizeof(table->dir_names));
-    return _checksum;
 }

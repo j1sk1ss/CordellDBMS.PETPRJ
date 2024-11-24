@@ -50,7 +50,6 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
                 int page_size = PGM_find_value(page, 0, PAGE_END);
                 if (page_size <= 0) page_size = 0;
 
-                page->header->checksum = 1; // PGM_get_checksum(page);
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
                 if (fwrite(page->content, sizeof(unsigned char), page_size, file) != (size_t)page_size) status = -3;
 
@@ -137,17 +136,4 @@ int PGM_free_page(page_t* page) {
     SOFT_FREE(page);
 
     return 1;
-}
-
-unsigned int PGM_get_checksum(page_t* page) {
-    unsigned int prev_checksum = page->header->checksum;
-    page->header->checksum = 0;
-
-    unsigned int _checksum = 0;
-    if (page->header != NULL)
-        _checksum = checksum(_checksum, (const unsigned char*)page->header, sizeof(page_header_t));
-
-    page->header->checksum = prev_checksum;
-    _checksum = checksum(_checksum, (const unsigned char*)page->content, sizeof(page->content));
-    return _checksum;
 }

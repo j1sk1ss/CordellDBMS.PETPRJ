@@ -43,7 +43,6 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
             if (file == NULL) print_error("Can`t create file: [%s]", save_path);
             else {
                 status = 1;
-                directory->header->checksum = 1; // DRM_get_checksum(directory);
                 if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1)
                     status = -1;
 
@@ -124,23 +123,21 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
 
 int DRM_delete_directory(directory_t* directory, int full) {
     if (directory == NULL) return -1;
-    if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-        if (full) {
-            #pragma omp parallel for schedule(dynamic, 1)
-            for (int i = 0; i < directory->header->page_count; i++) {
-                char page_path[DEFAULT_PATH_SIZE] = { 0 };
-                sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
-                print_debug(
-                    "Page [%s] was deleted and flushed with results [%i | %i]",
-                    page_path, CHC_flush_entry(PGM_load_page(page_path, NULL), PAGE_CACHE), remove(page_path)
-                );
-            }
+    if (full) {
+        for (int i = 0; i < directory->header->page_count; i++) {
+            char page_path[DEFAULT_PATH_SIZE] = { 0 };
+            sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
+            print_debug(
+                "Page [%s] was deleted and flushed with results [%i | %i]",
+                page_path, CHC_flush_entry(PGM_load_page(page_path, NULL), PAGE_CACHE), remove(page_path)
+            );
         }
+    }
 
-        char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-        sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
-        CHC_flush_entry(directory, DIRECTORY_CACHE);
-        print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
+    char delete_path[DEFAULT_PATH_SIZE] = { 0 };
+    sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
+    CHC_flush_entry(directory, DIRECTORY_CACHE);
+    print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
 
     return 1;
 }
@@ -159,17 +156,4 @@ int DRM_free_directory(directory_t* directory) {
     SOFT_FREE(directory);
 
     return 1;
-}
-
-unsigned int DRM_get_checksum(directory_t* directory) {
-    unsigned int prev_checksum = directory->header->checksum;
-    directory->header->checksum = 0;
-
-    unsigned int _checksum = 0;
-    if (directory->header != NULL)
-        _checksum = checksum(_checksum, (const unsigned char*)directory->header, sizeof(directory_header_t));
-
-    directory->header->checksum = prev_checksum;
-    _checksum = checksum(_checksum, (const unsigned char*)directory->page_names, sizeof(directory->page_names));
-    return _checksum;
 }

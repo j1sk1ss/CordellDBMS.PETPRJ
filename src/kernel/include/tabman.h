@@ -223,9 +223,6 @@
         // Dir count in this table
         // How much directories in this table
         unsigned char dir_count;
-
-        // Table checksum
-        unsigned int checksum;
     } table_header_t;
 
     typedef struct table {

@@ -20,16 +20,15 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size) 
         // We load current page
         page_t* page = PGM_load_page(NULL, directory->page_names[i]);
         if (page == NULL) continue;
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-            // We check, that we don't return Page Empty, because
-            // PE symbols != Content symbols.
-            unsigned char* page_content_pointer = page->content;
-            while (page->content[current_index] == PAGE_EMPTY) {
-                if (++current_index >= PAGE_CONTENT_SIZE) {
-                    page_content_pointer = NULL;
-                    break;
-                }
+        // We check, that we don't return Page Empty, because
+        // PE symbols != Content symbols.
+        unsigned char* page_content_pointer = page->content;
+        while (page->content[current_index] == PAGE_EMPTY) {
+            if (++current_index >= PAGE_CONTENT_SIZE) {
+                page_content_pointer = NULL;
+                break;
             }
+        }
 
         // Also we don't check full content body. I mean, that
         // if situation CS ... CS, CS, PE, PE occur, we don't care,

@@ -77,9 +77,6 @@
 
         // Page count in directory
         unsigned char page_count;
-
-        // Directory checksum
-        unsigned int checksum;
     } directory_header_t;
 
     typedef struct directory {
