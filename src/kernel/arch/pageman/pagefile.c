@@ -1,7 +1,7 @@
 #include "../../include/pageman.h"
 
 
-page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_t data_size) {
+page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
     page_t* page = (page_t*)malloc(sizeof(page_t));
     page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
 
@@ -30,13 +30,13 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
     int status = -1;
     #pragma omp critical (page_save)
     {
-        uint32_t page_cheksum = PGM_get_checksum(page);
+        unsigned int page_cheksum = PGM_get_checksum(page);
         #ifndef NO_PAGE_SAVE_OPTIMIZATION
         if (page_cheksum != page->header->checksum)
         #endif
         {
             // We generate default path
-            char save_path[DEFAULT_PATH_SIZE];
+            char save_path[DEFAULT_PATH_SIZE] = { 0 };
             if (path == NULL) sprintf(save_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, page->header->name, PAGE_EXTENSION);
             else strcpy(save_path, path);
 
@@ -52,7 +52,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
 
                 page->header->checksum = page_cheksum;
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
-                if (fwrite(page->content, sizeof(uint8_t), page_size, file) != (size_t)page_size) status = -3;
+                if (fwrite(page->content, sizeof(unsigned char), page_size, file) != (size_t)page_size) status = -3;
 
                 // Close file
                 #ifndef _WIN32
@@ -71,13 +71,13 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
 }
 
 page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
-    char load_path[DEFAULT_PATH_SIZE];
+    char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, PAGE_NAME_SIZE, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
-    char file_name[PAGE_NAME_SIZE];
+    char file_name[PAGE_NAME_SIZE] = { 0 };
     if (get_filename(name, path, file_name, PAGE_NAME_SIZE) == -1) return NULL;
     page_t* loaded_page = (page_t*)CHC_find_entry(file_name, PAGE_CACHE);
     if (loaded_page != NULL) {
@@ -106,7 +106,7 @@ page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
                 // Allocate memory for page structure
                 page_t* page = (page_t*)malloc(sizeof(page_t));
                 memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
-                fread(page->content, sizeof(uint8_t), PAGE_CONTENT_SIZE, file);
+                fread(page->content, sizeof(unsigned char), PAGE_CONTENT_SIZE, file);
 
                 fclose(file);
 
@@ -140,15 +140,15 @@ int PGM_free_page(page_t* page) {
     return 1;
 }
 
-uint32_t PGM_get_checksum(page_t* page) {
-    uint32_t prev_checksum = page->header->checksum;
+unsigned int PGM_get_checksum(page_t* page) {
+    unsigned int prev_checksum = page->header->checksum;
     page->header->checksum = 0;
 
-    uint32_t checksum = 0;
+    unsigned int checksum = 0;
     if (page->header != NULL)
-        checksum = crc32(checksum, (const uint8_t*)page->header, sizeof(page_header_t));
+        checksum = crc32(checksum, (const unsigned char*)page->header, sizeof(page_header_t));
 
     page->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const uint8_t*)page->content, sizeof(page->content));
+    checksum = crc32(checksum, (const unsigned char*)page->content, sizeof(page->content));
     return checksum;
 }

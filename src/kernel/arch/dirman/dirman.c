@@ -1,9 +1,9 @@
 #include "../../include/dirman.h"
 
 
-uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
-    uint8_t* content = (uint8_t*)malloc(size);
-    uint8_t* content_pointer = content;
+unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size) {
+    unsigned char* content = (unsigned char*)malloc(size);
+    unsigned char* content_pointer = content;
     memset(content_pointer, 0, size);
 
     int pages4work    = (int)size / PAGE_CONTENT_SIZE;
@@ -23,7 +23,7 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We check, that we don't return Page Empty, because
             // PE symbols != Content symbols.
-            uint8_t* page_content_pointer = page->content;
+            unsigned char* page_content_pointer = page->content;
             while (page->content[current_index] == PAGE_EMPTY) {
                 if (++current_index >= PAGE_CONTENT_SIZE) {
                     page_content_pointer = NULL;
@@ -58,7 +58,7 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
     return content;
 }
 
-int DRM_append_content(directory_t* __restrict directory, uint8_t* __restrict data, size_t data_lenght) {
+int DRM_append_content(directory_t* __restrict directory, unsigned char* __restrict data, size_t data_lenght) {
     // First we try to find fit empty place somewhere in linked pages
     // We skip this part if data_lenght larger then PAGE_CONTENT_SIZE
     if (data_lenght < PAGE_CONTENT_SIZE) {
@@ -101,14 +101,14 @@ int DRM_append_content(directory_t* __restrict directory, uint8_t* __restrict da
     return -3;
 }
 
-int DRM_insert_content(directory_t* __restrict directory, uint8_t offset, uint8_t* __restrict data, size_t data_lenght) {
+int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght) {
     int pages4work      = data_lenght / PAGE_CONTENT_SIZE;
     int page_offset     = offset / PAGE_CONTENT_SIZE;
     int current_index   = offset % PAGE_CONTENT_SIZE;
     int current_page    = page_offset;
     int size2insert     = data_lenght;
 
-    uint8_t* data_pointer = data;
+    unsigned char* data_pointer = data;
     for (int i = 0; i < pages4work + 1 && size2insert > 0; i++) {
         // If we reach pages count in current directory, we return error code
         // We return error instead creationg a new directory, because this is not our abstraction level
@@ -213,7 +213,7 @@ int DRM_cleanup_pages(directory_t* directory) {
     return 1;
 }
 
-int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __restrict data, size_t data_size) {
+int DRM_find_content(directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_size) {
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int pages4search  = directory->header->page_count - page_offset;
     int current_page  = page_offset;
@@ -221,7 +221,7 @@ int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __r
     int size4seach    = (int)data_size;
     int target_global_index = -1;
 
-    uint8_t* data_pointer = data;
+    unsigned char* data_pointer = data;
     for (; pages4search > 0 && size4seach > 0; pages4search--) {
         // If we reach pages count in current directory, we return error code.
         // We return error instead creation a new directory, because this is not our abstraction level.

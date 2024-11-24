@@ -1,7 +1,7 @@
 #include "../../include/tabman.h"
 
 
-uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
+unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     int global_page_offset = offset / PAGE_CONTENT_SIZE;
     int directory_index    = -1;
     int current_page       = 0;
@@ -34,8 +34,8 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
     int content2get_size = (int)size;
 
     // Allocate data for output
-    uint8_t* output_content = (uint8_t*)malloc(size);
-    uint8_t* output_content_pointer = output_content;
+    unsigned char* output_content = (unsigned char*)malloc(size);
+    unsigned char* output_content_pointer = output_content;
 
     // Iterate from all directories in table
     for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
@@ -46,7 +46,7 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
             // Get data from directory
             // After getting data, copy it to allocated output
             int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
-            uint8_t* directory_content = DRM_get_content(directory, offset, current_size);
+            unsigned char* directory_content = DRM_get_content(directory, offset, current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
             if (directory_content != NULL) {
                 memcpy(output_content_pointer, directory_content, current_size);
@@ -68,8 +68,8 @@ uint8_t* TBM_get_content(table_t* table, int offset, size_t size) {
     return output_content;
 }
 
-int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size_t data_size) {
-    uint8_t* data_pointer = data;
+int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data, size_t data_size) {
+    unsigned char* data_pointer = data;
     int size4append = (int)data_size;
 
     // Iterate existed directories. Maybe we can store data here?
@@ -116,10 +116,10 @@ int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size
     return 1;
 }
 
-int TBM_insert_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size) {
+int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
     if (table->header->dir_count == 0) return -3;
 
-    uint8_t* data_pointer = data;
+    unsigned char* data_pointer = data;
     int size4insert = (int)data_size;
 
     // Iterate existed directories. Maybe we can insert data here?
@@ -189,12 +189,12 @@ int TBM_cleanup_dirs(table_t* table) {
     return 1;
 }
 
-int TBM_find_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size) {
+int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
     int directory_offset    = 0;
     int size4seach          = (int)data_size;
     int target_global_index = -1;
 
-    uint8_t* data_pointer = data;
+    unsigned char* data_pointer = data;
     for (directory_offset = 0; directory_offset < table->header->dir_count && size4seach > 0; directory_offset++) {
         // We load current page to memory
         directory_t* directory = DRM_load_directory(NULL, table->dir_names[directory_offset]);
@@ -264,7 +264,7 @@ int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
     return status;
 }
 
-int TBM_invoke_modules(table_t* __restrict table, uint8_t* __restrict data, uint8_t type) {
+int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data, unsigned char type) {
     int module_offset = 0;
     for (int i = 0; i < table->header->column_count; i++) {
         if (GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_MODULE) {
@@ -276,7 +276,7 @@ int TBM_invoke_modules(table_t* __restrict table, uint8_t* __restrict data, uint
 
                 int content_offset = 0;
                 for (int j = 0; j < table->header->column_count; j++) {
-                    uint8_t* content_pointer = data + content_offset;
+                    unsigned char* content_pointer = data + content_offset;
                     char* content_part = (char*)malloc(table->columns[j]->size + 1);
                     if (!content_part) {
                         free(output_querry);

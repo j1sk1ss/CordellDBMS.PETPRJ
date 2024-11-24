@@ -24,9 +24,7 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
-#include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 #ifndef _WIN32
@@ -65,13 +63,13 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     typedef struct database_header {
         // Database header magic
-        uint8_t magic;
+        unsigned char magic;
 
         // Database name
         char name[DATABASE_NAME_SIZE];
 
         // Table count in database
-        uint8_t table_count;
+        unsigned char table_count;
     } database_header_t;
 
     typedef struct database {
@@ -104,7 +102,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong
     Return pointer to data
     */
-    uint8_t* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access);
+    unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access);
 
     /*
     Append row function append data to provided table. If table not provided, it will return fail status.
@@ -138,7 +136,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if row append cause directory creation.
     Return 2 if row append cause page creation.
     */
-    int DB_append_row(database_t* __restrict database, char* __restrict table_name, uint8_t* __restrict data, size_t data_size, uint8_t access);
+    int DB_append_row(database_t* __restrict database, char* __restrict table_name, unsigned char* __restrict data, size_t data_size, unsigned char access);
 
     /*
     Insert row function works different with row_append function. Main difference in disabling auto-creation of pages and directories.
@@ -171,7 +169,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if row insert cause page creation
     */
     int DB_insert_row(
-        database_t* __restrict database, char* __restrict table_name, int row, uint8_t* __restrict data, size_t data_size, uint8_t access
+        database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size, unsigned char access
     );
 
     /*
@@ -189,7 +187,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong
     Return 1 if row delete was success
     */
-    int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access);
+    int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access);
 
     /*
     Init cascade cleanup of empty directories and empty pages in all table in database.
@@ -237,7 +235,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     */
     int DB_find_data_row(
         database_t* __restrict database, char* __restrict table_name, char* __restrict column, 
-        int offset, uint8_t* __restrict data, size_t data_size, uint8_t access
+        int offset, unsigned char* __restrict data, size_t data_size, unsigned char access
     );
 
 #pragma endregion

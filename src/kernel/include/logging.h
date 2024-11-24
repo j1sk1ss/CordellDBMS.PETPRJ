@@ -83,7 +83,7 @@ Params:
 - message - Additional info message.
 - args - Args.
 */
-void write_log(const char* level, const char* file, int line, const char* message, va_list args);
+void _write_log(const char* level, const char* file, int line, const char* message, va_list args);
 
 /*
 Create log message.

@@ -3,8 +3,8 @@
 
 void traceback_handler(int sig) {
     #ifndef _WIN32
-        void* array[10];
-        size_t size;
+        void* array[10] = { NULL };
+        size_t size = 0;
 
         size = backtrace(array, 10);
 

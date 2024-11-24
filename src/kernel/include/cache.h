@@ -12,7 +12,7 @@
  * 
  *  Description:
  *  This file is global cache manager for caching results of IO operations with disk.
- *  For working with this manager, object should have uint16_t field at top of struct.
+ *  For working with this manager, object should have unsigned short field at top of struct.
  * 
  *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
  *  Credits: j1sk1ss
@@ -23,7 +23,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 #include "common.h"
 #include "logging.h"
@@ -41,14 +40,14 @@
 
 
 typedef struct cache_body {
-    uint16_t lock;
-    uint8_t is_cached;
+    unsigned short lock;
+    unsigned char is_cached;
     void* body;
 } cache_body_t;
 
 typedef struct cache_entry {
     char name[ENTRY_NAME_SIZE];
-    uint8_t type;
+    unsigned char type;
     void* pointer;
 
     void (*free)(void* p);
@@ -78,7 +77,7 @@ Return -2 if entry is NULL.
 Return -1 if by some reason, function can't lock entry.
 Return 1 if add was success.
 */
-int CHC_add_entry(void* entry, char* name, uint8_t type, void* free, void* save);
+int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void* save);
 
 /*
 Cache find entry find entry in GCT by provided name and type.
@@ -90,7 +89,7 @@ Params:
 Return NULL if entry wasn't found.
 Return pointer to entry, if entry was found.
 */
-void* CHC_find_entry(char* name, uint8_t type);
+void* CHC_find_entry(char* name, unsigned char type);
 
 /*
 Save and load entries from GCT.
@@ -121,7 +120,7 @@ Params:
 Return -1 if something goes wrong.
 Return 1 if cleanup success.
 */
-int CHC_flush_entry(void* entry, uint8_t type);
+int CHC_flush_entry(void* entry, unsigned char type);
 
 /*
 Hard cleanup of GCT. Really not recomment for use!

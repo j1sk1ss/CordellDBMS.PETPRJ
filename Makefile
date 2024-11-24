@@ -2,8 +2,8 @@
 # don't have make, use command below:
 # g++ .\src\main.c .\src\kernel\kentry.c  .\src\kernel\arch\dataman\* .\src\kernel\arch\dirman\* .\src\kernel\arch\pageman\* .\src\kernel\arch\tabman\* .\src\kernel\std\* .\src\userland\std\* -lws2_32 -fpermissive -o cdms_x86-64_win_omp
 
-CC = gcc-14
-CFLAGS = -Wall -Wextra -Ikernel/include -fopenmp -Wcomment -Os -g0 -Wl,-dead_strip -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING
+CC = gcc
+CFLAGS = -Wall -Wextra -Ikernel/include -fopenmp -Wcomment -Os -g0 -s -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING
 
 USERLAND_DIR = src/userland
 KERNEL_DIR = src/kernel
@@ -30,9 +30,9 @@ OUTPUT = builds/cdbms_x86-64
 all: force_build $(OUTPUT)
 force_build:
 	@echo "Force building..."
-
+	
 $(OUTPUT): $(SOURCES)
-	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES) -lz
+	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES)
 
 clean:
 	rm -f $(OUTPUT)

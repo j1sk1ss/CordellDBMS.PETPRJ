@@ -14,7 +14,6 @@
 #ifndef COMPRESS_H_
 #define COMPRESS_H_
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -35,7 +34,7 @@
 #define GET_BIT(byte, index)       (((byte) >> (index)) & 0x01)
 
 
-int CMP_byte_by_bits(uint8_t* data, size_t data_size, uint8_t* output);
-int UNZ_byte_by_bits(uint8_t* data, size_t data_size, uint8_t* output);
+int CMP_byte_by_bits(unsigned char* data, size_t data_size, unsigned char* output);
+int UNZ_byte_by_bits(unsigned char* data, size_t data_size, unsigned char* output);
 
 #endif

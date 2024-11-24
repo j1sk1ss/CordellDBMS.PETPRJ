@@ -20,7 +20,7 @@ directory_t* DRM_create_directory(char* name) {
 }
 
 directory_t* DRM_create_empty_directory() {
-    char directory_name[DIRECTORY_NAME_SIZE] = { '\0' };
+    char directory_name[DIRECTORY_NAME_SIZE] = { 0 };
     char* unique_name = generate_unique_filename(DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, DIRECTORY_EXTENSION);
     strncpy(directory_name, unique_name, DIRECTORY_NAME_SIZE);
     free(unique_name);
@@ -49,7 +49,7 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
                     status = -1;
 
                 for (int i = 0; i < directory->header->page_count; i++) {
-                    if (fwrite(directory->page_names[i], sizeof(uint8_t), PAGE_NAME_SIZE, file) != 1) {
+                    if (fwrite(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file) != 1) {
                         status = -1;
                     }
                 }
@@ -69,13 +69,13 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
 }
 
 directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
-    char load_path[DEFAULT_PATH_SIZE];
+    char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, DIRECTORY_NAME_SIZE, path, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
-    char file_name[DIRECTORY_NAME_SIZE];
+    char file_name[DIRECTORY_NAME_SIZE] = { 0 };
     if (get_filename(name, path, file_name, DIRECTORY_NAME_SIZE) == -1) return NULL;
     directory_t* loaded_directory = (directory_t*)CHC_find_entry(file_name, DIRECTORY_CACHE);
     if (loaded_directory != NULL) {
@@ -106,7 +106,7 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
                 directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
                 memset(directory, 0, sizeof(directory_t));
                 for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
-                    fread(directory->page_names[i], sizeof(uint8_t), PAGE_NAME_SIZE, file);
+                    fread(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file);
 
                 // Close file directory
                 fclose(file);
@@ -130,7 +130,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < directory->header->page_count; i++) {
-                char page_path[DEFAULT_PATH_SIZE];
+                char page_path[DEFAULT_PATH_SIZE] = { 0 };
                 sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
                 print_debug(
                     "Page [%s] was deleted and flushed with results [%i | %i]",
@@ -139,7 +139,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
             }
         }
 
-        char delete_path[DEFAULT_PATH_SIZE];
+        char delete_path[DEFAULT_PATH_SIZE] = { 0 };
         sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
         CHC_flush_entry(directory, DIRECTORY_CACHE);
         print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
@@ -168,15 +168,15 @@ int DRM_free_directory(directory_t* directory) {
     return 1;
 }
 
-uint32_t DRM_get_checksum(directory_t* directory) {
-    uint32_t prev_checksum = directory->header->checksum;
+unsigned int DRM_get_checksum(directory_t* directory) {
+    unsigned int prev_checksum = directory->header->checksum;
     directory->header->checksum = 0;
 
-    uint32_t checksum = 0;
+    unsigned int checksum = 0;
     if (directory->header != NULL)
-        checksum = crc32(checksum, (const uint8_t*)directory->header, sizeof(directory_header_t));
+        checksum = crc32(checksum, (const unsigned char*)directory->header, sizeof(directory_header_t));
 
     directory->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const uint8_t*)directory->page_names, sizeof(directory->page_names));
+    checksum = crc32(checksum, (const unsigned char*)directory->page_names, sizeof(directory->page_names));
     return checksum;
 }

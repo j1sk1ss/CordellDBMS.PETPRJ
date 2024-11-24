@@ -9,8 +9,6 @@
 #define HASH_H_
 
 #include <string.h>
-#include <stdint.h>
-
 
 #define SALT    "CordellDBMS_SHA"
 #define MAGIC   8
@@ -22,8 +20,8 @@ Hash generator.
 Params:
 - str - input string for hash.
 
-Return hash (uint32_t)
+Return hash (unsigned int)
 */
-uint32_t HASH_str2hash(const char* str);
+unsigned int HASH_str2hash(const char* str);
 
 #endif

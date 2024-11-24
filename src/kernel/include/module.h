@@ -14,8 +14,6 @@
 #ifndef MODULE_H_
 #define MODULE_H_
 
-#include <stdint.h>
-
 #include "logging.h"
 #include "common.h"
 
@@ -42,6 +40,6 @@ Return -2 if module has error.
 Return -1 if module not found.
 Return 1 if launch and answer was success.
 */
-int MDL_launch_module(char* module_name, char* args, uint8_t* buffer, size_t buffer_size);
+int MDL_launch_module(char* module_name, char* args, unsigned char* buffer, size_t buffer_size);
 
 #endif

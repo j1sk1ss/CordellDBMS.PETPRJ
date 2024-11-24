@@ -22,15 +22,14 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
                 ((path[1] == ':' ) &&
                 (path[2] == '\\')) ||
 
-                (path[0] == '\\') ||
-
-                (path[0] == '/' ) ||
-
                 ((path[0] == '.' ) &&
                 (path[1] == '/' )) ||
 
                 ((path[0] == '.' ) &&
-                (path[1] == '\\'))
+                (path[1] == '\\')) ||
+                
+                (path[0] == '\\') ||
+                (path[0] == '/' )
             )
         ) {
             sDelim = (char*)calloc(5, sizeof(char));

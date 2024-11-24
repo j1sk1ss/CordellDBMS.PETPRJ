@@ -42,7 +42,7 @@
 
 
 /*
-Main idea, that lock status of object can be stored in one uint16_t object.
+Main idea, that lock status of object can be stored in one unsigned short object.
 In first 14 bits we store info about lock owner (or NO_OWNER) thread number:
 0b00000000000000XX
 In second 2 bits, lock state (LOCKED/UNLOCKED)
@@ -84,7 +84,7 @@ Params:
 Return -1 if we can`t require lock (for some reason)
 Return 1 if lock now locked.
 */
-int THR_require_lock(uint16_t* lock, uint8_t owner);
+int THR_require_lock(unsigned short* lock, unsigned char owner);
 
 /*
 Check lock status of table.
@@ -95,7 +95,7 @@ Params:
 
 Return lock status (LOCKED and UNLOCKED).
 */
-int THR_test_lock(uint16_t* lock, uint8_t owner);
+int THR_test_lock(unsigned short* lock, unsigned char owner);
 
 /*
 Realise table for working.
@@ -109,6 +109,6 @@ Return -2 if this table has another owner.
 Return -1 if table was unlocked. (Nothing changed)
 Return 1 if table now unlocked.
 */
-int THR_release_lock(uint16_t* lock, uint8_t owner);
+int THR_release_lock(unsigned short* lock, unsigned char owner);
 
 #endif

@@ -1,7 +1,7 @@
 #include "../include/logging.h"
 
 
-void write_log(const char* level, const char* file, int line, const char* message, va_list args) {
+void _write_log(const char* level, const char* file, int line, const char* message, va_list args) {
     #pragma omp critical
     {
         FILE* log_output = stdout;
@@ -38,6 +38,6 @@ void write_log(const char* level, const char* file, int line, const char* messag
 void log_message(const char* level, const char* file, int line, const char* message, ...) {
     va_list args;
     va_start(args, message);
-    write_log(level, file, line, message, args);
+    _write_log(level, file, line, message, args);
     va_end(args);
 }

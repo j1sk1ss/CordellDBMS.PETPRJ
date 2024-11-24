@@ -33,7 +33,6 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <stdint.h>
 
 #include "common.h"
 #include "sighandler.h"
@@ -115,10 +114,10 @@
 
 
 typedef struct kernel_answer {
-    uint16_t commands_processed;
-    int8_t answer_code;
-    uint16_t answer_size;
-    uint8_t* answer_body;
+    unsigned short commands_processed;
+    signed char answer_code;
+    unsigned short answer_size;
+    unsigned char* answer_body;
 } kernel_answer_t;
 
 
@@ -132,7 +131,7 @@ Params:
 
 Return NULL or answer.
 */
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, uint8_t access, int connection);
+kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, unsigned char access, int connection);
 
 /*
 Close connection by index.

@@ -1,7 +1,7 @@
 #include "../../include/tabman.h"
 
 
-table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, uint8_t access) {
+table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access) {
     int row_size = 0;
     for (int i = 0; i < col_count; i++)
         row_size += columns[i]->size;
@@ -43,7 +43,7 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
         #endif
         {
             // We generate default path
-            char save_path[DEFAULT_PATH_SIZE];
+            char save_path[DEFAULT_PATH_SIZE] = { 0 };
             if (path == NULL) sprintf(save_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
             else strcpy(save_path, path);
 
@@ -83,14 +83,14 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
 }
 
 table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
-    char load_path[DEFAULT_PATH_SIZE];
+    char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, TABLE_NAME_SIZE, path, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
     // If path is not NULL, we use function for getting file name
-    char file_name[TABLE_NAME_SIZE];
+    char file_name[TABLE_NAME_SIZE] = { 0 };
     if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
     table_t* loaded_table = (table_t*)CHC_find_entry(file_name, TABLE_CACHE);
     if (loaded_table != NULL) {
@@ -132,7 +132,7 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
 
                 // Read directory names from file, that linked to this directory.
                 for (int i = 0; i < header->dir_count; i++)
-                    fread(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file);
+                    fread(table->dir_names[i], sizeof(unsigned char), DIRECTORY_NAME_SIZE, file);
 
                 fclose(file);
 
@@ -193,19 +193,19 @@ int TBM_free_table(table_t* table) {
     return 1;
 }
 
-uint32_t TBM_get_checksum(table_t* table) {
-    uint32_t prev_checksum = table->header->checksum;
+unsigned int TBM_get_checksum(table_t* table) {
+    unsigned int prev_checksum = table->header->checksum;
     table->header->checksum = 0;
 
-    uint32_t checksum = 0;
-    if (table->header != NULL) checksum = crc32(checksum, (const uint8_t*)table->header, sizeof(table_header_t));
+    unsigned int checksum = 0;
+    if (table->header != NULL) checksum = crc32(checksum, (const unsigned char*)table->header, sizeof(table_header_t));
     if (table->columns != NULL) {
-        for (uint16_t i = 0; i < table->header->column_count; i++) {
-            if (table->columns[i] != NULL) checksum = crc32(checksum, (const uint8_t*)table->columns[i], sizeof(table_column_t));
+        for (unsigned short i = 0; i < table->header->column_count; i++) {
+            if (table->columns[i] != NULL) checksum = crc32(checksum, (const unsigned char*)table->columns[i], sizeof(table_column_t));
         }
     }
 
     table->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const uint8_t*)table->dir_names, sizeof(table->dir_names));
+    checksum = crc32(checksum, (const unsigned char*)table->dir_names, sizeof(table->dir_names));
     return checksum;
 }

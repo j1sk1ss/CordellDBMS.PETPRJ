@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdint.h>
 #include <time.h>
 #include <stdio.h>
 #ifdef _WIN32
@@ -168,5 +167,10 @@ Params:
 Return new string with replaced sub-memory.
 */
 char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
+
+/*
+Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+*/
+unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
 
 #endif

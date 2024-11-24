@@ -32,12 +32,10 @@
 #ifndef TABMAN_H_
 #define TABMAN_H_
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #ifndef _WIN32
-    #include <zlib.h>
     #include <unistd.h>
 #endif
 
@@ -165,7 +163,7 @@
 
     typedef struct table_column {
         // Column magic byte
-        uint8_t magic;
+        unsigned char magic;
 
         /*
         Column type indicates what type should user insert to this column.
@@ -178,10 +176,10 @@
         DD - Data type bits.
         TT - Column type bits.
         */
-        uint8_t type;
+        unsigned char type;
 
         // Column size
-        uint16_t size;
+        unsigned short size;
 
         // Column name with fixed size
         // Column name
@@ -189,14 +187,14 @@
 
         // Column module data.
         // If in column used any module, we store command here.
-        uint8_t module_params;
+        unsigned char module_params;
         char module_name[MODULE_NAME_SIZE];
         char module_querry[COLUMN_MODULE_SIZE];
     } table_column_t;
 
     typedef struct table_header {
         // Table magic
-        uint8_t magic;
+        unsigned char magic;
 
         // Table name
         // Table name needs for working with modfication exist table
@@ -214,32 +212,32 @@
 
         Access byte used in higher abstraction levels like database, because here, in tabman, we don't know user.
         */
-        uint8_t access;
+        unsigned char access;
 
         // Column count in this table
         // How much columns in this table
-        uint8_t column_count;
+        unsigned char column_count;
 
         // Dir count in this table
         // How much directories in this table
-        uint8_t dir_count;
+        unsigned char dir_count;
 
         // Table checksum
-        uint32_t checksum;
+        unsigned int checksum;
     } table_header_t;
 
     typedef struct table {
         // Lock table flag
-        uint16_t lock;
-        uint8_t is_cached;
+        unsigned short lock;
+        unsigned char is_cached;
 
         // Table header
         table_header_t* header;
-        uint8_t append_offset;
+        unsigned char append_offset;
 
         // Column names
         table_column_t** columns;
-        uint16_t row_size;
+        unsigned short row_size;
 
         // Table directories
         char dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
@@ -259,7 +257,7 @@
 
     Return point to allocated copy of data from table
     */
-    uint8_t* TBM_get_content(table_t* table, int offset, size_t size);
+    unsigned char* TBM_get_content(table_t* table, int offset, size_t size);
 
     /*
     Insert data row to content pages in directories. Main difference with append_content is hard part.
@@ -280,7 +278,7 @@
     Return 0 if row append was success
     Return 1 if row append was success and we create new pages
     */
-    int TBM_insert_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size);
+    int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size);
 
     /*
     Append data to content pages in directories
@@ -301,7 +299,7 @@
     Return 1 if append was success and we create new pages
     Return 2 if append was success and we create new directories
     */
-    int TBM_append_content(table_t* __restrict table, uint8_t* __restrict data, size_t data_size);
+    int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data, size_t data_size);
 
     /*
     Delete content in table. All steps below:
@@ -361,7 +359,7 @@
     Return -1 if data nfound
     Return global index (first entry) of target data
     */
-    int TBM_find_content(table_t* __restrict table, int offset, uint8_t* __restrict data, size_t data_size);
+    int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size);
 
 #pragma endregion
 
@@ -396,7 +394,7 @@
 
     Return pointer to column.
     */
-    table_column_t* TBM_create_column(uint8_t type, uint16_t size, char* name);
+    table_column_t* TBM_create_column(unsigned char type, unsigned short size, char* name);
 
 #pragma endregion
 
@@ -417,7 +415,7 @@
               This error indicates, that data to small for this column count.
     Return 1 if signature is correct.
     */
-    int TBM_check_signature(table_t* __restrict table, uint8_t* __restrict data);
+    int TBM_check_signature(table_t* __restrict table, unsigned char* __restrict data);
 
     /*
     Link directory to table
@@ -457,7 +455,7 @@
 
     Return pointer to new table
     */
-    table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, uint8_t access);
+    table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access);
 
     /*
     Save table to the disk
@@ -541,7 +539,7 @@
 
     Return table checksum.
     */
-    uint32_t TBM_get_checksum(table_t* table);
+    unsigned int TBM_get_checksum(table_t* table);
 
     /*
     Invoke modules in table and change input data.
@@ -553,7 +551,7 @@
 
     Return 1 if success.
     */
-    int TBM_invoke_modules(table_t* __restrict table, uint8_t* __restrict data, uint8_t type);
+    int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data, unsigned char type);
 
 #pragma endregion
 

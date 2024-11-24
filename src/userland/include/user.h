@@ -6,7 +6,6 @@
 #ifndef USER_H_
 #define USER_H_
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -19,9 +18,9 @@
 
 
 typedef struct user {
-    uint8_t name[USERNAME_SIZE];
-    uint8_t access;
-    uint32_t pass_hash;
+    unsigned char name[USERNAME_SIZE];
+    unsigned char access;
+    unsigned int pass_hash;
 } user_t;
 
 

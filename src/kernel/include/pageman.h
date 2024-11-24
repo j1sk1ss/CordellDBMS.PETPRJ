@@ -31,13 +31,11 @@
 #ifndef PAGEMAN_H_
 #define PAGEMAN_H_
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #ifndef _WIN32
-    #include <zlib.h>
     #include <unistd.h>
     #include <libgen.h>
 #endif
@@ -76,26 +74,26 @@
     typedef struct page_header {
         // Magic namber for check
         // If number nq magic, we know that this file broken
-        uint8_t magic;
+        unsigned char magic;
 
         // Page filename
         // With this name we can save pages / compare pages
         char name[PAGE_NAME_SIZE];
 
         // Table checksum
-        uint32_t checksum;
+        unsigned int checksum;
     } page_header_t;
 
     typedef struct page {
         // Lock page flags
-        uint16_t lock;
-        uint8_t is_cached;
+        unsigned short lock;
+        unsigned char is_cached;
 
         // Page header with all special information
         page_header_t* header;
 
         // Page content
-        uint8_t content[PAGE_CONTENT_SIZE];
+        unsigned char content[PAGE_CONTENT_SIZE];
     } page_t;
 
 
@@ -112,7 +110,7 @@
     Return 1 if insert success.
     Return -1 if offset too large.
     */
-    int PGM_insert_value(page_t* page, int offset, uint8_t value);
+    int PGM_insert_value(page_t* page, int offset, unsigned char value);
 
     /*
     Insert content to page. This function don't move page_end symbol to new location.
@@ -126,7 +124,7 @@
 
     Return size of data, that can be stored in page.
     */
-    int PGM_insert_content(page_t* __restrict page, int offset, uint8_t* __restrict data, size_t data_lenght);
+    int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_lenght);
 
     /*
     Rewrite all line by EMPTY symbols
@@ -164,7 +162,7 @@
     Return -1 if data nfound
     Return index (first entry) of target data
     */
-    int PGM_find_content(page_t* __restrict page, int offset, uint8_t* __restrict data, size_t data_size);
+    int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size);
 
     /*
     Find local index of line with input value
@@ -178,7 +176,7 @@
     Return -1 - if not found
     Return index of value in content
     */
-    int PGM_find_value(page_t* page, int offset, uint8_t value);
+    int PGM_find_value(page_t* page, int offset, unsigned char value);
 
     /*
     Function that set PE symbol in content in page. Main idea:
@@ -237,7 +235,7 @@
     P.S. Function always pad content to fit default page size
          If buffer_size higher then default page-size, it will trunc
     */
-    page_t* PGM_create_page(char* __restrict name, uint8_t* __restrict buffer, size_t data_size);
+    page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size);
 
     /*
     Same function with create page, but here you can avoid name and buffer input.
@@ -317,7 +315,7 @@
 
     Return page checksum.
     */
-    uint32_t PGM_get_checksum(page_t* page);
+    unsigned int PGM_get_checksum(page_t* page);
 
 #pragma endregion
 

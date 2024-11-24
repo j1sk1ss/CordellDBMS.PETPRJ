@@ -1,7 +1,7 @@
 #include "../../include/dataman.h"
 
 
-uint8_t* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access) {
+unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return NULL;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
@@ -14,14 +14,14 @@ uint8_t* DB_get_row(database_t* __restrict database, char* __restrict table_name
     int page_offset   = row % rows_per_page;
     int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * table->row_size;
 
-    uint8_t* data = TBM_get_content(table, global_offset, table->row_size);
+    unsigned char* data = TBM_get_content(table, global_offset, table->row_size);
     TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
     TBM_flush_table(table);
 
     return data;
 }
 
-int DB_append_row(database_t* __restrict database, char* __restrict table_name, uint8_t* __restrict data, size_t data_size, uint8_t access) {
+int DB_append_row(database_t* __restrict database, char* __restrict table_name, unsigned char* __restrict data, size_t data_size, unsigned char access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -4;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
@@ -71,7 +71,7 @@ int DB_append_row(database_t* __restrict database, char* __restrict table_name, 
     return result;
 }
 
-int DB_insert_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t* __restrict data, size_t data_size, uint8_t access) {
+int DB_insert_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size, unsigned char access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
     if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
@@ -106,7 +106,7 @@ int DB_insert_row(database_t* __restrict database, char* __restrict table_name, 
     return result;
 }
 
-int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, uint8_t access) {
+int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
     if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) {
@@ -143,7 +143,7 @@ int DB_cleanup_tables(database_t* database) {
 
 int DB_find_data_row(
     database_t* __restrict database, char* __restrict table_name, char* __restrict column, int offset, 
-    uint8_t* __restrict data, size_t data_size, uint8_t access
+    unsigned char* __restrict data, size_t data_size, unsigned char access
 ) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;

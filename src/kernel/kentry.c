@@ -4,7 +4,7 @@
 static database_t* connections[MAX_CONNECTIONS] = { NULL };
 
 
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, uint8_t access, int connection) {
+kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
 
     answer->answer_body = NULL;
@@ -74,7 +74,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         Command syntax: version
         */
         else if (strcmp(command, VERSION) == 0) {
-            answer->answer_body = (uint8_t*)malloc(strlen(KERNEL_VERSION));
+            answer->answer_body = (unsigned char*)malloc(strlen(KERNEL_VERSION));
             memcpy(answer->answer_body, KERNEL_VERSION, strlen(KERNEL_VERSION));
             answer->answer_size = strlen(KERNEL_VERSION);
         }
@@ -116,11 +116,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 if (table == NULL) {
                     char* table_access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                     if (table_access != NULL) {
-                        uint8_t access_byte = access;
+                        unsigned char access_byte = access;
                         if (strcmp(table_access, ACCESS_SAME) != 0) {
-                            uint8_t rd  = table_access[0] - '0';
-                            uint8_t wr  = table_access[1] - '0';
-                            uint8_t del = table_access[2] - '0';
+                            unsigned char rd  = table_access[0] - '0';
+                            unsigned char wr  = table_access[1] - '0';
+                            unsigned char del = table_access[2] - '0';
                             access_byte = CREATE_ACCESS_BYTE(rd, wr, del);
                             if (access_byte < access) {
                                 answer->answer_code = 6;
@@ -142,19 +142,19 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                     if (column_stack[j] == NULL) break;
 
                                     // Get column data type
-                                    uint8_t data_type = COLUMN_TYPE_MODULE;
+                                    unsigned char data_type = COLUMN_TYPE_MODULE;
                                     char* column_data_type = column_stack[j + 2];
                                     if (strcmp(column_data_type, TYPE_INT) == 0) data_type = COLUMN_TYPE_INT;
                                     else if (strcmp(column_data_type, TYPE_ANY) == 0) data_type = COLUMN_TYPE_ANY;
                                     else if (strcmp(column_data_type, TYPE_STRING) == 0) data_type = COLUMN_TYPE_STRING;
 
                                     // Get column primary status
-                                    uint8_t primary_status = COLUMN_NOT_PRIMARY;
+                                    unsigned char primary_status = COLUMN_NOT_PRIMARY;
                                     char* column_primary = column_stack[j + 3];
                                     if (strcmp(column_primary, PRIMARY) == 0) primary_status = COLUMN_PRIMARY;
 
                                     // Get column increment status
-                                    uint8_t increment_status = COLUMN_NO_AUTO_INC;
+                                    unsigned char increment_status = COLUMN_NO_AUTO_INC;
                                     char* column_increment = column_stack[j + 4];
                                     if (strcmp(column_increment, AUTO_INC) == 0) increment_status = COLUMN_AUTO_INCREMENT;
 
@@ -234,7 +234,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                         return answer;
                     }
 
-                    int result = DB_append_row(database, table_name, (uint8_t*)input_data, strlen(input_data), access);
+                    int result = DB_append_row(database, table_name, (unsigned char*)input_data, strlen(input_data), access);
                     if (result >= 0) print_log("Row [%s] successfully added to [%.*s] database!", input_data, DATABASE_NAME_SIZE, database->header->name);
                     else {
                         print_error(
@@ -323,7 +323,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 return answer;
                             }
 
-                            index = DB_find_data_row(database, table_name, column_name, 0, (uint8_t*)value, strlen(value), access);
+                            index = DB_find_data_row(database, table_name, column_name, 0, (unsigned char*)value, strlen(value), access);
                             if (index == -1) {
                                 print_error("Value not presented in table [%s].", table_name);
                                 return answer;
@@ -348,7 +348,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
                 int index = -1;
                 int answer_size = 0;
-                uint8_t* answer_data = NULL;
+                unsigned char* answer_data = NULL;
 
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
@@ -402,10 +402,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                             int offset = 0;
 
                             while (index != -1) {
-                                index = DB_find_data_row(database, table_name, column_name, offset, (uint8_t*)value, strlen(value), access);
+                                index = DB_find_data_row(database, table_name, column_name, offset, (unsigned char*)value, strlen(value), access);
                                 if (index == -1) break;
                                 
-                                uint8_t* row_data = DB_get_row(database, table_name, index, access);
+                                unsigned char* row_data = DB_get_row(database, table_name, index, access);
                                 if (row_data == NULL) {
                                     print_error(
                                         "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", 
@@ -419,8 +419,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                 answer_size += table->row_size;
                                 offset += (index + 1) * table->row_size;
 
-                                answer_data = (uint8_t*)realloc(answer_data, answer_size);
-                                uint8_t* copy_pointer = answer_data + data_start;
+                                answer_data = (unsigned char*)realloc(answer_data, answer_size);
+                                unsigned char* copy_pointer = answer_data + data_start;
 
                                 memcpy(copy_pointer, row_data, table->row_size);
                             }
@@ -484,7 +484,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                                     return answer;
                                 }
 
-                                index = DB_find_data_row(database, table_name, col_name, 0, (uint8_t*)value, strlen(value), access);
+                                index = DB_find_data_row(database, table_name, col_name, 0, (unsigned char*)value, strlen(value), access);
                                 if (index == -1) {
                                     print_error("Value [%s] not presented in table [%s]", data, table_name);
                                     return answer;
@@ -495,7 +495,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
                 }
                 
                 answer->answer_size = -1;
-                answer->answer_code = DB_insert_row(database, table_name, index, (uint8_t*)data, strlen(data), access);
+                answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
                 answer->commands_processed = command_index;
             }
         }
