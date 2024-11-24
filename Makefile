@@ -28,8 +28,9 @@ OUTPUT = builds/cdbms_x86-64
 all: force_build $(OUTPUT)
 force_build:
 	@echo "Force building..."
-
+	
 $(OUTPUT): $(SOURCES)
+	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES)
 	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES)
 
 clean:

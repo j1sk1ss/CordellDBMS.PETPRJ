@@ -1,7 +1,7 @@
 #include "../../include/tabman.h"
 
 
-table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, uint8_t access) {
+table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access) {
     int row_size = 0;
     for (int i = 0; i < col_count; i++)
         row_size += columns[i]->size;
@@ -14,12 +14,12 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     table_t* table  = (table_t*)malloc(sizeof(table_t));
     table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
 
-    memset(table, 0, sizeof(table_t));
-    memset(header, 0, sizeof(table_header_t));
+    memset_s(table, 0, sizeof(table_t));
+    memset_s(header, 0, sizeof(table_header_t));
 
     header->access = access;
     header->magic  = TABLE_MAGIC;
-    strncpy(header->name, name, TABLE_NAME_SIZE);
+    strncpy_s(header->name, name, TABLE_NAME_SIZE);
 
     header->dir_count    = 0;
     header->column_count = col_count;
@@ -42,9 +42,9 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
         #endif
         {
             // We generate default path
-            char save_path[DEFAULT_PATH_SIZE];
+            char save_path[DEFAULT_PATH_SIZE] = { 0 };
             if (path == NULL) sprintf(save_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
-            else strcpy(save_path, path);
+            else strcpy_s(save_path, path);
 
             // Open or create file
             FILE* file = fopen(save_path, "wb");
@@ -82,14 +82,14 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
 }
 
 table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
-    char load_path[DEFAULT_PATH_SIZE];
+    char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, TABLE_NAME_SIZE, path, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
     // If path is not NULL, we use function for getting file name
-    char file_name[TABLE_NAME_SIZE];
+    char file_name[TABLE_NAME_SIZE] = { 0 };
     if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
     table_t* loaded_table = (table_t*)CHC_find_entry(file_name, TABLE_CACHE);
     if (loaded_table != NULL) {
@@ -117,8 +117,8 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                 table_t* table = (table_t*)malloc(sizeof(table_t));
                 table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
 
-                memset(table, 0, sizeof(table_t));
-                memset(columns, 0, header->column_count * sizeof(table_column_t*));
+                memset_s(table, 0, sizeof(table_t));
+                memset_s(columns, 0, header->column_count * sizeof(table_column_t*));
 
                 for (int i = 0; i < header->column_count; i++) {
                     columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
@@ -131,7 +131,7 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
 
                 // Read directory names from file, that linked to this directory.
                 for (int i = 0; i < header->dir_count; i++)
-                    fread(table->dir_names[i], sizeof(uint8_t), DIRECTORY_NAME_SIZE, file);
+                    fread(table->dir_names[i], sizeof(unsigned char), DIRECTORY_NAME_SIZE, file);
 
                 fclose(file);
 
@@ -185,4 +185,21 @@ int TBM_free_table(table_t* table) {
     SOFT_FREE(table);
 
     return 1;
+}
+
+unsigned int TBM_get_checksum(table_t* table) {
+    unsigned int prev_checksum = table->header->checksum;
+    table->header->checksum = 0;
+
+    unsigned int _checksum = 0;
+    if (table->header != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->header, sizeof(table_header_t));
+    if (table->columns != NULL) {
+        for (unsigned short i = 0; i < table->header->column_count; i++) {
+            if (table->columns[i] != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->columns[i], sizeof(table_column_t));
+        }
+    }
+
+    table->header->checksum = prev_checksum;
+    _checksum = checksum(_checksum, (const unsigned char*)table->dir_names, sizeof(table->dir_names));
+    return _checksum;
 }

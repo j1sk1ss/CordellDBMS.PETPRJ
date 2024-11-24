@@ -1,10 +1,10 @@
 #include "../../include/dirman.h"
 
 
-uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
-    uint8_t* content = (uint8_t*)malloc(size);
-    uint8_t* content_pointer = content;
-    memset(content_pointer, 0, size);
+unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size) {
+    unsigned char* content = (unsigned char*)malloc(size);
+    unsigned char* content_pointer = content;
+    memset_s(content_pointer, 0, size);
 
     int pages4work    = (int)size / PAGE_CONTENT_SIZE;
     int page_offset   = offset / PAGE_CONTENT_SIZE;
@@ -20,15 +20,16 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
         // We load current page
         page_t* page = PGM_load_page(NULL, directory->page_names[i]);
         if (page == NULL) continue;
-        // We check, that we don't return Page Empty, because
-        // PE symbols != Content symbols.
-        uint8_t* page_content_pointer = page->content;
-        while (page->content[current_index] == PAGE_EMPTY) {
-            if (++current_index >= PAGE_CONTENT_SIZE) {
-                page_content_pointer = NULL;
-                break;
+        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+            // We check, that we don't return Page Empty, because
+            // PE symbols != Content symbols.
+            unsigned char* page_content_pointer = page->content;
+            while (page->content[current_index] == PAGE_EMPTY) {
+                if (++current_index >= PAGE_CONTENT_SIZE) {
+                    page_content_pointer = NULL;
+                    break;
+                }
             }
-        }
 
         // Also we don't check full content body. I mean, that
         // if situation CS ... CS, CS, PE, PE occur, we don't care,
@@ -37,9 +38,9 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
         if (page_content_pointer != NULL) {
             page_content_pointer += current_index;
 
-            // We work with page
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2get);
-            memcpy(content_pointer, page_content_pointer, current_size);
+                // We work with page
+                int current_size = MIN(PAGE_CONTENT_SIZE - current_index, size2get);
+                memcpy_s(content_pointer, page_content_pointer, current_size);
 
             // We reload local index and update size2get
             // Also we move content pointer to next location
@@ -54,7 +55,7 @@ uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size) {
     return content;
 }
 
-int DRM_append_content(directory_t* __restrict directory, uint8_t* __restrict data, size_t data_lenght) {
+int DRM_append_content(directory_t* __restrict directory, unsigned char* __restrict data, size_t data_lenght) {
     // First we try to find fit empty place somewhere in linked pages
     // We skip this part if data_lenght larger then PAGE_CONTENT_SIZE
     if (data_lenght < PAGE_CONTENT_SIZE) {
@@ -93,14 +94,14 @@ int DRM_append_content(directory_t* __restrict directory, uint8_t* __restrict da
     return -3;
 }
 
-int DRM_insert_content(directory_t* __restrict directory, uint8_t offset, uint8_t* __restrict data, size_t data_lenght) {
+int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght) {
     int pages4work      = data_lenght / PAGE_CONTENT_SIZE;
     int page_offset     = offset / PAGE_CONTENT_SIZE;
     int current_index   = offset % PAGE_CONTENT_SIZE;
     int current_page    = page_offset;
     int size2insert     = data_lenght;
 
-    uint8_t* data_pointer = data;
+    unsigned char* data_pointer = data;
     for (int i = 0; i < pages4work + 1 && size2insert > 0; i++) {
         // If we reach pages count in current directory, we return error code
         // We return error instead creationg a new directory, because this is not our abstraction level
@@ -192,7 +193,7 @@ int DRM_cleanup_pages(directory_t* directory) {
     return 1;
 }
 
-int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __restrict data, size_t data_size) {
+int DRM_find_content(directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_size) {
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int pages4search  = directory->header->page_count - page_offset;
     int current_page  = page_offset;
@@ -200,7 +201,7 @@ int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __r
     int size4seach    = (int)data_size;
     int target_global_index = -1;
 
-    uint8_t* data_pointer = data;
+    unsigned char* data_pointer = data;
     for (; pages4search > 0 && size4seach > 0; pages4search--) {
         // If we reach pages count in current directory, we return error code.
         // We return error instead creation a new directory, because this is not our abstraction level.
@@ -249,7 +250,7 @@ int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __r
 
 int DRM_link_page2dir(directory_t* __restrict directory, page_t* __restrict page) {
     #pragma omp critical (link_page2dir)
-    strncpy(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
+    strncpy_s(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
     return 1;
 }
 
@@ -258,9 +259,9 @@ int DRM_unlink_page_from_directory(directory_t* __restrict directory, char* __re
     #pragma omp critical (unlink_page_from_directory)
     {
         for (int i = 0; i < directory->header->page_count; i++) {
-            if (strncmp(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
+            if (strncmp_s(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
                 for (int j = i; j < directory->header->page_count - 1; j++)
-                    memcpy(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
+                    memcpy_s(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
 
                 directory->header->page_count--;
                 status = 1;

@@ -31,13 +31,12 @@
 #ifndef KENTRY_H_
 #define KENTRY_H_
 
-#include <string.h>
 #include <stdio.h>
-#include <stdint.h>
 
+#include "cache.h"
 #include "common.h"
 #include "dataman.h"
-#include "cache.h"
+#include "sighandler.h"
 
 
 #define SAFE_GET_VALUE(argv, max, index)            index >= max ? NULL : argv[index]
@@ -110,13 +109,16 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.3"
+#define KERNEL_VERSION     "v2.4"
 
 
-typedef struct commands {
-    char** argv;
-    int argc;
-} commands_t;
+typedef struct kernel_answer {
+    unsigned short commands_processed;
+    signed char answer_code;
+    unsigned short answer_size;
+    unsigned char* answer_body;
+} kernel_answer_t;
+
 
 /*
 Process command input
@@ -126,7 +128,7 @@ Params:
 
 Return pointer to commands struct.
 */
-commands_t* process_command(char* buffer);
+kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, unsigned char access, int connection);
 
 /*
 Dummy entry point.

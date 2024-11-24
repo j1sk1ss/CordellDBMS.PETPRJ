@@ -31,16 +31,14 @@
 #ifndef DIRMAN_H_
 #define DIRMAN_H_
 
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
 #ifndef _WIN32
-    #include <zlib.h>
     #include <unistd.h>
 #endif
 
+#include "cache.h"
 #include "common.h"
 #include "logging.h"
 #include "pageman.h"
@@ -71,27 +69,27 @@
 
     typedef struct directory_header {
         // Magic namber for check
-        uint8_t magic;
+        unsigned char magic;
 
         // Directory filename
         // With this name we can save directories / compare directories
         char name[DIRECTORY_NAME_SIZE];
 
         // Page count in directory
-        uint8_t page_count;
+        unsigned char page_count;
 
         // Directory checksum
-        uint32_t checksum;
+        unsigned int checksum;
     } directory_header_t;
 
     typedef struct directory {
         // Lock directory flag
-        uint16_t lock;
-        uint8_t is_cached;
+        unsigned short lock;
+        unsigned char is_cached;
 
         // Directory header
         directory_header_t* header;
-        uint8_t append_offset;
+        unsigned char append_offset;
 
         // Page file names
         char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
@@ -111,7 +109,7 @@
 
     Return point to allocated copy of data from directory
     */
-    uint8_t* DRM_get_content(directory_t* directory, int offset, size_t size);
+    unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size);
 
     /*
     Rewrite all line by EMPTY symbols.
@@ -154,7 +152,7 @@
     Return -3 if data size too large for one page. Check [pageman.h] docs for explanation.
     Return size, that can`t fit to this directory, if we reach page limit in directory.
     */
-    int DRM_append_content(directory_t* __restrict directory, uint8_t* __restrict data, size_t data_lenght);
+    int DRM_append_content(directory_t* __restrict directory, unsigned char* __restrict data, size_t data_lenght);
 
     /*
     Insert content to directory. This function don't move page_end in first empty page symbol to new location.
@@ -172,7 +170,7 @@
     Return -1 if something goes wrong.
     Return data size, that can't be stored in existed pages if we reach directory end.
     */
-    int DRM_insert_content(directory_t* __restrict directory, uint8_t offset, uint8_t* __restrict data, size_t data_lenght);
+    int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght);
 
     /*
     Find data function return global index in directory of provided data. (Will return first entry of data).
@@ -199,7 +197,7 @@
     Return -1 if data nfound.
     Return global index (first entry) of target data .
     */
-    int DRM_find_content(directory_t* __restrict directory, int offset, uint8_t* __restrict data, size_t data_size);
+    int DRM_find_content(directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_size);
 
 #pragma endregion
 
