@@ -4,7 +4,7 @@
 static database_t* connections[MAX_CONNECTIONS] = { NULL };
 
 
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, unsigned char access, int connection) {
+kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
 
     answer->answer_body = NULL;
@@ -501,7 +501,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, u
         }
     }
 
-    if (auto_sync == 1) DB_init_transaction(database);
     return answer;
 }
 

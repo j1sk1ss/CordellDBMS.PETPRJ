@@ -1,26 +1,43 @@
 #include "../include/threading.h"
 
 
-int THR_create_thread(void* entry, void* args) {
-    #ifdef _WIN32
-        HANDLE client_thread = CreateThread(NULL, 0, entry, args, 0, NULL);
-        if (client_thread == NULL) {
-            free(args);
-            return -1;
-        }
-
-        CloseHandle(client_thread);
+int THR_create_thread(void* (*entry)(void*), void* args) {
+    #ifdef NO_THREADS
+        entry(args);
     #else
-        pthread_t client_thread;
-        if (pthread_create(&client_thread, NULL, entry, args) != 0) {
-            free(args);
-            return -1;
-        }
+        #ifdef _WIN32
+            HANDLE client_thread = CreateThread(NULL, 0, entry, args, 0, NULL);
+            if (client_thread == NULL) {
+                free(args);
+                return -1;
+            }
 
-        pthread_detach(client_thread);
+            CloseHandle(client_thread);
+        #else
+            pthread_t client_thread;
+            if (pthread_create(&client_thread, NULL, entry, args) != 0) {
+                free(args);
+                return -1;
+            }
+
+            pthread_detach(client_thread);
+        #endif
     #endif
 
     return 1;
+}
+
+int THR_kill_thread(int fd) {
+    #ifndef NO_THREADS
+        #ifndef _WIN32
+            pthread_exit(NULL);
+            close(fd);
+        #else
+            closesocket(fd);
+        #endif
+    #endif
+
+    return fd;
 }
 
 int THR_create_lock() {

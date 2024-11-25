@@ -33,6 +33,7 @@
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
 #include "kernel/include/cache.h"
+#include "kernel/include/threading.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,6 @@
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
-    #include <pthread.h>
 #endif
 
 
@@ -103,13 +103,7 @@ void* _handle_client(void* client_socket_fd) {
     print_info("Session [%i] closed", session);
     free(client_socket_fd);
 
-    #ifndef _WIN32
-    pthread_exit(NULL);
-    close(socket_fd);
-    #else
-    closesocket(client_socket_fd);
-    #endif
-
+    THR_kill_thread(socket_fd);
     return NULL;
 }
 
@@ -180,7 +174,7 @@ void _start_kernel_session(int source, int destination, int session) {
         }
 
         if (current_arg) argv[argc++] = current_arg;
-        kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access, session);
+        kernel_answer_t* result = kernel_process_command(argc, argv, user->access, session);
         if (result->answer_body != NULL) {
             _send2destination(destination, result->answer_body, result->answer_size);
             print_log("Answer body: [%.*s]", result->answer_size, result->answer_body);

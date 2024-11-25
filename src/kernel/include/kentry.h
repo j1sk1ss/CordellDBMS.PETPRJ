@@ -131,7 +131,7 @@ Params:
 
 Return NULL or answer.
 */
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, unsigned char access, int connection);
+kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection);
 
 /*
 Close connection by index.

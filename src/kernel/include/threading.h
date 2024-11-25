@@ -37,7 +37,9 @@
   #include <windows.h>
   #define __thread
 #else
+  #ifndef NO_THREADS
   #include <pthread.h>
+  #endif
 #endif
 
 
@@ -65,10 +67,24 @@ Params:
 Return 1 if thread create.
 Return -1 if thread can't be created.
 */
-int THR_create_thread(void* entry, void* args);
+int THR_create_thread(void* (*entry)(void*), void* args);
 
 /*
+Kill thread by file descriptor.
 
+Params:
+- fd - Descriptor.
+
+Return 1 if kill success.
+*/
+int THR_kill_thread(int fd);
+
+/*
+Create empty lock with next params:
+Lock owner: NO_ONWER
+Lock status: UNLOCKED
+
+Return lock
 */
 int THR_create_lock();
 
