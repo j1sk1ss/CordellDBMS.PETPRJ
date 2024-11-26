@@ -27,17 +27,14 @@ int THR_create_thread(void* (*entry)(void*), void* args) {
     return 1;
 }
 
-int THR_kill_thread(int fd) {
+int THR_kill_thread() {
     #ifndef NO_THREADS
         #ifndef _WIN32
             pthread_exit(NULL);
-            close(fd);
-        #else
-            closesocket(fd);
         #endif
     #endif
 
-    return fd;
+    return 1;
 }
 
 int THR_create_lock() {

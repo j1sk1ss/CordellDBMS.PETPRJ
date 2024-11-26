@@ -103,7 +103,7 @@ void* _handle_client(void* client_socket_fd) {
     print_info("Session [%i] closed", session);
     free(client_socket_fd);
 
-    THR_kill_thread(socket_fd);
+    THR_kill_thread();
     return NULL;
 }
 

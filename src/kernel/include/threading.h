@@ -77,7 +77,7 @@ Params:
 
 Return 1 if kill success.
 */
-int THR_kill_thread(int fd);
+int THR_kill_thread();
 
 /*
 Create empty lock with next params:
