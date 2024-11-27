@@ -75,16 +75,6 @@ db delete row table_1 by_index 0
 db delete row table_1 by_value column col1 value 'data'
 ```
 
-*LINK* </br>
-Link function template:
-```
-<db_name> link master <master_tb_name> <master_col_name> to_slave <slave_tb_name> <slave_col_name> ( <capp/cdel/cfnd/cupd> ... )
-```
-Link function example:
-```
-db link master table1 col1 to_slave table2 col1 ( capp cdel )
-```
-
 *SYNC* </br>
 Sync function template:
 ```
