@@ -38,13 +38,13 @@ extern "C"
 /// Definitions ///
 
 // Type definitions
-typedef uint32_t lfs_size_t;
-typedef uint32_t lfs_off_t;
+typedef unsigned int lfs_size_t;
+typedef unsigned int lfs_off_t;
 
-typedef int32_t  lfs_ssize_t;
-typedef int32_t  lfs_soff_t;
+typedef signed int  lfs_ssize_t;
+typedef signed int  lfs_soff_t;
 
-typedef uint32_t lfs_block_t;
+typedef unsigned int lfs_block_t;
 
 // Maximum name size in bytes, may be redefined to reduce the size of the
 // info struct. Limited to <= 1022. Stored in superblock and must be
@@ -216,7 +216,7 @@ struct lfs_config {
     // of less consistent wear distribution.
     //
     // Set to -1 to disable block-level wear-leveling.
-    int32_t block_cycles;
+    signed int block_cycles;
 
     // Size of block caches in bytes. Each cache buffers a portion of a block in
     // RAM. The littlefs needs a read cache, a program cache, and one additional
@@ -290,14 +290,14 @@ struct lfs_config {
     // + 16-bit minor version. This limiting metadata to what is supported by
     // older minor versions. Note that some features will be lost. Defaults to 
     // to the most recent minor version when zero.
-    uint32_t disk_version;
+    unsigned int disk_version;
 #endif
 };
 
 // File info structure
 struct lfs_info {
     // Type of the file, either LFS_TYPE_REG or LFS_TYPE_DIR
-    uint8_t type;
+    unsigned char type;
 
     // Size of the file, only valid for REG files. Limited to 32-bits.
     lfs_size_t size;
@@ -312,7 +312,7 @@ struct lfs_info {
 // Filesystem info structure
 struct lfs_fsinfo {
     // On-disk version.
-    uint32_t disk_version;
+    unsigned int disk_version;
 
     // Size of a logical block in bytes.
     lfs_size_t block_size;
@@ -335,7 +335,7 @@ struct lfs_fsinfo {
 struct lfs_attr {
     // 8-bit type of attribute, provided by user and used to
     // identify the attribute
-    uint8_t type;
+    unsigned char type;
 
     // Pointer to buffer containing the attribute
     void *buffer;
@@ -373,15 +373,15 @@ typedef struct lfs_cache {
     lfs_block_t block;
     lfs_off_t off;
     lfs_size_t size;
-    uint8_t *buffer;
+    unsigned char *buffer;
 } lfs_cache_t;
 
 typedef struct lfs_mdir {
     lfs_block_t pair[2];
-    uint32_t rev;
+    unsigned int rev;
     lfs_off_t off;
-    uint32_t etag;
-    uint16_t count;
+    unsigned int etag;
+    unsigned short count;
     bool erased;
     bool split;
     lfs_block_t tail[2];
@@ -390,8 +390,8 @@ typedef struct lfs_mdir {
 // littlefs directory type
 typedef struct lfs_dir {
     struct lfs_dir *next;
-    uint16_t id;
-    uint8_t type;
+    unsigned short id;
+    unsigned char type;
     lfs_mdir_t m;
 
     lfs_off_t pos;
@@ -401,8 +401,8 @@ typedef struct lfs_dir {
 // littlefs file type
 typedef struct lfs_file {
     struct lfs_file *next;
-    uint16_t id;
-    uint8_t type;
+    unsigned short id;
+    unsigned char type;
     lfs_mdir_t m;
 
     struct lfs_ctz {
@@ -410,7 +410,7 @@ typedef struct lfs_file {
         lfs_size_t size;
     } ctz;
 
-    uint32_t flags;
+    unsigned int flags;
     lfs_off_t pos;
     lfs_block_t block;
     lfs_off_t off;
@@ -420,7 +420,7 @@ typedef struct lfs_file {
 } lfs_file_t;
 
 typedef struct lfs_superblock {
-    uint32_t version;
+    unsigned int version;
     lfs_size_t block_size;
     lfs_size_t block_count;
     lfs_size_t name_max;
@@ -429,7 +429,7 @@ typedef struct lfs_superblock {
 } lfs_superblock_t;
 
 typedef struct lfs_gstate {
-    uint32_t tag;
+    unsigned int tag;
     lfs_block_t pair[2];
 } lfs_gstate_t;
 
@@ -441,11 +441,11 @@ typedef struct lfs {
     lfs_block_t root[2];
     struct lfs_mlist {
         struct lfs_mlist *next;
-        uint16_t id;
-        uint8_t type;
+        unsigned short id;
+        unsigned char type;
         lfs_mdir_t m;
     } *mlist;
-    uint32_t seed;
+    unsigned int seed;
 
     lfs_gstate_t gstate;
     lfs_gstate_t gdisk;
@@ -456,7 +456,7 @@ typedef struct lfs {
         lfs_block_t size;
         lfs_block_t next;
         lfs_block_t ckpoint;
-        uint8_t *buffer;
+        unsigned char *buffer;
     } lookahead;
 
     const struct lfs_config *cfg;
@@ -471,6 +471,8 @@ typedef struct lfs {
 #endif
 } lfs_t;
 
+
+extern lfs_t lfs_body;
 
 /// Filesystem functions ///
 
@@ -540,7 +542,7 @@ int lfs_stat(lfs_t *lfs, const char *path, struct lfs_info *info);
 // of the size of the buffer. This can be used to dynamically allocate a buffer
 // or check for existence.
 lfs_ssize_t lfs_getattr(lfs_t *lfs, const char *path,
-        uint8_t type, void *buffer, lfs_size_t size);
+        unsigned char type, void *buffer, lfs_size_t size);
 
 #ifndef LFS_READONLY
 // Set custom attributes
@@ -551,7 +553,7 @@ lfs_ssize_t lfs_getattr(lfs_t *lfs, const char *path,
 //
 // Returns a negative error code on failure.
 int lfs_setattr(lfs_t *lfs, const char *path,
-        uint8_t type, const void *buffer, lfs_size_t size);
+        unsigned char type, const void *buffer, lfs_size_t size);
 #endif
 
 #ifndef LFS_READONLY
@@ -560,7 +562,7 @@ int lfs_setattr(lfs_t *lfs, const char *path,
 // If an attribute is not found, nothing happens.
 //
 // Returns a negative error code on failure.
-int lfs_removeattr(lfs_t *lfs, const char *path, uint8_t type);
+int lfs_removeattr(lfs_t *lfs, const char *path, unsigned char type);
 #endif
 
 

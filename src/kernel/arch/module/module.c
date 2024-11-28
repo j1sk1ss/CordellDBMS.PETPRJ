@@ -1,7 +1,7 @@
 #include "../../include/module.h"
 
 
-int MDL_launch_module(char* module_name, char* args, uint8_t* buffer, size_t buffer_size) {
+int MDL_launch_module(char* module_name, char* args, unsigned char* buffer, size_t buffer_size) {
     // memset(buffer, '0', buffer_size);
     // print_debug("Module [%s] invoked with [%s] args", module_name, args);
 

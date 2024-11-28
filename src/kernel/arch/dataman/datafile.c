@@ -26,7 +26,7 @@ int DB_delete_database(database_t* database, int full) {
     }
 
     if (result != 1) return result;
-    char delete_path[DEFAULT_PATH_SIZE];
+    char delete_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path(database->header->name, DATABASE_NAME_SIZE, NULL, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
     remove(delete_path);
 
@@ -44,7 +44,7 @@ int DB_free_database(database_t* database) {
 }
 
 database_t* DB_load_database(char* __restrict path, char* __restrict name) {
-    char load_path[DEFAULT_PATH_SIZE];
+    char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, DATABASE_NAME_SIZE, path, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
@@ -64,14 +64,14 @@ database_t* DB_load_database(char* __restrict path, char* __restrict name) {
             if (header->magic != DATABASE_MAGIC) {
                 print_error("Database file wrong magic for [%s]", load_path);
                 free(header);
-                fclose(file);
+                lfs_file_close(&lfs_body, &file);
             } else {
                 database_t* database = (database_t*)malloc(sizeof(database_t));
                 memset(database, 0, sizeof(database_t));
                 for (int i = 0; i < header->table_count; i++)
                     fread(database->table_names[i], TABLE_NAME_SIZE, 1, file);
 
-                fclose(file);
+                lfs_file_close(&lfs_body, &file);
 
                 database->header = header;
                 loaded_database  = database;
@@ -87,7 +87,7 @@ int DB_save_database(database_t* database, char* path) {
     #pragma omp critical (save_database)
     {
         // We generate default path
-        char save_path[DEFAULT_PATH_SIZE];
+        char save_path[DEFAULT_PATH_SIZE] = { 0 };
         if (path == NULL) sprintf(save_path, "%s%.*s.%s", DATABASE_BASE_PATH, DATABASE_NAME_SIZE, database->header->name, DATABASE_EXTENSION);
         else strcpy(save_path, path);
 
@@ -107,7 +107,7 @@ int DB_save_database(database_t* database, char* path) {
             fflush(file);
             #endif
 
-            fclose(file);
+            lfs_file_close(&lfs_body, &file);
         }
     }
 
