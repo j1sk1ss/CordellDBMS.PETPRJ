@@ -118,7 +118,7 @@ void* _handle_client(void* client_socket_fd) {
 void _start_kernel_session(int source, int destination, int session) {
     user_t* user = NULL;
     int count = 0;
-    unsigned char buffer[MESSAGE_BUFFER];
+    unsigned char buffer[MESSAGE_BUFFER] = { 0 };
 
     #ifdef _WIN32
     while ((count = recv(source, (char*)buffer, MESSAGE_BUFFER, 0)) > 0)
@@ -136,7 +136,7 @@ void _start_kernel_session(int source, int destination, int session) {
 
             user = USR_auth(username, password);
             if (user == NULL) {
-                print_error("Wrong password [%s] for user [%s] at session [%i]", user->name, password, session);
+                print_error("Wrong password [%s] for user [%s] at session [%i]", password, username, session);
                 _send2destination_byte(destination, 0);
             }
             else {
