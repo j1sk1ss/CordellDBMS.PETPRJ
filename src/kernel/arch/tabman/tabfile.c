@@ -14,12 +14,12 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     table_t* table  = (table_t*)malloc(sizeof(table_t));
     table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
 
-    memset(table, 0, sizeof(table_t));
-    memset(header, 0, sizeof(table_header_t));
+    memset_s(table, 0, sizeof(table_t));
+    memset_s(header, 0, sizeof(table_header_t));
 
     header->access = access;
     header->magic  = TABLE_MAGIC;
-    strncpy(header->name, name, TABLE_NAME_SIZE);
+    strncpy_s(header->name, name, TABLE_NAME_SIZE);
 
     header->dir_count    = 0;
     header->column_count = col_count;
@@ -44,7 +44,7 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             if (path == NULL) sprintf(save_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
-            else strcpy(save_path, path);
+            else strcpy_s(save_path, path);
 
             // Open or create file
             FILE* file = fopen(save_path, "wb");
@@ -52,7 +52,6 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
             else {
                 // Write header
                 status = 1;
-                table->header->checksum = 1; // TBM_get_checksum(table);
                 if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
 
                 // Write table data to open file
@@ -117,8 +116,8 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                 table_t* table = (table_t*)malloc(sizeof(table_t));
                 table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
 
-                memset(table, 0, sizeof(table_t));
-                memset(columns, 0, header->column_count * sizeof(table_column_t*));
+                memset_s(table, 0, sizeof(table_t));
+                memset_s(columns, 0, header->column_count * sizeof(table_column_t*));
 
                 for (int i = 0; i < header->column_count; i++) {
                     columns[i] = (table_column_t*)malloc(sizeof(table_column_t));

@@ -2,18 +2,20 @@
 
 
 page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
+page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
     page_t* page = (page_t*)malloc(sizeof(page_t));
     page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
 
-    memset(page, 0, sizeof(page_t));
-    memset(header, 0, sizeof(page_header_t));
+    memset_s(page, 0, sizeof(page_t));
+    memset_s(header, 0, sizeof(page_header_t));
 
     header->magic = PAGE_MAGIC;
-    strncpy(header->name, name, PAGE_NAME_SIZE);
+    strncpy_s(header->name, name, PAGE_NAME_SIZE);
+    page->lock = THR_create_lock();
     page->is_cached = 0;
 
     page->header = header;
-    if (buffer != NULL) memcpy(page->content, buffer, data_size);
+    if (buffer != NULL) memcpy_s(page->content, buffer, data_size);
     for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
     return page;
 }
@@ -52,12 +54,13 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
 
 page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
+    char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, PAGE_NAME_SIZE, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Path or name should be provided!");
         return NULL;
     }
 
-    char file_name[PAGE_NAME_SIZE];
+    char file_name[PAGE_NAME_SIZE] = { 0 };
     if (get_filename(name, path, file_name, PAGE_NAME_SIZE) == -1) return NULL;
     page_t* loaded_page = (page_t*)CHC_find_entry(file_name, PAGE_CACHE);
     if (loaded_page != NULL) {

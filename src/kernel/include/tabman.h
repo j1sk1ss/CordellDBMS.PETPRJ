@@ -32,12 +32,10 @@
 #ifndef TABMAN_H_
 #define TABMAN_H_
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #ifndef _WIN32
-    #include <zlib.h>
     #include <unistd.h>
 #endif
 
@@ -225,9 +223,6 @@
         // Dir count in this table
         // How much directories in this table
         unsigned char dir_count;
-
-        // Table checksum
-        unsigned int checksum;
     } table_header_t;
 
     typedef struct table {

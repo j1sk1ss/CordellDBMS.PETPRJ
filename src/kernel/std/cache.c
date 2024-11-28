@@ -41,7 +41,6 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
     if (entry == NULL) return -2;
     ((cache_body_t*)entry)->is_cached = 0;
 
-    int current = -1;
     int free_current = -1;
     int occup_current = -1;
 
@@ -63,16 +62,17 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
         }
     }
 
-    if (free_current == -1 && occup_current == -1) {
+    int current = -1;
+    if (free_current != -1) current = free_current;
+    else if (occup_current != -1) current = occup_current;
+    else if (free_current == -1 && occup_current == -1) {
         print_error("Can't find empty space for entry [%s] with type [%i]", name, type);
         return -1;
     }
-    else if (free_current != -1) current = free_current;
-    else if (occup_current != -1) current = occup_current;
 
     if (should_replace == 1 && found_replace == 0) return -3;
-    else if (should_replace == 1 && found_replace == 1 && occup_current != -1) current = occup_current;
     else if (should_replace == 1 && found_replace == 1 && occup_current == -1) return -4;
+    else if (should_replace == 1 && found_replace == 1 && occup_current != -1) current = occup_current;
 
     if (GCT[current].pointer != NULL) {
         #pragma omp critical (gct_types_decreese)
@@ -84,7 +84,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
     ((cache_body_t*)entry)->is_cached = 1;
 
     GCT[current].pointer = entry;
-    strncpy(GCT[current].name, name, ENTRY_NAME_SIZE);
+    strncpy_s(GCT[current].name, name, ENTRY_NAME_SIZE);
     GCT[current].type = type;
     GCT[current].free = free;
     GCT[current].save = save;
@@ -97,7 +97,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
 void* CHC_find_entry(char* name, unsigned char type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && (GCT[i].type == type || type == ANY_CACHE)) {
+        if (strncmp_s(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && (GCT[i].type == type || type == ANY_CACHE)) {
             return GCT[i].pointer;
         }
     }

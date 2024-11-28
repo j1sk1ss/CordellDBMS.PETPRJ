@@ -4,7 +4,8 @@ I just want to create alternative of SQL like DBMS. For example my own PostgreSQ
 
 **ToDo list:**
 -----------------------------------------------------
-1) STM32 brunch </br>
+1) STM32 brunch (Complete) </br>
+2) Reach 40 KB size </br>
 
 **Docs:**
 -----------------------------------------------------

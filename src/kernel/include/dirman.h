@@ -31,16 +31,14 @@
 #ifndef DIRMAN_H_
 #define DIRMAN_H_
 
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
 #ifndef _WIN32
-    #include <zlib.h>
     #include <unistd.h>
 #endif
 
+#include "cache.h"
 #include "common.h"
 #include "logging.h"
 #include "pageman.h"
@@ -79,9 +77,6 @@
 
         // Page count in directory
         unsigned char page_count;
-
-        // Directory checksum
-        unsigned int checksum;
     } directory_header_t;
 
     typedef struct directory {

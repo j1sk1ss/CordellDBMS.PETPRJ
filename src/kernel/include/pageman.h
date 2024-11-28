@@ -31,13 +31,10 @@
 #ifndef PAGEMAN_H_
 #define PAGEMAN_H_
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 
 #ifndef _WIN32
-    #include <zlib.h>
     #include <unistd.h>
     #include <libgen.h>
 #endif
@@ -83,9 +80,6 @@
         // Page filename
         // With this name we can save pages / compare pages
         char name[PAGE_NAME_SIZE];
-
-        // Table checksum
-        unsigned int checksum;
     } page_header_t;
 
     typedef struct page {

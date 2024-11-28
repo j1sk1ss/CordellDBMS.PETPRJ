@@ -21,9 +21,7 @@
 #ifndef CACHE_H_
 #define CACHE_H_
 
-#include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 
 #include "common.h"
 #include "logging.h"

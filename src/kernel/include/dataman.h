@@ -24,10 +24,7 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
-#include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
 #ifndef _WIN32
     #include <unistd.h>
@@ -395,5 +392,16 @@ we use cache in pages (lowest level) and table cache at the highest level.
     int DB_rollback(database_t** database);
 
 #pragma endregion
+
+    /*
+    Get global offset.
+
+    Params:
+    - row_size - Row size in table.
+    - row - Index of row.
+
+    Return global offset.
+    */
+    int _get_global_offset(int row_size, int row);
 
 #endif

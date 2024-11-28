@@ -27,13 +27,6 @@
 #include "common.h"
 
 
-#define DEBUG
-#define LOGGING
-#define WARNINGS
-#define ERRORS
-#define INFORMING
-#define SPECIAL
-
 // Note: LOG_TO_FILE option very heavy function. Prefere console logging.
 // #define LOG_TO_FILE
 #define LOG_FILE_PATH       ENV_GET("LOG_FILE_PATH", "")
@@ -89,7 +82,7 @@ Params:
 - message - Additional info message.
 - args - Args.
 */
-void write_log(const char* level, const char* file, int line, const char* message, va_list args);
+void _write_log(const char* level, const char* file, int line, const char* message, va_list args);
 
 /*
 Create log message.

@@ -5,10 +5,10 @@ directory_t* DRM_create_directory(char* name) {
     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
     directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
 
-    memset(directory, 0, sizeof(directory_t));
-    memset(header, 0, sizeof(directory_header_t));
+    memset_s(directory, 0, sizeof(directory_t));
+    memset_s(header, 0, sizeof(directory_header_t));
 
-    strncpy(header->name, name, DIRECTORY_NAME_SIZE);
+    strncpy_s(header->name, name, DIRECTORY_NAME_SIZE);
     header->magic      = DIRECTORY_MAGIC;
     header->page_count = 0;
 
@@ -21,7 +21,7 @@ directory_t* DRM_create_directory(char* name) {
 directory_t* DRM_create_empty_directory() {
     char directory_name[DIRECTORY_NAME_SIZE] = { 0 };
     char* unique_name = generate_unique_filename(DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, DIRECTORY_EXTENSION);
-    strncpy(directory_name, unique_name, DIRECTORY_NAME_SIZE);
+    strncpy_s(directory_name, unique_name, DIRECTORY_NAME_SIZE);
     free(unique_name);
 
     return DRM_create_directory(directory_name);
@@ -37,13 +37,12 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
         {
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             if (path == NULL) sprintf(save_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
-            else strcpy(save_path, path);
+            else strcpy_s(save_path, path);
 
             FILE* file = fopen(save_path, "wb");
             if (file == NULL) print_error("Can`t create file: [%s]", save_path);
             else {
                 status = 1;
-                directory->header->checksum = 1; // DRM_get_checksum(directory);
                 if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1)
                     status = -1;
 
@@ -91,7 +90,7 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
         else {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
-            memset(header, 0, sizeof(directory_header_t));
+            memset_s(header, 0, sizeof(directory_header_t));
             fread(header, sizeof(directory_header_t), 1, file);
 
             // Check directory magic
@@ -103,7 +102,7 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
                 // First we allocate memory for directory struct
                 // Then we read page names
                 directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-                memset(directory, 0, sizeof(directory_t));
+                memset_s(directory, 0, sizeof(directory_t));
                 for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
                     fread(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file);
 
@@ -125,9 +124,8 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
 int DRM_delete_directory(directory_t* directory, int full) {
     if (directory == NULL) return -1;
     if (full) {
-        #pragma omp parallel for schedule(dynamic, 1)
         for (int i = 0; i < directory->header->page_count; i++) {
-            char page_path[DEFAULT_PATH_SIZE];
+            char page_path[DEFAULT_PATH_SIZE] = { 0 };
             sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
             print_debug(
                 "Page [%s] was deleted and flushed with results [%i | %i]",

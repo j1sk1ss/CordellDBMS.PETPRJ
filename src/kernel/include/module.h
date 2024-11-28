@@ -14,10 +14,6 @@
 #ifndef MODULE_H_
 #define MODULE_H_
 
-#include <stdint.h>
-#include <unistd.h>
-#include <stdio.h>
-
 #include "logging.h"
 #include "common.h"
 
