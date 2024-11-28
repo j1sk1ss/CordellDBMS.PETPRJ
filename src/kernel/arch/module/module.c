@@ -2,9 +2,7 @@
 
 
 int MDL_launch_module(char* module_name, char* args, unsigned char* buffer, size_t buffer_size) {
-    memset(buffer, '0', buffer_size);
-    print_debug("Module [%s] invoked with [%s] args", module_name, args);
-
+    memset(buffer, ' ', buffer_size);
     char module_path[DEFAULT_PATH_SIZE] = { 0 };
     char command[256] = { 0 };
     char result[128] = { 0 };
@@ -30,7 +28,6 @@ int MDL_launch_module(char* module_name, char* args, unsigned char* buffer, size
         int exit_code = WEXITSTATUS(status);
         print_log("Module [%s] exit code: [%d]", module_name, exit_code);
         if (exit_code == 100) {
-            print_debug("Module [%s] result: [%s]", module_name, result);
             size_t result_len = strlen(result);
             size_t offset = buffer_size > result_len ? buffer_size - result_len : 0;
             memcpy(buffer + offset, result, MIN(buffer_size, result_len));

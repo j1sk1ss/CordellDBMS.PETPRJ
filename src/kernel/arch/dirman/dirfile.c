@@ -140,7 +140,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
         }
 
         char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-        sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
+        get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, NULL, delete_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
         CHC_flush_entry(directory, DIRECTORY_CACHE);
         print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
 

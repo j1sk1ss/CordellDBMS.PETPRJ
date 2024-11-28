@@ -189,7 +189,7 @@ int DRM_delete_content(directory_t* directory, int offset, size_t length) {
 int DRM_cleanup_pages(directory_t* directory) {
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < directory->header->page_count; i++) {
-        char page_path[DEFAULT_PATH_SIZE];
+        char page_path[DEFAULT_PATH_SIZE] = { 0 };
         sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
         page_t* page = PGM_load_page(NULL, directory->page_names[i]);
         if (page != NULL) {

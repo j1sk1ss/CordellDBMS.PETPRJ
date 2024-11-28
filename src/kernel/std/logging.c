@@ -5,7 +5,6 @@ void _write_log(const char* level, const char* file, int line, const char* messa
     #pragma omp critical
     {
         FILE* log_output = stdout;
-
         #ifdef LOG_TO_FILE
             static int log_size = 0;
             static char* log_file_path = NULL;
@@ -17,9 +16,11 @@ void _write_log(const char* level, const char* file, int line, const char* messa
             }
         #endif
 
+        if (level == NULL) level = "(null)";
+        if (file == NULL) file = "(null)";
         if (message == NULL) message = "(null)";
-        fprintf(log_output, "[%s] [%s] (%s:%i) ", level, get_current_time(), file, line);
 
+        fprintf(log_output, "[%s] [%s] (%s:%i) ", level, get_current_time(), file, line);
         vfprintf(log_output, message, args);
         fprintf(log_output, "\n");
 

@@ -169,7 +169,9 @@ Return new string with replaced sub-memory.
 char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
 /*
+Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
 Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+Return checksum.
 */
 unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
 

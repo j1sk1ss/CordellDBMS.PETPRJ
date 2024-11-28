@@ -45,7 +45,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
             if (file == NULL) print_error("Can't save or create [%s] file", save_path);
             else {
                 // Write data to disk
-                status  = 1;
+                status = 1;
                 int eof = PGM_set_pe_symbol(page, PAGE_START);
                 int page_size = PGM_find_value(page, 0, PAGE_END);
                 if (page_size <= 0) page_size = 0;

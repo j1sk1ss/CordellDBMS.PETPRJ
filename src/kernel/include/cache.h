@@ -25,11 +25,10 @@
 #include <stdlib.h>
 
 #include "common.h"
-#include "logging.h"
 #include "threading.h"
 
 
-#define ENTRY_COUNT     10
+#define ENTRY_COUNT     8
 #define ENTRY_NAME_SIZE 8
 
 #define CACHE_TYPES_COUNT   3
@@ -72,6 +71,7 @@ Params:
 - free - Pointer to object free function | free(void* entry).
 - save - Pointer to object save file function | save(void* entry, char* path).
 
+Return -4 if can't find empty space for entry with provided type.
 Return -3 if entry type reach limit in GCT.
 Return -2 if entry is NULL.
 Return -1 if by some reason, function can't lock entry.
@@ -94,7 +94,7 @@ void* CHC_find_entry(char* name, unsigned char type);
 /*
 Save and load entries from GCT.
 
-Return -1 if something goes wrong.
+Return -1 if something goes wrong. (Can't lock some entry)
 Return 1 if sync success.
 */
 int CHC_sync();

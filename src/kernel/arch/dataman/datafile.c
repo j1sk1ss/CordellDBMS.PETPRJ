@@ -9,7 +9,7 @@ database_t* DB_create_database(char* name) {
     memset(header, 0, sizeof(database_header_t));
 
     header->magic = DATABASE_MAGIC;
-    strncpy(header->name, name, DATABASE_NAME_SIZE);
+    if (name != NULL) { strncpy(header->name, name, DATABASE_NAME_SIZE); }
     header->table_count = 0;
 
     database->header = header;
@@ -17,12 +17,16 @@ database_t* DB_create_database(char* name) {
 }
 
 int DB_delete_database(database_t* database, int full) {
+    if (database == NULL) return -1;
+
     int result = 1;
-    #pragma omp parallel for schedule(dynamic, 1) shared(result)
-    for (int i = 0; i < database->header->table_count; i++) {
-        table_t* table = DB_get_table(database, database->table_names[i]);
-        if (table == NULL) continue;
-        if (TBM_delete_table(table, full) != 1) result = -1;
+    if (full) {
+        #pragma omp parallel for schedule(dynamic, 1) shared(result)
+        for (int i = 0; i < database->header->table_count; i++) {
+            table_t* table = DB_get_table(database, database->table_names[i]);
+            if (table == NULL) continue;
+            result = MIN(TBM_delete_table(table, full), result);
+        }
     }
 
     if (result != 1) return result;
@@ -36,10 +40,8 @@ int DB_delete_database(database_t* database, int full) {
 
 int DB_free_database(database_t* database) {
     if (database == NULL) return -1;
-
     SOFT_FREE(database->header);
     SOFT_FREE(database);
-
     return 1;
 }
 
@@ -57,24 +59,17 @@ database_t* DB_load_database(char* __restrict path, char* __restrict name) {
         print_debug("Loading database [%s]", load_path);
         if (file == NULL) print_error("Database file not found! [%s]", load_path);
         else {
-            database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
-            memset(header, 0, sizeof(database_header_t));
-            fread(header, sizeof(database_header_t), 1, file);
-
-            if (header->magic != DATABASE_MAGIC) {
+            loaded_database = DB_create_database(NULL);
+            fread(loaded_database->header, sizeof(database_header_t), 1, file);
+            if (loaded_database->header->magic != DATABASE_MAGIC) {
                 print_error("Database file wrong magic for [%s]", load_path);
-                free(header);
+                DB_free_database(loaded_database);
                 fclose(file);
             } else {
-                database_t* database = (database_t*)malloc(sizeof(database_t));
-                memset(database, 0, sizeof(database_t));
-                for (int i = 0; i < header->table_count; i++)
-                    fread(database->table_names[i], TABLE_NAME_SIZE, 1, file);
+                for (int i = 0; i < loaded_database->header->table_count; i++)
+                    fread(loaded_database->table_names[i], TABLE_NAME_SIZE, 1, file);
 
                 fclose(file);
-
-                database->header = header;
-                loaded_database  = database;
             }
         }
     }
