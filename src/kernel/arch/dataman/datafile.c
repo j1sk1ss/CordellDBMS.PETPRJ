@@ -101,12 +101,6 @@ int DB_save_database(database_t* database, char* path) {
                     status = -3;
                 }
 
-            #ifndef _WIN32
-            fsync(fileno(file));
-            #else
-            fflush(file);
-            #endif
-
             lfs_file_close(&lfs_body, &file);
         }
     }

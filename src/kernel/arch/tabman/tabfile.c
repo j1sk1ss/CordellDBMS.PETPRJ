@@ -65,13 +65,6 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
                         status = -5;
                     }
 
-                // Close file and clear buffers
-                #ifndef _WIN32
-                fsync(fileno(file));
-                #else
-                fflush(file);
-                #endif
-
                 lfs_file_close(&lfs_body, &file);
             }
         }

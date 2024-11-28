@@ -52,12 +52,6 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
                     }
                 }
 
-                #ifndef _WIN32
-                fsync(fileno(file));
-                #else
-                fflush(file);
-                #endif
-
                 lfs_file_close(&lfs_body, &file);
             }
         }
