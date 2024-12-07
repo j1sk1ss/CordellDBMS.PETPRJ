@@ -18,9 +18,11 @@
 #include <signal.h>
 #include <stdlib.h>
 
+#ifndef NO_TRACE
 #ifndef _WIN32
     #include <execinfo.h>
     #include <unistd.h>
+#endif
 #endif
 
 #include "kentry.h"
