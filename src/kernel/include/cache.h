@@ -32,10 +32,10 @@
 #define ENTRY_NAME_SIZE 8
 
 #define CACHE_TYPES_COUNT   3
-#define ANY_CACHE       0xFF
-#define TABLE_CACHE     2
-#define DIRECTORY_CACHE 1
-#define PAGE_CACHE      0
+#define ANY_CACHE           0xFF
+#define TABLE_CACHE         2
+#define DIRECTORY_CACHE     1
+#define PAGE_CACHE          0
 
 
 typedef struct cache_body {
@@ -133,6 +133,6 @@ Params:
 Return -1 if something goes wrong.
 Return 1 if cleanup success.
 */
-int CHC_flush_index(int index);
+int _flush_index(int index);
 
 #endif

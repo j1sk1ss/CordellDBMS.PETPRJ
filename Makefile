@@ -9,9 +9,9 @@ OMP ?= 1
 
 ifeq ($(PROD), 1)
 	CC = musl-gcc
-	CFLAGS = -Wall -Wextra -flto -fno-stack-protector -D_FORTUFY_SOURCE=0 -Ikernel/include -Wcomment -Os -s -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DNO_TRACE
+	CFLAGS = -Wall -Wextra -flto -fno-stack-protector -D_FORTUFY_SOURCE=0 -Ikernel/include -Wcomment -Os -s -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DNO_TRACE -DNO_ENV
 else
-	CC = gcc
+	CC = gcc-14
 	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING
 endif
 

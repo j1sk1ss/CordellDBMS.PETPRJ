@@ -4,7 +4,6 @@
 Global Cache Table used for caching results of I/O operations.
 */
 static cache_t GCT[ENTRY_COUNT];
-static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
 
 /*
 This defined vars guaranty, that database will take only:
@@ -23,6 +22,7 @@ Z * 4112 bytes (for page_t)
 1 index - directories,
 2 index - tables
 */
+static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
 static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
 
 
@@ -77,7 +77,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
             #pragma omp critical (gct_types_decreese)
             GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
             GCT[current].save(GCT[current].pointer, NULL);
-            CHC_flush_index(current);
+            _flush_index(current);
         }
         else {
             return -1;
@@ -126,7 +126,7 @@ int CHC_sync() {
 int CHC_free() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) != -1) CHC_flush_index(i);
+        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) != -1) _flush_index(i);
         else {
             return -1;
         }
@@ -147,12 +147,11 @@ int CHC_flush_entry(void* entry, unsigned char type) {
         }
     }
 
-    if (index != -1) CHC_flush_index(index);
+    if (index != -1) _flush_index(index);
     else return -2;
-    return 1;
 }
 
-int CHC_flush_index(int index) {
+int _flush_index(int index) {
     if (GCT[index].pointer == NULL) return -1;
     GCT[index].free(GCT[index].pointer);
     GCT[index].pointer = NULL;
