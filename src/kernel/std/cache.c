@@ -149,6 +149,7 @@ int CHC_flush_entry(void* entry, unsigned char type) {
 
     if (index != -1) _flush_index(index);
     else return -2;
+    return 1;
 }
 
 int _flush_index(int index) {

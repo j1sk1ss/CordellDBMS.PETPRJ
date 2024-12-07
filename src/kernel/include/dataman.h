@@ -89,18 +89,18 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note 2: Pointers shouldn't overlap each other!
 
     Params:
-    - database - pointer to database. (If NULL, we don`t use database table cache)
-    - table_name - current table name
-    - row - index of row. You can get index by:
+    - database - Pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - Current table name.
+    - row - Index of row. You can get index by:
             1) find value row function,
             2) find data row function.
             For additional info check docs.
-    - access - user access level
+    - access - User access level.
 
-    Return -3 if access denied
-    Return -2 if table nfound
-    Return -1 if something goes wrong
-    Return pointer to data
+    Return -3 if access denied.
+    Return -2 if table nfound.
+    Return -1 if something goes wrong.
+    Return pointer to data.
     */
     unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access);
 
@@ -115,11 +115,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Don't use RD symbols in data, because it will cause failure. (Function append RD symbols).
 
     Params:
-    - database - pointer to database. (If NULL, we don`t use database table cache).
-    - table_name - current table name.
-    - data - data for append (row for append).
-    - data_size - size of row (No limits).
-    - access - user access level.
+    - database - Pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - Current table name.
+    - data - Data for append (row for append).
+    - data_size - Size of row (No limits).
+    - access - User access level.
 
     Return -20 if primary row check failed.
     Return -5 if data size != row size.
@@ -150,12 +150,12 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note: Pointers shouldn't overlap each other!
 
     Params:
-    - database - pointer to database. (If NULL, we don`t use database table cache)
-    - table_name - current table name
-    - row - row index in table (Use find_data_row for getting index)
-    - data - data for insert (row for append)
-    - data_size - size of row (No limits)
-    - access - user access level
+    - database - Pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - Current table name.
+    - row - Row index in table (Use find_data_row for getting index).
+    - data - Data for insert (row for append).
+    - data_size - Size of row (No limits).
+    - access - User access level.
 
     Return -3 if access denied
     Return -2 if signature is wrong: {
@@ -178,14 +178,14 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note: Pointers shouldn't overlap each other!
 
     Params:
-    - database - pointer to database. (If NULL, we don`t use database table cache)
-    - table_name - current table name
-    - row - index of row for delete
-    - access - user access level
+    - database - Pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - Current table name.
+    - row - Index of row for delete.
+    - access - User access level.
 
-    Return -2 if access denied
-    Return -1 if something goes wrong
-    Return 1 if row delete was success
+    Return -2 if access denied.
+    Return -1 if something goes wrong.
+    Return 1 if row delete was success.
     */
     int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access);
 
@@ -218,15 +218,15 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note 4: Pointers shouldn't overlap each other!
 
     Params:
-    - database - pointer to database. (If NULL, we don`t use database table cache).
-    - table_name - table name.
-    - column - column name. Provide NULL, if you don't need specified column.
-    - offset - global offset. For simple use, try:
+    - database - Pointer to database. (If NULL, we don`t use database table cache).
+    - table_name - Table name.
+    - column - Column name. Provide NULL, if you don't need specified column.
+    - offset - Global offset. For simple use, try:
                 DIRECTORY_OFFSET for directory offset,
                 PAGE_CONTENT_SIZE for page offset.
-    - data - data for search.
-    - data_size - data for search size.
-    - access - user access level.
+    - data - Data for search.
+    - data_size - Data for search size.
+    - access - User access level.
 
     Return -3 if access denied.
     Return -2 if something goes wrong.
@@ -250,7 +250,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note 2: Pointers shouldn't overlap each other!
 
     Params:
-    - table_name - name of table.
+    - table_name - Name of table.
 
     Return NULL if table nfound.
     Return pointer to table.
@@ -276,8 +276,8 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note: Pointers shouldn't overlap each other!
 
     Params:
-    - database - pointer to database.
-    - table - pointer to table (Be sure that you don`t flust this table after link).
+    - database - Pointer to database.
+    - table - Pointer to table (Be sure that you don`t flust this table after link).
               This function also save link in database cache to this table.
 
     Return -1 if something goes wrong.
@@ -292,8 +292,8 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Note 2: Pointers shouldn't overlap each other!
 
     Params:
-    - database - pointer to database.
-    - name - table name for delete.
+    - database - Pointer to database.
+    - name - Table name for delete.
 
     Return -1 if something goes wrong.
     Return 1 if unlink was success.
@@ -305,7 +305,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Created database has 0 tables.
 
     Params:
-    - name - database name. Be sure that this name is uniqe. Function don't check this!
+    - name - Database name. Be sure that this name is uniqe. Function don't check this!
 
     Return pointer to new database.
     */
@@ -390,6 +390,33 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -4 if database is NULL.
     */
     int DB_rollback(database_t** database);
+
+#pragma endregion
+
+#pragma region [Other]
+
+    /*
+    Support function for getting global offset in database for provided row.
+
+    Params:
+    - row_size - Row size in database.
+    - row - Row index.
+
+    Return global offset of row in database.
+    */
+    int _get_global_offset(int row_size, int row);
+
+    /*
+    Get table from database and check access for work with.
+    Note: check_access function should take two args and return 0 or 1.
+
+    Params:
+    - database - Pointer to database.
+    - table_name - Current table name.
+    - access - User access level.
+    - check_access - Check access function.
+    */
+    table_t* _get_table_access(database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int));
 
 #pragma endregion
 

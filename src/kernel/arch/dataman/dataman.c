@@ -1,21 +1,9 @@
 #include "../../include/dataman.h"
 
 
-int _get_global_offset(int row_size, int row) {
-    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-    return global_offset;
-}
-
 unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
-    table_t* table = DB_get_table(database, table_name);
+    table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return NULL;
-    if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-        TBM_flush_table(table);
-        return NULL;
-    }
 
     unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
     TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
@@ -24,13 +12,12 @@ unsigned char* DB_get_row(database_t* __restrict database, char* __restrict tabl
     return data;
 }
 
-int DB_append_row(database_t* __restrict database, char* __restrict table_name, unsigned char* __restrict data, size_t data_size, unsigned char access) {
-    table_t* table = DB_get_table(database, table_name);
+int DB_append_row(
+    database_t* __restrict database, char* __restrict table_name, 
+    unsigned char* __restrict data, size_t data_size, unsigned char access
+) {
+    table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return -4;
-    if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-        TBM_flush_table(table);
-        return -3;
-    }
 
     if (table->row_size > data_size) {
         TBM_flush_table(table);
@@ -45,19 +32,33 @@ int DB_append_row(database_t* __restrict database, char* __restrict table_name, 
 
     // Get primary column and column offset
     int column_offset = 0;
-    table_column_t* primary_column_name = NULL;
+    table_column_t* primary_column = NULL;
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < table->header->column_count; i++) {
-        if (primary_column_name == NULL) {
-            if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) primary_column_name = table->columns[i];
-            column_offset += table->columns[i]->size;
+        if (primary_column == NULL) {
+            if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) primary_column = table->columns[i];
+            else column_offset += table->columns[i]->size;
         }
     }
 
     // If in provided table presented primary column
-    if (primary_column_name != NULL) {
+    if (primary_column != NULL) {
+        unsigned char* current_data = data + column_offset;
+        if (GET_COLUMN_TYPE(primary_column->type) == COLUMN_AUTO_INCREMENT && table->header->row_count > 0) {
+            unsigned char* previous_data = DB_get_row(database, table_name, table->header->row_count - 1, access);
+            if (previous_data != NULL) {
+                char number_buffer[128] = { 0 };
+                strncpy(number_buffer, (char*)previous_data, primary_column->size);
+
+                char buffer[128] = { 0 };
+                sprintf(buffer, "%0*d", primary_column->size, atoi((char*)number_buffer) + 1);
+                memcpy(current_data, buffer, primary_column->size);
+                free(previous_data);
+            }
+        }
+
         int row = DB_find_data_row(
-            database, table_name, primary_column_name->name, 0, data + column_offset, primary_column_name->size, access
+            database, table_name, primary_column->name, 0, current_data, primary_column->size, access
         );
 
         // If in table already presented this value.
@@ -70,17 +71,15 @@ int DB_append_row(database_t* __restrict database, char* __restrict table_name, 
 
     TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
     result = TBM_append_content(table, data, data_size);
+
+    table->header->row_count++;
     TBM_flush_table(table);
     return result;
 }
 
 int DB_insert_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size, unsigned char access) {
-    table_t* table = DB_get_table(database, table_name);
+    table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return -1;
-    if (CHECK_WRITE_ACCESS(access, table->header->access) == -1) {
-        TBM_flush_table(table);
-        return -3;
-    }
 
     if (table->row_size > data_size) {
         TBM_flush_table(table);
@@ -105,12 +104,8 @@ int DB_insert_row(database_t* __restrict database, char* __restrict table_name, 
 }
 
 int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
-    table_t* table = DB_get_table(database, table_name);
+    table_t* table = _get_table_access(database, table_name, access, check_delete_access);
     if (table == NULL) return -1;
-    if (CHECK_DELETE_ACCESS(access, table->header->access) == -1) {
-        TBM_flush_table(table);
-        return -3;
-    }
 
     int result = -1;
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
@@ -118,6 +113,7 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
         THR_release_lock(&table->lock, omp_get_thread_num());
     }
 
+    table->header->row_count = MAX(table->header->row_count - 1, 0);
     TBM_flush_table(table);
     return result;
 }
@@ -138,12 +134,8 @@ int DB_find_data_row(
     database_t* __restrict database, char* __restrict table_name, char* __restrict column, int offset, 
     unsigned char* __restrict data, size_t data_size, unsigned char access
 ) {
-    table_t* table = DB_get_table(database, table_name);
+    table_t* table = _get_table_access(database, table_name, access, check_read_access);
     if (table == NULL) return -1;
-    if (CHECK_READ_ACCESS(access, table->header->access) == -1) {
-        TBM_flush_table(table);
-        return -3;
-    }
 
     int row_size      = 0;
     int column_offset = -1;
@@ -228,4 +220,24 @@ int DB_unlink_table_from_database(database_t* __restrict database, char* __restr
     }
 
     return status;
+}
+
+int _get_global_offset(int row_size, int row) {
+    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+    int pages_offset  = row / rows_per_page;
+    int page_offset   = row % rows_per_page;
+    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
+    return global_offset;
+}
+
+table_t* _get_table_access(database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)) {
+    table_t* table = DB_get_table(database, table_name);
+    if (table == NULL) return NULL;
+
+    if (check_access(access, table->header->access) == -1) {
+        TBM_flush_table(table);
+        return NULL;
+    }
+
+    return table;
 }

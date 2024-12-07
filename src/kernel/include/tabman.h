@@ -74,42 +74,33 @@
     uaccess - user access level.
     taccess - table access level.
     */
-    #define CHECK_READ_ACCESS(uaccess, taccess) GET_READ_ACCESS(taccess) < GET_READ_ACCESS(uaccess) ? -1 : 0
+    static inline int check_read_access(int uaccess, int taccess) {
+        return GET_READ_ACCESS(taccess) < GET_READ_ACCESS(uaccess) ? -1 : 0;
+    }
     /*
     Macros for checking write access level. Will return -1 if access denied.
     Note: This function usualy used in lower abstraction levels.
     uaccess - user access level.
     taccess - table access level.
     */
-    #define CHECK_WRITE_ACCESS(uaccess, taccess) GET_WRITE_ACCESS(taccess) < GET_WRITE_ACCESS(uaccess) ? -1 : 0
+    static inline int check_write_access(int uaccess, int taccess) {
+        return GET_WRITE_ACCESS(taccess) < GET_WRITE_ACCESS(uaccess) ? -1 : 0;
+    }
     /*
     Macros for checking delete access level. Will return -1 if access denied.
     Note: This function usualy used in lower abstraction levels.
     uaccess - user access level.
     taccess - table access level.
     */
-    #define CHECK_DELETE_ACCESS(uaccess, taccess) GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0
+    static inline int check_delete_access(int uaccess, int taccess) {
+        return GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0;
+    }
 
 #pragma endregion
 
 #pragma region [Column]
 
-    /*
-    <DEPRECATED>
-    Main idea is create a simple presentation of info in binary data.
-    With this delimiters we know, that every row has at start ROW_DELIMITER (it allows us use \n character).
-    */
-    #define COLUMN_DELIMITER    0xEE
-    /*
-    <DEPRECATED>
-    For splitting data by columns, we reserve another byte value.
-    In summary data has next structure:
-    ... -> CD -> DATA_DATA_DATA -> CD -> DATA_DATA_DATA -> RD -> DATA_DATA_DATA -> CD -> ...
-    Row delimiter equals column delimiter, but says, that this is a different column and different row
-    */
-    #define ROW_DELIMITER       0xEF
     #define COLUMN_MAX_SIZE     0xFFF
-
     #define COLUMN_MAGIC        0xEA
     /*
     Column name size indicates how much bytes will reserve name field on disk.
@@ -124,7 +115,9 @@
     #define COLUMN_MODULE_BOTH      0x02
 
     // Column auto increment bits.
-    // <Already not implemented yet>
+    // That means, that every primary columns (one at table), will have 
+    // value equals of value of rows in table.
+    // Note: Work only with primary columns.
     #define COLUMN_NO_AUTO_INC       0x00
     #define COLUMN_AUTO_INCREMENT    0x01
 
@@ -217,6 +210,7 @@
         // Column count in this table
         // How much columns in this table
         unsigned char column_count;
+        unsigned int row_count;
 
         // Dir count in this table
         // How much directories in this table

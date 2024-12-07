@@ -9,13 +9,10 @@ directory_t* DRM_create_directory(char* name) {
     memset(header, 0, sizeof(directory_header_t));
 
     strncpy(header->name, name, DIRECTORY_NAME_SIZE);
-    header->magic      = DIRECTORY_MAGIC;
-    header->page_count = 0;
+    header->magic = DIRECTORY_MAGIC;
 
-    directory->lock      = THR_create_lock();
-    directory->header    = header;
-    directory->is_cached = 0;
-    directory->append_offset = 0;
+    directory->lock   = THR_create_lock();
+    directory->header = header;
     return directory;
 }
 
@@ -114,7 +111,6 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
                 directory->lock   = THR_create_lock();
                 directory->header = header;
                 loaded_directory  = directory;
-                directory->append_offset = 0;
 
                 CHC_add_entry(loaded_directory, loaded_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
             }

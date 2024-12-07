@@ -10,7 +10,6 @@ database_t* DB_create_database(char* name) {
 
     header->magic = DATABASE_MAGIC;
     if (name != NULL) { strncpy(header->name, name, DATABASE_NAME_SIZE); }
-    header->table_count = 0;
 
     database->header = header;
     return database;

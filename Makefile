@@ -12,7 +12,7 @@ ifeq ($(PROD), 1)
 	CFLAGS = -Wall -Wextra -flto -fno-stack-protector -D_FORTUFY_SOURCE=0 -Ikernel/include -Wcomment -Os -s -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DNO_TRACE -DNO_ENV
 else
 	CC = gcc-14
-	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING
+	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DSPECIAL
 endif
 
 ifeq ($(PTHREADS), 0)
@@ -23,7 +23,7 @@ ifeq ($(OMP), 1)
 	CFLAGS += -fopenmp
 endif
 
-CFLAGS += -Wno-unknown-pragmas -Wno-unused-result
+CFLAGS += -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow
 
 USERLAND_DIR = src/userland
 KERNEL_DIR = src/kernel

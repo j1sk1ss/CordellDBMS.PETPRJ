@@ -20,17 +20,13 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     header->access = access;
     header->magic  = TABLE_MAGIC;
     strncpy(header->name, name, TABLE_NAME_SIZE);
-
-    header->dir_count    = 0;
     header->column_count = col_count;
 
     table->columns  = columns;
     table->row_size = row_size;
     
-    table->append_offset = 0;
-    table->is_cached = 0;
-    table->lock      = THR_create_lock();
-    table->header    = header;
+    table->lock   = THR_create_lock();
+    table->header = header;
     return table;
 }
 
@@ -127,7 +123,6 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                     fread(columns[i], sizeof(table_column_t), 1, file);
                 }
 
-                table->row_size = 0;
                 for (int i = 0; i < header->column_count; i++)
                     table->row_size += columns[i]->size;
 
@@ -137,10 +132,8 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
 
                 fclose(file);
 
-                table->columns   = columns;
-                table->lock      = THR_create_lock();
-                table->is_cached = 0;
-                table->append_offset = 0;
+                table->columns = columns;
+                table->lock    = THR_create_lock();
 
                 table->header = header;
                 CHC_add_entry(table, table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);

@@ -74,9 +74,6 @@
     #define VALUE           "value"
     #define ROW             "row"
 
-    #define MASTER          "master"
-    #define TO_SLAVE        "to_slave"
-
     #define BY_INDEX        "by_index"
     #define BY_VALUE        "by_value"
 
@@ -92,11 +89,6 @@
         #define TYPE_STRING "str"
         #define TYPE_ANY    "any"
 
-        #define CASCADE_DEL "cdel" // <DEPRECATED>
-        #define CASCADE_GET "cget" // <DEPRECATED>
-        #define CASCADE_APP "capp" // <DEPRECATED>
-        #define CASCADE_FND "cfnd" // <DEPRECATED>
-
         #define MODULE_PRELOAD   "mpre"
         #define MODULE_POSTLOAD  "mpost"
         #define MODULE_BOTH_LOAD "both"
@@ -110,7 +102,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.5 (main)"
+#define KERNEL_VERSION     "v2.6 (main)"
 
 
 typedef struct kernel_answer {
