@@ -269,7 +269,6 @@
     Open file, load page, close file
 
     Params:
-    - path - path to page.pg file. (Should be NULL, if provided name).
     - name - name of page. This function will try to load page by
              default path (Should be NULL, if provided path).
 
@@ -278,7 +277,7 @@
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* __restrict path, char* __restrict name);
+    page_t* PGM_load_page(char* name);
 
     /*
     In difference with PGM_free_page, PGM_flush_page will free page in case, when

@@ -194,7 +194,7 @@ void _start_kernel_session(int source, int destination, int session) {
 /*
  * Server setup function
 */
-int main(int argc, char* argv[]) {
+int main() {
     /*
     Enable traceback for current session.
     */

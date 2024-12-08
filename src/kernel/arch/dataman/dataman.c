@@ -39,26 +39,29 @@ int DB_append_row(
             if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) primary_column = table->columns[i];
             else column_offset += table->columns[i]->size;
         }
+
+        unsigned char* current_data = data + column_offset;
+        if (
+            GET_COLUMN_TYPE(table->columns[i]->type) == COLUMN_AUTO_INCREMENT && 
+            GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_INT
+        ) {
+            unsigned char* previous_data = DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), access);
+            if (previous_data != NULL) {
+                char number_buffer[128] = { 0 };
+                strncpy(number_buffer, (char*)previous_data, table->columns[i]->size);
+
+                char buffer[128] = { 0 };
+                sprintf(buffer, "%0*d", table->columns[i]->size, atoi((char*)number_buffer) + 1);
+                memcpy(current_data, buffer, table->columns[i]->size);
+                free(previous_data);
+            }
+        }
     }
 
     // If in provided table presented primary column
     if (primary_column != NULL) {
-        unsigned char* current_data = data + column_offset;
-        if (GET_COLUMN_TYPE(primary_column->type) == COLUMN_AUTO_INCREMENT && table->header->row_count > 0) {
-            unsigned char* previous_data = DB_get_row(database, table_name, table->header->row_count - 1, access);
-            if (previous_data != NULL) {
-                char number_buffer[128] = { 0 };
-                strncpy(number_buffer, (char*)previous_data, primary_column->size);
-
-                char buffer[128] = { 0 };
-                sprintf(buffer, "%0*d", primary_column->size, atoi((char*)number_buffer) + 1);
-                memcpy(current_data, buffer, primary_column->size);
-                free(previous_data);
-            }
-        }
-
         int row = DB_find_data_row(
-            database, table_name, primary_column->name, 0, current_data, primary_column->size, access
+            database, table_name, primary_column->name, 0, data + column_offset, primary_column->size, access
         );
 
         // If in table already presented this value.
@@ -177,7 +180,7 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
         if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
-            table = TBM_load_table(NULL, table_name);
+            table = TBM_load_table(table_name);
         }
     }
 

@@ -13,7 +13,7 @@ int DB_rollback(database_t** database) {
     if (*database == NULL) return -4;
     if (CHC_free() != 1) return -1;
 
-    database_t* old_database = DB_load_database(NULL, (*database)->header->name);
+    database_t* old_database = DB_load_database((*database)->header->name);
     if (old_database == NULL) return -5;
 
     DB_free_database(*database);

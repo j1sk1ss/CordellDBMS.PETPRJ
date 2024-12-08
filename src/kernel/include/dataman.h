@@ -346,7 +346,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return NULL if file can't be opened, or magic is wrong.
     Return pointer to database if all was success.
     */
-    database_t* DB_load_database(char* __restrict path, char* __restrict name);
+    database_t* DB_load_database(char* name);
 
     /*
     Save database to disk.

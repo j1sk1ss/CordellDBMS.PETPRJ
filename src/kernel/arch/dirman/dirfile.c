@@ -65,16 +65,14 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
     return status;
 }
 
-directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
+directory_t* DRM_load_directory(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, DIRECTORY_NAME_SIZE, path, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
-        print_error("Path or name should be provided!");
+    if (get_load_path(name, DIRECTORY_NAME_SIZE, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
+        print_error("Name should be provided!");
         return NULL;
     }
 
-    char file_name[DIRECTORY_NAME_SIZE] = { 0 };
-    if (get_filename(name, path, file_name, DIRECTORY_NAME_SIZE) == -1) return NULL;
-    directory_t* loaded_directory = (directory_t*)CHC_find_entry(file_name, DIRECTORY_CACHE);
+    directory_t* loaded_directory = (directory_t*)CHC_find_entry(name, DIRECTORY_CACHE);
     if (loaded_directory != NULL) {
         print_debug("Loading directory [%s] from GCT", load_path);
         return loaded_directory;
@@ -130,13 +128,13 @@ int DRM_delete_directory(directory_t* directory, int full) {
                 sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
                 print_debug(
                     "Page [%s] was deleted and flushed with results [%i | %i]",
-                    page_path, CHC_flush_entry(PGM_load_page(page_path, NULL), PAGE_CACHE), remove(page_path)
+                    page_path, CHC_flush_entry(PGM_load_page(directory->page_names[i]), PAGE_CACHE), remove(page_path)
                 );
             }
         }
 
         char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-        get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, NULL, delete_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
+        get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, delete_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
         CHC_flush_entry(directory, DIRECTORY_CACHE);
         print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
 

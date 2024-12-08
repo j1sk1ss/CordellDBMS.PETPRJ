@@ -117,7 +117,7 @@
     // Column auto increment bits.
     // That means, that every primary columns (one at table), will have 
     // value equals of value of rows in table.
-    // Note: Work only with primary columns.
+    // Note: Work only with TYPE_INT columns.
     #define COLUMN_NO_AUTO_INC       0x00
     #define COLUMN_AUTO_INCREMENT    0x01
 
@@ -472,14 +472,13 @@
     Load table from .tb bin file
 
     Params:
-    - path - path to table.tb file. (Should be NULL, if provided name).
     - name - name of table. This function will try to load table by
              default path (Should be NULL, if provided path).
     Note: Don't forget about full path. Be sure that all code coreectly use paths
 
     Return allocated table from disk
     */
-    table_t* TBM_load_table(char* __restrict path, char* __restrict name);
+    table_t* TBM_load_table(char* name);
 
     /*
     Delete table from disk.

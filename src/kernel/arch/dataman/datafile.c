@@ -30,7 +30,7 @@ int DB_delete_database(database_t* database, int full) {
 
     if (result != 1) return result;
     char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-    get_load_path(database->header->name, DATABASE_NAME_SIZE, NULL, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
+    get_load_path(database->header->name, DATABASE_NAME_SIZE, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
     remove(delete_path);
 
     DB_free_database(database);
@@ -44,10 +44,10 @@ int DB_free_database(database_t* database) {
     return 1;
 }
 
-database_t* DB_load_database(char* __restrict path, char* __restrict name) {
+database_t* DB_load_database(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, DATABASE_NAME_SIZE, path, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION) == -1) {
-        print_error("Path or name should be provided!");
+    if (get_load_path(name, DATABASE_NAME_SIZE, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION) == -1) {
+        print_error("Name should be provided!");
         return NULL;
     }
 

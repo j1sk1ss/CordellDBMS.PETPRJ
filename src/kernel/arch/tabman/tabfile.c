@@ -78,17 +78,15 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
     return status;
 }
 
-table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
+table_t* TBM_load_table(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, TABLE_NAME_SIZE, path, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
-        print_error("Path or name should be provided!");
+    if (get_load_path(name, TABLE_NAME_SIZE, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
+        print_error("Name should be provided!");
         return NULL;
     }
 
     // If path is not NULL, we use function for getting file name
-    char file_name[TABLE_NAME_SIZE] = { 0 };
-    if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
-    table_t* loaded_table = (table_t*)CHC_find_entry(file_name, TABLE_CACHE);
+    table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_CACHE);
     if (loaded_table != NULL) {
         print_debug("Loading table [%s] from GCT", load_path);
         return loaded_table;
@@ -151,7 +149,7 @@ int TBM_delete_table(table_t* table, int full) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < table->header->dir_count; i++) {
-                directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
+                directory_t* directory = DRM_load_directory(table->dir_names[i]);
                 if (directory == NULL) continue;
 
                 TBM_unlink_dir_from_table(table, table->dir_names[i]);
@@ -161,7 +159,7 @@ int TBM_delete_table(table_t* table, int full) {
 
         // Delete table from disk by provided, generated path
         char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-        get_load_path(table->header->name, TABLE_NAME_SIZE, NULL, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
+        get_load_path(table->header->name, TABLE_NAME_SIZE, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
         remove(delete_path);
 
         CHC_flush_entry(table, TABLE_CACHE);

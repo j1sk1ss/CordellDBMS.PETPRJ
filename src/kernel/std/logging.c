@@ -1,6 +1,9 @@
 #include "../include/logging.h"
 
 
+static FILE* log_file = NULL;
+
+
 void _write_log(const char* level, const char* file, int line, const char* message, va_list args) {
     #pragma omp critical
     {
@@ -10,8 +13,9 @@ void _write_log(const char* level, const char* file, int line, const char* messa
             static char* log_file_path = NULL;
             
             if (log_file_path == NULL) log_file_path = generate_unique_filename(LOG_FILE_PATH, LOG_FILE_NAME_SIZE, LOG_FILE_EXTENSION);
-            if (log_file_path != NULL) {
-                log_output = fopen(log_file_path, "a");
+            if (log_file_path != NULL && log_file == NULL) {
+                log_file = fopen(log_file_path, "a");
+                log_output = log_file;
                 if (log_output == NULL) log_output = stdout;
             }
         #endif
@@ -26,10 +30,12 @@ void _write_log(const char* level, const char* file, int line, const char* messa
 
         #ifdef LOG_TO_FILE
             if (log_output != stdout) {
-                fclose(log_output);
                 if (log_size++ >= LOG_FILE_SIZE) {
-                    log_size = 0;
+                    fclose(log_file);
                     SOFT_FREE(log_file_path);
+                    
+                    log_file = NULL;
+                    log_size = 0;
                 }
             }
         #endif

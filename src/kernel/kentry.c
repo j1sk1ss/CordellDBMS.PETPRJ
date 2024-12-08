@@ -18,7 +18,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
     while (1) {
         if (connections[connection] == NULL) {
-            database = DB_load_database(NULL, db_name);
+            database = DB_load_database(db_name);
             if (database == NULL) {
                 print_warn("Database wasn`t found. Create a new one with [create database <name>].");
                 current_start = 1;

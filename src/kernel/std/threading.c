@@ -52,7 +52,7 @@ int THR_require_lock(unsigned short* lock, unsigned char owner) {
 }
 
 int THR_test_lock(unsigned short* lock, unsigned char owner) {
-    if (lock == NULL) return -1;
+    if (lock == NULL) return LOCKED;
     unsigned short lock_owner = UNPACK_OWNER(*lock);
     if (lock_owner == NO_OWNER) return UNLOCKED;
     if (lock_owner != owner) return UNPACK_STATUS(*lock);

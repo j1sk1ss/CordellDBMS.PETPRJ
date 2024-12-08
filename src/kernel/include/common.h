@@ -32,7 +32,6 @@
 
 #include "cache.h"
 
-
 #ifdef NO_ENV
 #define getenv(key) NULL
 #endif
@@ -43,8 +42,8 @@
 #define DEFAULT_PATH_SIZE   128
 #define DEFAULT_DELAY       999999999
 
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
       free((ptr));           \
@@ -80,20 +79,6 @@ Return 0 is not integer.
 int is_integer(const char* str);
 
 /*
-Example:
-Given path == "C:\\dir1\\dir2\\dir3\\file.exe"
-will return path_ as   "C:\\dir1\\dir2\\dir3"
-Will return base_ as   "file"
-Will return ext_ as    "exe"
-
-Important Note: path, that you provided into function, will be broken. It
-happens, because in function used strtok.
-
-Took from: https://stackoverflow.com/questions/24975928/extract-the-file-name-and-its-extension-in-c
-*/
-void get_file_path_parts(char* path, char* path_, char* base_, char* ext_);
-
-/*
 Get current time from time.h libraryю
 !! Note: Output should be freed after usage. !!
 
@@ -107,7 +92,6 @@ Get load path by name or path.
 Params:
 - name - Name of file or NULL.
 - name_size - Name size.
-- path - Path for save or NULL.
 - buffer - Buffer, where will be stored load path.
 - base_path - Base path.
 - extension - File extension.
@@ -115,21 +99,7 @@ Params:
 Return 1 if load path generated.
 Return -1 if something goes wrong.
 */
-int get_load_path(char* name, int name_size, char* path, char* buffer, char* base_path, char* extension);
-
-/*
-Get filename by name or path.
-
-Params:
-- name - Name of file or NULL.
-- path - Path for save or NULL.
-- buffer - Buffer, where will be stored load path.
-- name_size - Size of name.
-
-Return 1 if name generated.
-Return -1 if something goes wrong.
-*/
-int get_filename(char* name, char* path, char* buffer, int name_size);
+int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension);
 
 /*
 Generate unique filename.

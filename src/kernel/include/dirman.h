@@ -272,7 +272,6 @@
     Note 2: Don't forget about DRM_flush_directory after using this pointer.
 
     Params:
-    - path - path to directory.dr file. (Should be NULL, if provided name).
     - name - name of directory. This function will try to load dir by
              default path (Should be NULL, if provided path).
 
@@ -280,7 +279,7 @@
     Return -1 if file nfound. Check path.
     Return locked directory pointer.
     */
-    directory_t* DRM_load_directory(char* __restrict path, char* __restrict name);
+    directory_t* DRM_load_directory(char* name);
 
     /*
     Delete directory from disk.

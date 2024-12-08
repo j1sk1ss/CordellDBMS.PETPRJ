@@ -18,7 +18,7 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size) 
         }
 
         // We load current page
-        page_t* page = PGM_load_page(NULL, directory->page_names[i]);
+        page_t* page = PGM_load_page(directory->page_names[i]);
         if (page == NULL) continue;
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We check, that we don't return Page Empty, because
@@ -63,7 +63,7 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
     // We skip this part if data_lenght larger then PAGE_CONTENT_SIZE
     if (data_lenght < PAGE_CONTENT_SIZE) {
         for (int i = directory->append_offset; i < directory->header->page_count; i++) {
-            page_t* page = PGM_load_page(NULL, directory->page_names[i]);
+            page_t* page = PGM_load_page(directory->page_names[i]);
             if (page != NULL) {
                 int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
                 if (index >= 0) {
@@ -119,7 +119,7 @@ int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, 
         }
 
         // We load current page to memory
-        page_t* page = PGM_load_page(NULL, directory->page_names[current_page++]);
+        page_t* page = PGM_load_page(directory->page_names[current_page++]);
         if (page == NULL) return -1;
 
         // We insert current part of content with local offset
@@ -155,7 +155,7 @@ int DRM_delete_content(directory_t* directory, int offset, size_t length) {
         }
 
         // We load current page
-        page_t* page = PGM_load_page(NULL, directory->page_names[current_page++]);
+        page_t* page = PGM_load_page(directory->page_names[current_page++]);
         if (page == NULL) return -1;
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We check, that we don't return Page Empty, because
@@ -191,7 +191,7 @@ int DRM_cleanup_pages(directory_t* directory) {
     for (int i = 0; i < directory->header->page_count; i++) {
         char page_path[DEFAULT_PATH_SIZE] = { 0 };
         sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
-        page_t* page = PGM_load_page(NULL, directory->page_names[i]);
+        page_t* page = PGM_load_page(directory->page_names[i]);
         if (page != NULL) {
             if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
                 // If page, after delete operation, full empty, we delete page.
@@ -232,7 +232,7 @@ int DRM_find_content(directory_t* __restrict directory, int offset, unsigned cha
         }
 
         // We load current page to memory.
-        page_t* page = PGM_load_page(NULL, directory->page_names[current_page]);
+        page_t* page = PGM_load_page(directory->page_names[current_page]);
         if (page == NULL) return -2;
 
         // We search part of data in this page, save index and unload page.

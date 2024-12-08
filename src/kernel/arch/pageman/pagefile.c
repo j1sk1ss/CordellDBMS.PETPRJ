@@ -69,16 +69,14 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
     return status;
 }
 
-page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
+page_t* PGM_load_page(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, PAGE_NAME_SIZE, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
-        print_error("Path or name should be provided!");
+    if (get_load_path(name, PAGE_NAME_SIZE, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
+        print_error("Name should be provided!");
         return NULL;
     }
 
-    char file_name[PAGE_NAME_SIZE] = { 0 };
-    if (get_filename(name, path, file_name, PAGE_NAME_SIZE) == -1) return NULL;
-    page_t* loaded_page = (page_t*)CHC_find_entry(file_name, PAGE_CACHE);
+    page_t* loaded_page = (page_t*)CHC_find_entry(name, PAGE_CACHE);
     if (loaded_page != NULL) {
         print_debug("Loading page [%s] from GCT", load_path);
         return loaded_page;
