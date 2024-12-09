@@ -53,11 +53,13 @@ Get function template:
 ```
 <db_name> get row <tb_name> by_index <index>
 <db_name> get row <tb_name> by_value column <col_name> value <value>
+<db_name> get row <tb_name> by_exp column <col_name> value <value> exp <expression (</>/==)>
 ```
 Get function example: 
 ```
 db get row table_1 by_index 0
 db get row table_1 by_value column col2 value "value"
+db get row table_1 by_exp column col2 value "100" exp ">" 
 ```
 
 *DELETE* </br>

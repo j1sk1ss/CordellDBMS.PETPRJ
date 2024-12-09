@@ -16,6 +16,7 @@ database_t* DB_create_database(char* name) {
 }
 
 int DB_delete_database(database_t* database, int full) {
+#ifndef NO_DELETE_COMMAND
     if (database == NULL) return -1;
 
     int result = 1;
@@ -34,6 +35,7 @@ int DB_delete_database(database_t* database, int full) {
     remove(delete_path);
 
     DB_free_database(database);
+#endif
     return 1;
 }
 

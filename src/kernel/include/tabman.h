@@ -245,9 +245,9 @@
     Note: This function don't check signature, and can return any values, that's why be sure that you get right size of content.
 
     Params:
-    - table - pointer to table
-    - offset - global offset in bytes
-    - size - size of content
+    - table - Pointer to table.
+    - offset - Global offset in bytes.
+    - size - Size of content.
 
     Return point to allocated copy of data from table
     */
@@ -389,6 +389,17 @@
     Return pointer to column.
     */
     table_column_t* TBM_create_column(unsigned char type, unsigned short size, char* name);
+
+    /*
+    This function get offset in row for getting data.
+
+    Params:
+    - table - Pointer to table.
+    - column_name - Columns name.
+
+    Return offset in row of column.
+    */
+    int TBM_get_column_offset(table_t* table, char* column_name);
 
 #pragma endregion
 

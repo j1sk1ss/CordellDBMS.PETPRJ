@@ -11,6 +11,21 @@ MAX_OPT ?= 1
 # Include std libs with -static
 INCLUDE_LIBS ?= 0
 
+# Kernel commands setup.
+# Disable all commands with update functionality
+# Exmpl: insert / update by_index / update by_value
+DISABLE_UPDATE ?= 1
+# Disable get by_exp command
+DISABLE_GET_EXPRESSION ?= 1
+# Disable get by_value command
+DISABLE_GET_VALUE ?= 1
+# Desable all commands with delete functionality
+# Exmpl: delete table / delete row / delete database
+DISABLE_DELETE ?= 1
+# Disable all commands with create functionality
+# Exmpl: create table / create database
+DISABLE_CREATE ?= 1
+
 
 ifeq ($(PROD), 1)
 	CC = musl-gcc
@@ -18,6 +33,26 @@ ifeq ($(PROD), 1)
 else
 	CC = gcc
 	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DSPECIAL
+endif
+
+ifeq ($(DISABLE_UPDATE), 1)
+	CFLAGS += -DNO_UPDATE_COMMAND
+endif
+
+ifeq ($(DISABLE_GET_EXPRESSION), 1)
+	CFLAGS += -DNO_GET_EXPRESSION_COMMAND
+endif
+
+ifeq ($(DISABLE_GET_VALUE), 1)
+	CFLAGS += -DNO_GET_VALUE_COMMAND
+endif
+
+ifeq ($(DISABLE_DELETE), 1)
+	CFLAGS += -DNO_DELETE_COMMAND
+endif
+
+ifeq ($(DISABLE_CREATE), 1)
+	CFLAGS += -DNO_CREATE_COMMAND
 endif
 
 ifeq ($(PTHREADS), 0)

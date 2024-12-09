@@ -119,6 +119,7 @@ directory_t* DRM_load_directory(char* name) {
 }
 
 int DRM_delete_directory(directory_t* directory, int full) {
+#ifndef NO_DELETE_COMMAND
     if (directory == NULL) return -1;
     if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
         if (full) {
@@ -144,6 +145,8 @@ int DRM_delete_directory(directory_t* directory, int full) {
         print_error("Can't lock directory [%.*s]", DIRECTORY_NAME_SIZE, directory->header->name);
         return -1;
     }
+#endif
+    return 1;
 }
 
 int DRM_flush_directory(directory_t* directory) {

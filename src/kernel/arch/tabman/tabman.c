@@ -36,6 +36,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     // Allocate data for output
     unsigned char* output_content = (unsigned char*)malloc(size);
     unsigned char* output_content_pointer = output_content;
+    memset(output_content_pointer, 0, size);
 
     // Iterate from all directories in table
     for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
@@ -117,6 +118,7 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
 }
 
 int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
+#ifndef NO_UPDATE_COMMAND
     if (table->header->dir_count == 0) return -3;
 
     unsigned char* data_pointer = data;
@@ -147,10 +149,12 @@ int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __r
 
     // If we reach end, return error code.
     // Check docs why we return error, instead dir creation.
+#endif
     return -2;
 }
 
 int TBM_delete_content(table_t* table, int offset, size_t size) {
+#ifndef NO_DELETE_COMMAND
     int size4delete = (int)size;
 
     // Iterate existed directories. Maybe we can insert data here?
@@ -171,10 +175,12 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
     }
 
     // If we reach end, return error code.
+#endif
     return -2;
 }
 
 int TBM_cleanup_dirs(table_t* table) {
+#ifndef NO_DELETE_COMMAND
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < table->header->dir_count; i++) {
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
@@ -186,6 +192,7 @@ int TBM_cleanup_dirs(table_t* table) {
         else DRM_flush_directory(directory);
     }
 
+#endif
     return 1;
 }
 

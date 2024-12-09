@@ -72,10 +72,12 @@
     #define COLUMN          "column"
     #define VALUES          "values"
     #define VALUE           "value"
+    #define EXPRESSION      "exp"
     #define ROW             "row"
 
     #define BY_INDEX        "by_index"
     #define BY_VALUE        "by_value"
+    #define BY_EXPRESSION   "by_exp"
 
     #define OPEN_BRACKET    "("
     #define CLOSE_BRACKET   ")"
@@ -92,6 +94,14 @@
         #define MODULE_PRELOAD   "mpre"
         #define MODULE_POSTLOAD  "mpost"
         #define MODULE_BOTH_LOAD "both"
+
+    #pragma endregion
+
+    #pragma region [Expressions]
+
+        #define MORE_THAN   ">"
+        #define EQUALS      "=="
+        #define LESS_THAN   "<"
 
     #pragma endregion
 

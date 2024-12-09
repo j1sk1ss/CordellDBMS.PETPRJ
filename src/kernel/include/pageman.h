@@ -100,19 +100,6 @@
 #pragma region [Content]
 
     /*
-    Insert value to page.
-
-    Params:
-    - page - pointer to page.
-    - offset - offset in page.
-    - value - value for input.
-
-    Return 1 if insert success.
-    Return -1 if offset too large.
-    */
-    int PGM_insert_value(page_t* page, int offset, unsigned char value);
-
-    /*
     Insert content to page. This function don't move page_end symbol to new location.
     In summary this function just rewrite part of page with provided data.
     Note: You should use this function carefull, because it don't warn if it rewrite special bytes.

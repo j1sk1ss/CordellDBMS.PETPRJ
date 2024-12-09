@@ -2,6 +2,7 @@
 
 
 table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access) {
+#ifndef NO_CREATE_COMMAND
     int row_size = 0;
     for (int i = 0; i < col_count; i++)
         row_size += columns[i]->size;
@@ -28,6 +29,8 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     table->lock   = THR_create_lock();
     table->header = header;
     return table;
+#endif
+    return NULL;
 }
 
 int TBM_save_table(table_t* __restrict table, char* __restrict path) {
@@ -144,6 +147,7 @@ table_t* TBM_load_table(char* name) {
 }
 
 int TBM_delete_table(table_t* table, int full) {
+#ifndef NO_DELETE_COMMAND
     if (table == NULL) return -1;
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
         if (full) {
@@ -166,6 +170,7 @@ int TBM_delete_table(table_t* table, int full) {
         return 1;
     }
     
+#endif
     return -1;
 }
 

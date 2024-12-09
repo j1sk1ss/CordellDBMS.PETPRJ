@@ -102,6 +102,7 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 }
 
 int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght) {
+#ifndef NO_UPDATE_COMMAND
     int pages4work      = data_lenght / PAGE_CONTENT_SIZE;
     int page_offset     = offset / PAGE_CONTENT_SIZE;
     int current_index   = offset % PAGE_CONTENT_SIZE;
@@ -139,9 +140,12 @@ int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, 
 
     if (size2insert > 0) return 2;
     else return 1;
+#endif
+    return 1;
 }
 
 int DRM_delete_content(directory_t* directory, int offset, size_t length) {
+#ifndef NO_DELETE_COMMAND
     int pages4work    = (int)length / PAGE_CONTENT_SIZE;
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int current_index = offset % PAGE_CONTENT_SIZE;
@@ -183,10 +187,12 @@ int DRM_delete_content(directory_t* directory, int offset, size_t length) {
         PGM_flush_page(page);
     }
 
+#endif
     return 1;
 }
 
 int DRM_cleanup_pages(directory_t* directory) {
+#ifndef NO_DELETE_COMMAND
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < directory->header->page_count; i++) {
         char page_path[DEFAULT_PATH_SIZE] = { 0 };
@@ -210,6 +216,7 @@ int DRM_cleanup_pages(directory_t* directory) {
         }
     }
 
+#endif
     return 1;
 }
 

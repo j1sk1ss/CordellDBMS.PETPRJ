@@ -37,7 +37,10 @@ int DB_append_row(
     for (int i = 0; i < table->header->column_count; i++) {
         if (primary_column == NULL) {
             if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) primary_column = table->columns[i];
-            else column_offset += table->columns[i]->size;
+            else {
+                #pragma omp critical (primary_column_offset)
+                column_offset += table->columns[i]->size;
+            }
         }
 
         unsigned char* current_data = data + column_offset;
@@ -81,6 +84,7 @@ int DB_append_row(
 }
 
 int DB_insert_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size, unsigned char access) {
+#ifndef NO_UPDATE_COMMAND
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return -1;
 
@@ -96,7 +100,6 @@ int DB_insert_row(database_t* __restrict database, char* __restrict table_name, 
     }
 
     TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
-
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
         result = TBM_insert_content(table, _get_global_offset(table->row_size, row), data, data_size);
         THR_release_lock(&table->lock, omp_get_thread_num());
@@ -104,9 +107,12 @@ int DB_insert_row(database_t* __restrict database, char* __restrict table_name, 
 
     TBM_flush_table(table);
     return result;
+#endif
+    return 1;
 }
 
 int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
+#ifndef NO_DELETE_COMMAND
     table_t* table = _get_table_access(database, table_name, access, check_delete_access);
     if (table == NULL) return -1;
 
@@ -119,9 +125,12 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
     table->header->row_count = MAX(table->header->row_count - 1, 0);
     TBM_flush_table(table);
     return result;
+#endif
+    return 1;
 }
 
 int DB_cleanup_tables(database_t* database) {
+#ifndef NO_DELETE_COMMAND
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
         table_t* table = DB_get_table(database, database->table_names[i]);
@@ -130,6 +139,7 @@ int DB_cleanup_tables(database_t* database) {
     }
 
     if (CHC_sync() != 1) return -1;
+#endif
     return 1;
 }
 
@@ -190,11 +200,14 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
 }
 
 int DB_delete_table(database_t* __restrict database, char* __restrict table_name, int full) {
+#ifndef NO_DELETE_COMMAND
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
 
     DB_unlink_table_from_database(database, table_name);
     return TBM_delete_table(table, full);
+#endif
+    return 1;
 }
 
 int DB_link_table2database(database_t* __restrict database, table_t* __restrict table) {
