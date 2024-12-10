@@ -110,7 +110,10 @@ directory_t* DRM_load_directory(char* name) {
                 directory->header = header;
                 loaded_directory  = directory;
 
-                CHC_add_entry(loaded_directory, loaded_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
+                CHC_add_entry(
+                    loaded_directory, loaded_directory->header->name, 
+                    DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
+                );
             }
         }
     }

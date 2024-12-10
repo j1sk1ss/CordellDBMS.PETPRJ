@@ -112,7 +112,11 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
     TBM_link_dir2table(table, new_directory);
 
     // Save directory to DDT
-    CHC_add_entry(new_directory, new_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
+    CHC_add_entry(
+        new_directory, new_directory->header->name, 
+        DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
+    );
+    
     DRM_flush_directory(new_directory);
     return 1;
 }

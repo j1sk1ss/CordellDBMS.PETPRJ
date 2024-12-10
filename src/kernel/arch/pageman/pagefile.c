@@ -111,7 +111,10 @@ page_t* PGM_load_page(char* name) {
                 page->header    = header;
                 loaded_page     = page;
 
-                CHC_add_entry(loaded_page, loaded_page->header->name, PAGE_CACHE, PGM_free_page, PGM_save_page);
+                CHC_add_entry(
+                    loaded_page, loaded_page->header->name, 
+                    PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
+                );
             }
         }
     }

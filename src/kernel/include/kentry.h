@@ -100,7 +100,7 @@
     #pragma region [Expressions]
 
         #define MORE_THAN   ">"
-        #define EQUALS      "=="
+        #define NEQUALS     "!="
         #define LESS_THAN   "<"
 
     #pragma endregion
@@ -112,11 +112,10 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.6 (main)"
+#define KERNEL_VERSION     "v2.6.1 (main)"
 
 
 typedef struct kernel_answer {
-    unsigned short commands_processed;
     signed char answer_code;
     unsigned short answer_size;
     unsigned char* answer_body;

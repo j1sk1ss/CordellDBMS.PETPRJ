@@ -14,17 +14,17 @@ INCLUDE_LIBS ?= 0
 # Kernel commands setup.
 # Disable all commands with update functionality
 # Exmpl: insert / update by_index / update by_value
-DISABLE_UPDATE ?= 1
+DISABLE_UPDATE ?= 0
 # Disable get by_exp command
-DISABLE_GET_EXPRESSION ?= 1
+DISABLE_GET_EXPRESSION ?= 0
 # Disable get by_value command
-DISABLE_GET_VALUE ?= 1
+DISABLE_GET_VALUE ?= 0
 # Desable all commands with delete functionality
 # Exmpl: delete table / delete row / delete database
-DISABLE_DELETE ?= 1
+DISABLE_DELETE ?= 0
 # Disable all commands with create functionality
 # Exmpl: create table / create database
-DISABLE_CREATE ?= 1
+DISABLE_CREATE ?= 0
 
 
 ifeq ($(PROD), 1)
@@ -72,7 +72,7 @@ ifeq ($(INCLUDE_LIBS), 1)
 endif
 
 
-CFLAGS += -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body
+CFLAGS += -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body -Wno-unused-parameter
 
 
 USERLAND_DIR = src/userland

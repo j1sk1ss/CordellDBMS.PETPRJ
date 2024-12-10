@@ -92,7 +92,7 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 
         // We link page to directory
         DRM_link_page2dir(directory, new_page);
-        CHC_add_entry(new_page, new_page->header->name, PAGE_CACHE, PGM_free_page, PGM_save_page);
+        CHC_add_entry(new_page, new_page->header->name, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page);
         PGM_flush_page(new_page);
 
         return 2;

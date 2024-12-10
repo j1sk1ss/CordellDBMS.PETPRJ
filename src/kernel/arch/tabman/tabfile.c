@@ -137,7 +137,7 @@ table_t* TBM_load_table(char* name) {
                 table->lock    = THR_create_lock();
 
                 table->header = header;
-                CHC_add_entry(table, table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
+                CHC_add_entry(table, table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
                 loaded_table = table;
             }
         }

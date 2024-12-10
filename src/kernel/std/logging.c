@@ -1,15 +1,13 @@
 #include "../include/logging.h"
 
 
-static FILE* log_file = NULL;
-
-
 void _write_log(const char* level, const char* file, int line, const char* message, va_list args) {
     #pragma omp critical
     {
         FILE* log_output = stdout;
         #ifdef LOG_TO_FILE
             static int log_size = 0;
+            static FILE* log_file = NULL;
             static char* log_file_path = NULL;
             
             if (log_file_path == NULL) log_file_path = generate_unique_filename(LOG_FILE_PATH, LOG_FILE_NAME_SIZE, LOG_FILE_EXTENSION);
