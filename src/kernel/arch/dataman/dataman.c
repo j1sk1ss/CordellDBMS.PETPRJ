@@ -168,18 +168,32 @@ int DB_find_data_row(
         }
     }
 
-    while (1) {
-        int global_offset = TBM_find_content(table, offset, data, data_size);
-        TBM_flush_table(table);
-        if (global_offset < 0) return -1;
+    int answer = -1;
+    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
+        while (1) {
+            int global_offset = TBM_find_content(table, offset, data, data_size);
+            TBM_flush_table(table);
+            if (global_offset < 0) break;
 
-        int row = global_offset / row_size;
-        if (column_offset == -1 && column_size == -1) return row;
+            int row = global_offset / row_size;
+            if (column_offset == -1 && column_size == -1) {
+                answer = row;
+                break;
+            }
 
-        int position_in_row = global_offset % row_size;
-        if (position_in_row >= column_offset && position_in_row < column_offset + column_size) return row;
-        else offset = global_offset + data_size;
+            int position_in_row = global_offset % row_size;
+            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
+                answer = row;
+                break;
+            }
+            
+            offset = global_offset + data_size;
+        }
+
+        THR_release_lock(&table->lock, omp_get_thread_num());
     }
+
+    return answer;
 }
 
 table_t* DB_get_table(database_t* __restrict database, char* __restrict table_name) {

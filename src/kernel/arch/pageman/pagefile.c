@@ -45,13 +45,11 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
             else {
                 // Write data to disk
                 status = 1;
-                int eof = PGM_set_pe_symbol(page, PAGE_START);
-                int page_size = PGM_find_value(page, 0, PAGE_END);
-                if (page_size <= 0) page_size = 0;
+                int eof = _get_page_occupie_size(page, PAGE_START);
 
                 page->header->checksum = page_cheksum;
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
-                if (fwrite(page->content, sizeof(unsigned char), page_size, file) != (size_t)page_size) status = -3;
+                if (fwrite(page->content, sizeof(unsigned char), eof, file) != (size_t)eof) status = -3;
 
                 // Close file
                 #ifndef _WIN32

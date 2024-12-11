@@ -221,23 +221,15 @@ int DRM_cleanup_pages(directory_t* directory) {
 }
 
 int DRM_find_content(directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_size) {
+    int target_global_index = -1;
     int page_offset   = offset / PAGE_CONTENT_SIZE;
+    int current_index = offset % PAGE_CONTENT_SIZE;
     int pages4search  = directory->header->page_count - page_offset;
     int current_page  = page_offset;
-    int current_index = offset % PAGE_CONTENT_SIZE;
     int size4seach    = (int)data_size;
-    int target_global_index = -1;
 
     unsigned char* data_pointer = data;
-    for (; pages4search > 0 && size4seach > 0; pages4search--) {
-        // If we reach pages count in current directory, we return error code.
-        // We return error instead creation a new directory, because this is not our abstraction level.
-        if (current_page >= directory->header->page_count) {
-            // Too  many pages. We reach directory end.
-            // That mean, we don't find any entry of target data.
-            return -1;
-        }
-
+    for (; pages4search > 0 && size4seach > 0 && current_page < directory->header->page_count; pages4search--) {
         // We load current page to memory.
         page_t* page = PGM_load_page(directory->page_names[current_page]);
         if (page == NULL) return -2;
@@ -261,7 +253,8 @@ int DRM_find_content(directory_t* __restrict directory, int offset, unsigned cha
                 size4seach          = (int)data_size;
                 data_pointer        = data;
                 target_global_index = -1;
-            } else {
+            } 
+            else {
                 // Move pointer to next position
                 size4seach   -= current_size;
                 data_pointer += current_size;

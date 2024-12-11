@@ -281,7 +281,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             Command syntax: delete row <table_name> <operation_type> <options>
             */
             else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), ROW) == 0) {
-                int index = -1;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
                 /*
@@ -290,10 +289,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
+                    answer->answer_code = DB_delete_row(
+                        database, table_name, atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)), access
+                    );
                 }
                 /*
-                Note: will delete first row, where will find value in provided column.
+                Note: will delete all rows, where will find value in provided column.
                 Command syntax: delete row <table_name> by_value column <column_name> value <value>
                 */
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
@@ -302,17 +303,16 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            index = DB_find_data_row(database, table_name, column_name, 0, (unsigned char*)value, strlen(value), access);
-                            if (index == -1) {
-                                print_error("Value not presented in table [%s].", table_name);
-                                return answer;
+                            while (1) {
+                                int index = DB_find_data_row(database, table_name, column_name, 0, (unsigned char*)value, strlen(value), access);
+                                if (index == -1) break;
+                                answer->answer_code = DB_delete_row(database, table_name, index, access);
                             }
                         }
                     }
                 }
 
                 answer->answer_size = -1;
-                answer->answer_code = DB_delete_row(database, table_name, index, access);
             }
         }
 #endif
@@ -482,8 +482,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
                         char* col_name  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
                             char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+
                             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                                 data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                                 index = DB_find_data_row(database, table_name, col_name, 0, (unsigned char*)value, strlen(value), access);

@@ -152,20 +152,6 @@
     int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size);
 
     /*
-    Find local index of line with input value
-
-    Params:
-    - page - pointer to page
-    - offset - offset index
-    - value - target value
-
-    Return -2 - if something goes wrong
-    Return -1 - if not found
-    Return index of value in content
-    */
-    int PGM_find_value(page_t* page, int offset, unsigned char value);
-
-    /*
     Function that set PE symbol in content in page. Main idea:
     1) We find last not PAGE_EMPTY symbol.
     2) Go to the end of page, and if we don`t get any not PAGE_EMPTY symbol, save start index.
@@ -176,7 +162,7 @@
 
     Return index of PAGE_END symbol in page.
     */
-    int PGM_set_pe_symbol(page_t* page, int offset);
+    int _get_page_occupie_size(page_t* page, int offset);
 
     /*
     Return value in bytes of free page space
