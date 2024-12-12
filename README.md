@@ -19,7 +19,7 @@ create database <db_name>
 ```
 Create function examples:
 ```
-create database db1
+create database db
 db create table table_1 000 columns ( col1 10 str is_primary na col2 10 any np na )
 db create table table_1 000 columns ( col1 10 calc=col2*10,mpre is_primary na col2 10 any np na )
 db create table table_1 000 columns ( uid 5 int p a name 8 str np na password 8 "hash=password 8,mpre" np na )
