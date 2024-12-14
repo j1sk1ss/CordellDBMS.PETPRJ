@@ -370,10 +370,11 @@ we use cache in pages (lowest level) and table cache at the highest level.
     /*
     Init transaction method prepare DBMS for transaction by flush all buffers.
     Note: Be sure, that transaction will work with:
-    - 10 or less tables.
-    - 10 or less directories.
-    - 10 or less pages.
+    - MAX_TABLES or less tables.
+    - MAX_DIRECTORIES or less directories.
+    - MAX_PAGES or less pages.
     In few words, that means, that you can input data with 40960KB (40MB) size to 10 directories at one time.
+    Note 2: MAX_TABLES, MAX_DIRECTORIES and MAX_PAGES can be found in "cache.h".
 
     Return 1 if transaction init success.
     Return -1 if we can't free GCT.

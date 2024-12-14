@@ -2,7 +2,7 @@
 
 
 void strrand(char* dest, size_t length, int offset) {
-    char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     size_t charset_size = sizeof(charset) - 1;
     
     for (size_t i = 0; i < length - 1; i++) {
@@ -69,7 +69,7 @@ char* strrep(char* __restrict string, char* __restrict source, char* __restrict 
         len_front = ins - string;
         tmp = strncpy(tmp, string, len_front) + len_front;
         tmp = strcpy(tmp, target) + len_target;
-        string += len_front + len_source; // move to next "end of source"
+        string += len_front + len_source;
     }
 
     strcpy(tmp, string);

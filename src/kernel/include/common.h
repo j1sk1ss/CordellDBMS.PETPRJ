@@ -33,7 +33,7 @@
 #include "cache.h"
 
 #ifdef NO_ENV
-#define getenv(key) NULL
+  #define getenv(key) NULL
 #endif
 
 #define ENV_GET(key, default) getenv(key) == NULL ? default : getenv(key)
