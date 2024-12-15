@@ -1,6 +1,26 @@
 **About this project:**
 -----------------------------------------------------
-I just want to create alternative of SQL like DBMS. For example my own PostgreSQL, but simpler and lighter. I want use this DBMS on embended systems like STM32F103C6T8 or Arduino NANO.
+I just want to create alternative of SQL like DBMS. For example my own PostgreSQL, but simpler and lighter. I want use this DBMS on embended systems like STM32F103C6T8 or Arduino NANO.</br>
+Also this project can be launched on Windows, MacOS (ARM / Intel), and Linux (Ubuntu, Debiand and Fedora tested).</br>
+
+**Testing:**
+-----------------------------------------------------
+### Size of executable file
+
+| OS     | Size (bytes) |
+|--------------------------|-------------|
+| Ubuntu 24.04.1          | 34488       |
+| Windows 10 22H2         | 37376       |
+| MacOSX 10.15.7          | 87064       |
+
+### Insert and get speed:
+
+| Rows count | Insert time (sec.) | Get time (sec.) |
+|----------------|-----------------|-------------------------------|
+| 1000           | 1.8628          | 0.002097                      |
+| 5000           | 8.9934          | 0.001761                      |
+| 10000          | 18.4760         | 0.001736                      |
+
 
 **ToDo list:**
 -----------------------------------------------------
