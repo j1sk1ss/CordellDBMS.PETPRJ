@@ -45,7 +45,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
             else {
                 // Write data to disk
                 status = 1;
-                int eof = _get_page_occupie_size(page, PAGE_START);
+                int eof = PGM_get_page_occupie_size(page, PAGE_START);
 
                 page->header->checksum = page_cheksum;
                 if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;

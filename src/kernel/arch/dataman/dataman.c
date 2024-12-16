@@ -1,6 +1,26 @@
 #include "../../include/dataman.h"
 
 
+int _get_global_offset(int row_size, int row) {
+    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
+    int pages_offset  = row / rows_per_page;
+    int page_offset   = row % rows_per_page;
+    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
+    return global_offset;
+}
+
+table_t* _get_table_access(database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)) {
+    table_t* table = DB_get_table(database, table_name);
+    if (table == NULL) return NULL;
+
+    if (check_access(access, table->header->access) == -1) {
+        TBM_flush_table(table);
+        return NULL;
+    }
+
+    return table;
+}
+
 unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return NULL;
@@ -250,24 +270,4 @@ int DB_unlink_table_from_database(database_t* __restrict database, char* __restr
     }
 
     return status;
-}
-
-int _get_global_offset(int row_size, int row) {
-    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-    return global_offset;
-}
-
-table_t* _get_table_access(database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)) {
-    table_t* table = DB_get_table(database, table_name);
-    if (table == NULL) return NULL;
-
-    if (check_access(access, table->header->access) == -1) {
-        TBM_flush_table(table);
-        return NULL;
-    }
-
-    return table;
 }

@@ -107,20 +107,21 @@
 
     Return point to allocated copy of data from directory
     */
-    unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size);
+    unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght);
 
     /*
     Rewrite all line by EMPTY symbols.
 
-    directory - pointer to directory.
-    offset - offset in directory.
-    length - length of data to mark as delete.
+    Params:
+    - directory - Pointer to directory.
+    - offset - Offset in directory.
+    - data_size - Length of data to mark as delete.
 
     Return 1 - if write was success.
     Return -1 - if index not found in page.
     Return size, that can't be deleted, if we reach directory end during work.
     */
-    int DRM_delete_content(directory_t* directory, int offset, size_t length);
+    int DRM_delete_content(directory_t* directory, int offset, size_t data_size);
 
     /*
     Cleanup empty pages in directory.
@@ -139,9 +140,10 @@
     Note 2: This function not guarantees that content will be append to last page.
             Content will be placed at first empty space with fit size.
 
-    directory - pointer to directory.
-    data - data for append.
-    data_lenght - lenght of data.
+    Params:
+    - directory - Pointer to directory.
+    - data - Data for append.
+    - data_lenght - Lenght of data.
 
     Return 2 if all success and content was append to new page.
     Return 1 if all success and content was append to existed page.
@@ -158,10 +160,11 @@
           To avoid this, use DRM_append_content function.
     Note 2: If directory don't have any pages - this function will fall and return -1.
 
-    directory - pointer to directory.
-    offset - offset in bytes.
-    data - data for append.
-    data_lenght - lenght of data.
+    Params:
+    - directory - Pointer to directory.
+    - offset - Offset in bytes.
+    - data - Data for append.
+    - data_lenght - Lenght of data.
 
     Return 1 if all success.
     Return 2 if write succes, but content was trunc.
@@ -206,8 +209,9 @@
     Note: Be carefull with this function, it can rewrite existed content.
     Note 2: If you want update data on disk, just create same path with existed directory.
 
-    directory - pointer to directory.
-    path - path where save. If provided NULL, function try to save file by default path.
+    Params:
+    - directory - Pointer to directory.
+    - path - Path where save. If provided NULL, function try to save file by default path.
 
     Return -2 - if something goes wrong.
     Return -1 - if we can`t create file.
@@ -222,8 +226,9 @@
           For avoiuding additional IO file operations, use create_page function with same name,
           then just link allocated struct to directory.
 
-    directory - home directory.
-    page - page for linking.
+    Params:
+    - directory - Home directory.
+    - page - Page for linking.
 
     Return -1 if we reach page limit per directory.
     If sighnature wrong, return 0.
@@ -248,7 +253,8 @@
     /*
     Allocate memory and create new directory.
 
-    name - directory name.
+    Params:
+    - Name - directory name.
 
     Return directory pointer.
     */

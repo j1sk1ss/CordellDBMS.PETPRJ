@@ -162,7 +162,7 @@
 
     Return index of PAGE_END symbol in page.
     */
-    int _get_page_occupie_size(page_t* page, int offset);
+    int PGM_get_page_occupie_size(page_t* page, int offset);
 
     /*
     Return value in bytes of free page space

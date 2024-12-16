@@ -122,17 +122,4 @@ Return 1 if cleanup success.
 */
 int CHC_flush_entry(void* entry, unsigned char type);
 
-/*
-Hard cleanup of GCT. Really not recomment for use!
-Note: It will just unload data from GCT to disk by provided index.
-Note 2: Empty space will be marked by NULL.
-
-Params:
-- index - index of entry for flushing.
-
-Return -1 if something goes wrong.
-Return 1 if cleanup success.
-*/
-int _flush_index(int index);
-
 #endif

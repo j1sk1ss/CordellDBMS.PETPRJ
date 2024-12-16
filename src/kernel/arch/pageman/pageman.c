@@ -61,7 +61,7 @@ int PGM_get_fit_free_space(page_t* page, int offset, int size) {
     return -2;
 }
 
-int _get_page_occupie_size(page_t* page, int offset) {
+int PGM_get_page_occupie_size(page_t* page, int offset) {
     int eof = 0;
     for (int i = offset; i < PAGE_CONTENT_SIZE; i++) {
         if (page->content[i] != PAGE_EMPTY) continue;

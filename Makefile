@@ -1,13 +1,13 @@
 # Enable optimisation flags and use minimalistic libs.
 # 1 - Compiler optimisation with only error logs.
 # 0 - Full debug with debug flags and debug logs.
-PROD ?= 0
+PROD ?= 1
 # Enable Pthreads (Without it will support only one session at server)
-PTHREADS ?= 1
+PTHREADS ?= 0
 # Enable OpenMP flag
-OMP ?= 1
+OMP ?= 0
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
-MAX_OPT ?= 0
+MAX_OPT ?= 1
 # Include std libs with -static
 INCLUDE_LIBS ?= 0
 
@@ -31,7 +31,7 @@ ifeq ($(PROD), 1)
 	CC = musl-gcc
 	CFLAGS = -Wall -Wextra -flto -fno-stack-protector -D_FORTUFY_SOURCE=0 -Ikernel/include -Wcomment -Os -s -DWARNINGS -DERRORS -DINFORMING
 else
-	CC = gcc-14
+	CC = gcc
 	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DSPECIAL
 endif
 

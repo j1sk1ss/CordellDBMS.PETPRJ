@@ -394,31 +394,4 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
 #pragma endregion
 
-#pragma region [Other]
-
-    /*
-    Support function for getting global offset in database for provided row.
-
-    Params:
-    - row_size - Row size in database.
-    - row - Row index.
-
-    Return global offset of row in database.
-    */
-    int _get_global_offset(int row_size, int row);
-
-    /*
-    Get table from database and check access for work with.
-    Note: check_access function should take two args and return 0 or 1.
-
-    Params:
-    - database - Pointer to database.
-    - table_name - Current table name.
-    - access - User access level.
-    - check_access - Check access function.
-    */
-    table_t* _get_table_access(database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int));
-
-#pragma endregion
-
 #endif

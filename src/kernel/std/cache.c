@@ -26,6 +26,18 @@ static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
 static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
 
 
+int _flush_index(int index) {
+    if (GCT[index].pointer == NULL) return -1;
+    GCT[index].free(GCT[index].pointer);
+    GCT[index].pointer = NULL;
+
+    GCT[index].free = NULL;
+    GCT[index].save = NULL;
+    GCT[index].type = ANY_CACHE;
+
+    return 1;
+}
+
 int CHC_init() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         GCT[i].free = NULL;
@@ -149,17 +161,5 @@ int CHC_flush_entry(void* entry, unsigned char type) {
 
     if (index != -1) _flush_index(index);
     else return -2;
-    return 1;
-}
-
-int _flush_index(int index) {
-    if (GCT[index].pointer == NULL) return -1;
-    GCT[index].free(GCT[index].pointer);
-    GCT[index].pointer = NULL;
-
-    GCT[index].free = NULL;
-    GCT[index].save = NULL;
-    GCT[index].type = ANY_CACHE;
-
     return 1;
 }

@@ -7,19 +7,19 @@ Also this project can be launched on Windows, MacOS (ARM / Intel), and Linux (Ub
 -----------------------------------------------------
 ### Size of executable file
 
-| OS     | Size (bytes) |
+| OS                       | Size (bytes)|
 |--------------------------|-------------|
-| Ubuntu 24.04.1          | 34488       |
-| Windows 10 22H2         | 37376       |
-| MacOSX 10.15.7          | 87064       |
+| Ubuntu 24.04.1           | 34488       |
+| Windows 10 22H2          | 37376       |
+| MacOSX 10.15.7           | 87064       |
 
 ### Insert and get speed:
 
-| Rows count | Insert time (sec.) | Get time (sec.) |
-|----------------|-----------------|-------------------------------|
-| 1000           | 1.8628          | 0.002097                      |
-| 5000           | 8.9934          | 0.001761                      |
-| 10000          | 18.4760         | 0.001736                      |
+| Rows count     | Insert time (sec.) | Get time (sec.) |
+|----------------|--------------------|-----------------|
+| 1000           | 1.8628             | 0.002097        |
+| 5000           | 8.9934             | 0.001761        |
+| 10000          | 18.4760            | 0.001736        |
 
 
 **ToDo list:**
