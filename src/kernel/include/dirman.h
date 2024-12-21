@@ -211,13 +211,12 @@
 
     Params:
     - directory - Pointer to directory.
-    - path - Path where save. If provided NULL, function try to save file by default path.
 
     Return -2 - if something goes wrong.
     Return -1 - if we can`t create file.
     Return 1 if file create success.
     */
-    int DRM_save_directory(directory_t* __restrict directory, char* __restrict path);
+    int DRM_save_directory(directory_t* directory);
 
     /*
     Link current page to this directory.

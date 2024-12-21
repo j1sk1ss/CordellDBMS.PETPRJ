@@ -50,7 +50,7 @@ typedef struct cache_entry {
     void* pointer;
 
     void (*free)(void* p);
-    void (*save)(void* p, char* path);
+    void (*save)(void* p);
 } cache_t;
 
 

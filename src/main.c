@@ -17,15 +17,6 @@
  *  Cordell DBMS is a light weight data base manager studio. Main idea
  *  that we can work with big data by using very light weighten app.
  * 
- *  <DEPRECATED | USE MAKEFILE INSTEAD MANUAL COMMAND BUILD>
- *  Unix:
- *  building without OMP: ...
- *  building with OMP: ...
- * 
- *  Win10/Win11:
- *  building without OMP: ...
- *  building with OMP: ...
- * 
  *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
 
@@ -86,7 +77,7 @@ void _cleanup() {
     }
 
     int _send2destination_byte(int destination, int byte) {
-        return _send2destination(destination, &byte, 1);
+        return _send2destination(destination, byte, 1);
     }
 
 #pragma endregion
@@ -227,13 +218,15 @@ int main() {
         .sin_addr.s_addr = htonl(INADDR_ANY)
     };
 
-    if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) < 0) {
-        print_error("bind() call failed");
+    int bind_result = bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address));
+    if (bind_result < 0) {
+        print_error("bind() call failed. Code: %i", bind_result);
         return -2;
     }
 
-    if (listen(server_socket, 5) < 0) {
-        print_error("listen() call failed");
+    int listen_result = listen(server_socket, 5);
+    if (listen_result < 0) {
+        print_error("listen() call failed. Code: %i", listen_result);
         return -3;
     }
 
@@ -246,7 +239,7 @@ int main() {
         client_address_len = sizeof(client_address);
         client_socket_fd   = accept(server_socket, (struct sockaddr*)&client_address, (socklen_t*)&client_address_len);
         if (client_socket_fd < 0) {
-            print_error("accept() call failed");
+            print_error("accept() call failed. Code: %i", client_socket_fd);
             continue;
         }
 

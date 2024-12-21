@@ -354,14 +354,13 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
     Params:
     - database - pointer to database
-    - path - save path. If provided NULL, function try to save file by default path.
 
     Return -3 if table names write corrupt.
     Return -2 if header write corrupt.
     Return -1 if can`t create or open file.
     Return 1 if save was success.
     */
-    int DB_save_database(database_t* __restrict database, char* __restrict path);
+    int DB_save_database(database_t* database);
 
 #pragma endregion
 

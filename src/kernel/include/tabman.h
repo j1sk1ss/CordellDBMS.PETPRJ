@@ -466,8 +466,7 @@
     Save table to the disk
 
     Params:
-    - table - pointer to table (Can be freed after function)
-    - path - place where table will be saved (Can be freed after function). If provided NULL, function try to save file by default path.
+    - table - Pointer to table (Can be freed after function).
 
     Return -5 if dir names write corrupt.
     Return -4 if column links write corrupt.
@@ -477,7 +476,7 @@
     Return 0 - if something goes wrong
     Return 1 - if save was success
     */
-    int TBM_save_table(table_t* __restrict table, char* __restrict path);
+    int TBM_save_table(table_t* table);
 
     /*
     Load table from .tb bin file

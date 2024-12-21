@@ -228,7 +228,6 @@
 
     Params:
     - page - pointer to page.
-    - path - path where save. If provided NULL, function try to save file by default path.
 
     Return -3 if content write corrupt.
     Return -2 if header write corrupt.
@@ -236,7 +235,7 @@
     Return 0 - if something goes wrong.
     Return 1 - if saving was success.
     */
-    int PGM_save_page(page_t* __restrict page, char* __restrict path);
+    int PGM_save_page(page_t* page);
 
     /*
     Open file, load page, close file

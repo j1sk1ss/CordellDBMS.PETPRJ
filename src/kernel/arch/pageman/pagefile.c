@@ -25,7 +25,7 @@ page_t* PGM_create_empty_page() {
     return page;
 }
 
-int PGM_save_page(page_t* __restrict page, char* __restrict path) {
+int PGM_save_page(page_t* page) {
     int status = -1;
     #pragma omp critical (page_save)
     {
@@ -36,8 +36,7 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
         {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
-            if (path == NULL) sprintf(save_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, page->header->name, PAGE_EXTENSION);
-            else strcpy(save_path, path);
+            get_load_path(page->header->name, PAGE_NAME_SIZE, save_path, PAGE_BASE_PATH, PAGE_EXTENSION);
 
             // Open or create file
             FILE* file = fopen(save_path, "wb");
@@ -124,7 +123,7 @@ int PGM_flush_page(page_t* page) {
     if (page == NULL) return -2;
     if (page->is_cached == 1) return -1;
 
-    PGM_save_page(page, NULL);
+    PGM_save_page(page);
     return PGM_free_page(page);
 }
 

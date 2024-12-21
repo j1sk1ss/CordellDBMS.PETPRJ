@@ -7,8 +7,8 @@ int get_load_path(char* name, int name_size, char* buffer, char* base_path, char
 }
 
 char* generate_unique_filename(char* base_path, int name_size, char* extension) {
-    char* name = (char*)malloc(name_size * sizeof(char));
-    memset(name, 0, name_size * sizeof(char));
+    char* name = (char*)malloc(name_size);
+    memset(name, 0, name_size);
 
     int offset = 0;
     while (1) {
@@ -49,6 +49,6 @@ int file_exists(const char* path, const char* filename) {
 
 int delete_file(const char* filename, const char* basepath, const char* extension) {
     char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-    get_load_path(filename, strlen(filename), delete_path, basepath, extension);
+    get_load_path((char*)filename, strlen(filename), (char*)delete_path, (char*)basepath, (char*)extension);
     return remove(delete_path);
 }

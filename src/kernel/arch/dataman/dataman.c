@@ -9,7 +9,9 @@ int _get_global_offset(int row_size, int row) {
     return global_offset;
 }
 
-table_t* _get_table_access(database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)) {
+table_t* _get_table_access(
+    database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)
+) {
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return NULL;
 
@@ -21,7 +23,9 @@ table_t* _get_table_access(database_t* __restrict database, char* __restrict tab
     return table;
 }
 
-unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
+unsigned char* DB_get_row(
+    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access
+) {
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return NULL;
 
@@ -103,7 +107,10 @@ int DB_append_row(
     return result;
 }
 
-int DB_insert_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size, unsigned char access) {
+int DB_insert_row(
+    database_t* __restrict database, char* __restrict table_name, 
+    int row, unsigned char* __restrict data, size_t data_size, unsigned char access
+) {
 #ifndef NO_UPDATE_COMMAND
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return -1;
@@ -164,8 +171,8 @@ int DB_cleanup_tables(database_t* database) {
 }
 
 int DB_find_data_row(
-    database_t* __restrict database, char* __restrict table_name, char* __restrict column, int offset, 
-    unsigned char* __restrict data, size_t data_size, unsigned char access
+    database_t* __restrict database, char* __restrict table_name, 
+    char* __restrict column, int offset, unsigned char* __restrict data, size_t data_size, unsigned char access
 ) {
     table_t* table = _get_table_access(database, table_name, access, check_read_access);
     if (table == NULL) return -1;

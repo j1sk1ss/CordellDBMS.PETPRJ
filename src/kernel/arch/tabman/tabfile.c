@@ -33,7 +33,7 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     return NULL;
 }
 
-int TBM_save_table(table_t* __restrict table, char* __restrict path) {
+int TBM_save_table(table_t* table) {
     int status = -1;
     #pragma omp critical (table_save)
     {
@@ -43,8 +43,7 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
         {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
-            if (path == NULL) sprintf(save_path, "%s%.*s.%s", TABLE_BASE_PATH, TABLE_NAME_SIZE, table->header->name, TABLE_EXTENSION);
-            else strcpy(save_path, path);
+            get_load_path(table->header->name, TABLE_NAME_SIZE, save_path, TABLE_BASE_PATH, TABLE_EXTENSION);
 
             // Open or create file
             FILE* file = fopen(save_path, "wb");
@@ -175,7 +174,7 @@ int TBM_flush_table(table_t* table) {
     if (table == NULL) return -2;
     if (table->is_cached == 1) return -1;
 
-    TBM_save_table(table, NULL);
+    TBM_save_table(table);
     return TBM_free_table(table);
 }
 

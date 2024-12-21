@@ -88,7 +88,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
         if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, omp_get_thread_num()) != -1) {
             #pragma omp critical (gct_types_decreese)
             GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
-            GCT[current].save(GCT[current].pointer, NULL);
+            GCT[current].save(GCT[current].pointer);
             _flush_index(current);
         }
         else {
@@ -124,7 +124,7 @@ int CHC_sync() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
         if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) == 1) {
-            GCT[i].save(GCT[i].pointer, NULL);
+            GCT[i].save(GCT[i].pointer);
             THR_release_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num());
         }
         else {

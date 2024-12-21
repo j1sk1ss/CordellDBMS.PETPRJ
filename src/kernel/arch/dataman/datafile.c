@@ -75,14 +75,13 @@ database_t* DB_load_database(char* name) {
     return loaded_database;
 }
 
-int DB_save_database(database_t* database, char* path) {
+int DB_save_database(database_t* database) {
     int status = -1;
     #pragma omp critical (save_database)
     {
         // We generate default path
         char save_path[DEFAULT_PATH_SIZE] = { 0 };
-        if (path == NULL) sprintf(save_path, "%s%.*s.%s", DATABASE_BASE_PATH, DATABASE_NAME_SIZE, database->header->name, DATABASE_EXTENSION);
-        else strcpy(save_path, path);
+        get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
 
         FILE* file = fopen(save_path, "wb");
         if (file == NULL) print_error("Can`t create or open file: [%s]", save_path);

@@ -25,7 +25,7 @@ directory_t* DRM_create_empty_directory() {
     return DRM_create_directory(directory_name);
 }
 
-int DRM_save_directory(directory_t* __restrict directory, char* __restrict path) {
+int DRM_save_directory(directory_t* directory) {
     int status = -1;
     #pragma omp critical (directory_save)
     {
@@ -34,8 +34,7 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
         #endif
         {
             char save_path[DEFAULT_PATH_SIZE];
-            if (path == NULL) sprintf(save_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
-            else strcpy(save_path, path);
+            get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, save_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
 
             FILE* file = fopen(save_path, "wb");
             if (file == NULL) print_error("Can`t create file: [%s]", save_path);
@@ -150,7 +149,7 @@ int DRM_flush_directory(directory_t* directory) {
     if (directory == NULL) return -2;
     if (directory->is_cached == 1) return -1;
 
-    DRM_save_directory(directory, NULL);
+    DRM_save_directory(directory);
     return DRM_free_directory(directory);
 }
 
