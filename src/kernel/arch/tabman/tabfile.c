@@ -162,10 +162,7 @@ int TBM_delete_table(table_t* table, int full) {
         }
 
         // Delete table from disk by provided, generated path
-        char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-        get_load_path(table->header->name, TABLE_NAME_SIZE, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
-        remove(delete_path);
-
+        delete_file(table->header->name, TABLE_BASE_PATH, TABLE_EXTENSION);
         CHC_flush_entry(table, TABLE_CACHE);
         return 1;
     }

@@ -124,6 +124,18 @@ Return 1 if exist, 0 if not.
 */
 int file_exists(const char* path, const char* filename);
 
+/*
+Delete file by provided filename, basepath and extension.
+
+Params:
+- filename - File name.
+- basepath - Path, where placed file.
+- extension - File extension.
+
+Return remove status code.
+*/
+int delete_file(const char* filename, const char* basepath, const char* extension);
+
 // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
 // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
 // size_t	file_write(const void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);

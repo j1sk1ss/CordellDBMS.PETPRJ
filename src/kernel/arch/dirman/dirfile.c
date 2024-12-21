@@ -128,20 +128,14 @@ int DRM_delete_directory(directory_t* directory, int full) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < directory->header->page_count; i++) {
-                char page_path[DEFAULT_PATH_SIZE] = { 0 };
-                sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
                 print_debug(
                     "Page [%s] was deleted and flushed with results [%i | %i]",
-                    page_path, CHC_flush_entry(PGM_load_page(directory->page_names[i]), PAGE_CACHE), remove(page_path)
+                    directory->page_names[i], CHC_flush_entry(PGM_load_page(directory->page_names[i]), PAGE_CACHE), delete_file(directory->page_names[i], PAGE_BASE_PATH, PAGE_EXTENSION)
                 );
             }
         }
 
-        char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-        get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, delete_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
-        CHC_flush_entry(directory, DIRECTORY_CACHE);
-        print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
-
+        print_debug("Directory [%s] was deleted with result [%i]", directory->header->name, delete_file(directory->header->name, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION));
         return 1;
     }
     else {

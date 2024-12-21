@@ -30,10 +30,7 @@ int DB_delete_database(database_t* database, int full) {
     }
 
     if (result != 1) return result;
-    char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-    get_load_path(database->header->name, DATABASE_NAME_SIZE, delete_path, TABLE_BASE_PATH, TABLE_EXTENSION);
-    remove(delete_path);
-
+    delete_file(database->header->name, TABLE_BASE_PATH, TABLE_EXTENSION);
     DB_free_database(database);
 #endif
     return 1;
