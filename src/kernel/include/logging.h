@@ -26,7 +26,8 @@
 #include "common.h"
 
 
-// Note: LOG_TO_FILE option very heavy function. Prefere console logging.
+// Note: LOG_TO_FILE option very heavy function. Prefere console logging, if your host machine can do this.
+// If you use micro controller, use LOG_TO_FILE with disabled DEBUG, LOGGING, INFORMING and SPECIAL.
 // #define LOG_TO_FILE
 #define LOG_FILE_PATH       ENV_GET("LOG_FILE_PATH", "")
 #define LOG_FILE_EXTENSION  ENV_GET("LOG_FILE_EXTENSION", "log")
