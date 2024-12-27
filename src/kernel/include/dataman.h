@@ -61,7 +61,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 // HEADER (MAGIC | NAME) -> | TABLE_NAMES -> ... -> end |
 //=======================================================
 
-    typedef struct database_header {
+    typedef struct {
         // Database header magic
         unsigned char magic;
 
@@ -72,7 +72,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
         unsigned char table_count;
     } database_header_t;
 
-    typedef struct database {
+    typedef struct {
         // Database header
         database_header_t* header;
 

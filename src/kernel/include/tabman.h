@@ -154,7 +154,7 @@
 // HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) -> | LINKS -> | DIR_NAMES -> dyn. -> end |
 //========================================================================================================================================
 
-    typedef struct table_column {
+    typedef struct {
         // Column magic byte
         unsigned char magic;
 
@@ -185,7 +185,7 @@
         char module_querry[COLUMN_MODULE_SIZE];
     } table_column_t;
 
-    typedef struct table_header {
+    typedef struct {
         // Table magic
         unsigned char magic;
 
@@ -220,7 +220,7 @@
         unsigned int checksum;
     } table_header_t;
 
-    typedef struct table {
+    typedef struct {
         // Lock table flag
         unsigned short lock;
         unsigned char is_cached;

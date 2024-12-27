@@ -38,13 +38,13 @@
 #define PAGE_CACHE          0
 
 
-typedef struct cache_body {
+typedef struct {
     unsigned short lock;
     unsigned char is_cached;
     void* body;
 } cache_body_t;
 
-typedef struct cache_entry {
+typedef struct {
     char name[ENTRY_NAME_SIZE];
     unsigned char type;
     void* pointer;

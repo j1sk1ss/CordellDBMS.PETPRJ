@@ -65,7 +65,7 @@
 // HEADER (MAGIC | NAME | PAGE_COUNT | COLUMN_COUNT) -> | COLUMNS (TYPE | NAME, ... ) | PAGE_NAMES -> 8 * 256 -> end |
 //====================================================================================================================
 
-    typedef struct directory_header {
+    typedef struct {
         // Magic namber for check
         unsigned char magic;
 
@@ -80,7 +80,7 @@
         unsigned int checksum;
     } directory_header_t;
 
-    typedef struct directory {
+    typedef struct {
         // Lock directory flag
         unsigned short lock;
         unsigned char is_cached;

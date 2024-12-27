@@ -71,7 +71,7 @@
 // INDEX | CONTENT_SIZE | CONTENT -> size -> end |
 //================================================
 
-    typedef struct page_header {
+    typedef struct {
         // Magic namber for check
         // If number nq magic, we know that this file broken
         unsigned char magic;
@@ -84,7 +84,7 @@
         unsigned int checksum;
     } page_header_t;
 
-    typedef struct page {
+    typedef struct {
         // Lock page flags
         unsigned short lock;
         unsigned char is_cached;

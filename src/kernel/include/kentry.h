@@ -115,7 +115,7 @@
 #define KERNEL_VERSION     "v2.6.2 (main)"
 
 
-typedef struct kernel_answer {
+typedef struct {
     signed char answer_code;
     unsigned short answer_size;
     unsigned char* answer_body;
