@@ -17,6 +17,17 @@
 #include "logging.h"
 #include "common.h"
 
+#ifdef _WIN32
+    #define popen   _popen
+    #define pclose  _pclose
+
+    #define WEXITSTATUS(status) (((status) & 0xFF00) >> 8)
+    #define WIFEXITED(status) (((status) & 0xFF) == 0)
+
+#else
+    #include <sys/wait.h>
+#endif
+
 
 #define MODULE_NAME_SIZE    8
 #define MODULE_EXTENSION    ENV_GET("MODULE_EXTENSION", "mdl")

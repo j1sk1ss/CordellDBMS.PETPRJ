@@ -11,7 +11,6 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
     header->magic = PAGE_MAGIC;
     strncpy_s(header->name, name, PAGE_NAME_SIZE);
     page->lock = THR_create_lock();
-    page->is_cached = 0;
 
     page->header = header;
     if (buffer != NULL) memcpy_s(page->content, buffer, data_size);
@@ -26,7 +25,7 @@ page_t* PGM_create_empty_page() {
     return page;
 }
 
-int PGM_save_page(page_t* __restrict page, char* __restrict path) {
+int PGM_save_page(page_t* page) {
     int status = -1;
     // We generate default path
     char save_path[DEFAULT_PATH_SIZE] = { 0 };
@@ -54,14 +53,12 @@ int PGM_save_page(page_t* __restrict page, char* __restrict path) {
 page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, PAGE_NAME_SIZE, path, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
-        print_error("Path or name should be provided!");
+    if (get_load_path(name, PAGE_NAME_SIZE, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
+        print_error("Name should be provided!");
         return NULL;
     }
 
-    char file_name[PAGE_NAME_SIZE] = { 0 };
-    if (get_filename(name, path, file_name, PAGE_NAME_SIZE) == -1) return NULL;
-    page_t* loaded_page = (page_t*)CHC_find_entry(file_name, PAGE_CACHE);
+    page_t* loaded_page = (page_t*)CHC_find_entry(name, PAGE_CACHE);
     if (loaded_page != NULL) {
         print_debug("Loading page [%s] from GCT", load_path);
         return loaded_page;
@@ -103,7 +100,7 @@ int PGM_flush_page(page_t* page) {
     if (page == NULL) return -2;
     if (page->is_cached == 1) return -1;
 
-    PGM_save_page(page, NULL);
+    PGM_save_page(page);
     return PGM_free_page(page);
 }
 

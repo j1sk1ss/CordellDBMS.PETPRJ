@@ -22,6 +22,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdio.h>
+
 #ifdef _WIN32
   #include <windows.h>
 #else
@@ -30,6 +31,9 @@
 
 #include "cache.h"
 
+#ifdef NO_ENV
+  #define getenv(key) NULL
+#endif
 
 #define ENV_GET(key, default) getenv(key) == NULL ? default : getenv(key)
 
@@ -37,8 +41,8 @@
 #define DEFAULT_PATH_SIZE   128
 #define DEFAULT_DELAY       999999999
 
-#define MIN(a, b) (((a)<(b)) ? (a) : (b))
-#define MAX(a, b) (((a)>(b)) ? (a) : (b))
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
       free((ptr));           \
@@ -56,55 +60,38 @@ Return char* of current time in format: "%Y-%m-%d %H:%M:%S".
 char* get_current_time();
 
 /*
-Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+Check if provided string is integer.
+
+Params:
+- str - pointer to string.
+
+Return 1 is integer.
+Return 0 is not integer.
 */
-unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
+int is_integer(const char* str);
 
-#pragma region [File]
+/*
+Get current time from time.h libraryю
+!! Note: Output should be freed after usage. !!
 
-  /*
-  Example:
-  Given path == "C:\\dir1\\dir2\\dir3\\file.exe"
-  will return path_ as   "C:\\dir1\\dir2\\dir3"
-  Will return base_ as   "file"
-  Will return ext_ as    "exe"
-
-  Important Note: path, that you provided into function, will be broken. It
-  happens, because in function used strtok_s_s.
-
-  Took from: https://stackoverflow.com/questions/24975928/extract-the-file-name-and-its-extension-in-c
-  */
-  void get_file_path_parts(char* path, char* path_, char* base_, char* ext_);
+Return char* of current time in format: "%Y-%m-%d %H:%M:%S".
+*/
+char* get_current_time();
 
   /*
   Get load path by name or path.
 
-  Params:
-  - name - Name of file or NULL.
-  - name_size - Name size.
-  - path - Path for save or NULL.
-  - buffer - Buffer, where will be stored load path.
-  - base_path - Base path.
-  - extension - File extension.
+Params:
+- name - Name of file or NULL.
+- name_size - Name size.
+- buffer - Buffer, where will be stored load path.
+- base_path - Base path.
+- extension - File extension.
 
-  Return 1 if load path generated.
-  Return -1 if something goes wrong.
-  */
-  int get_load_path(char* name, int name_size, char* path, char* buffer, char* base_path, char* extension);
-
-  /*
-  Get filename by name or path.
-
-  Params:
-  - name - Name of file or NULL.
-  - path - Path for save or NULL.
-  - buffer - Buffer, where will be stored load path.
-  - name_size - Size of name.
-
-  Return 1 if name generated.
-  Return -1 if something goes wrong.
-  */
-  int get_filename(char* name, char* path, char* buffer, int name_size);
+Return 1 if load path generated.
+Return -1 if something goes wrong.
+*/
+int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension);
 
   /*
   Generate unique filename.
@@ -125,9 +112,21 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   Params:
   - path - Path to file with filename and extension.
 
-  Return 1 if exist, 0 if not.
-  */
-  int file_exists(const char* path, const char* filename);
+Return 1 if exist, 0 if not.
+*/
+int file_exists(const char* path, const char* filename);
+
+/*
+Delete file by provided filename, basepath and extension.
+
+Params:
+- filename - File name.
+- basepath - Path, where placed file.
+- extension - File extension.
+
+Return remove status code.
+*/
+int delete_file(const char* filename, const char* basepath, const char* extension);
 
   // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
   // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
@@ -178,25 +177,11 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   */
   char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
-  size_t strlen_s(char* str);
-  char* strncpy_s(char* dst, char* src, int n);
-  int strncmp_s(char* str1, const char* str2, size_t n);
-  char* strcpy_s(char* dst, char* src);
-
-  /*
-  Took from: https://github.com/appinha/42cursus-00-Libft/blob/master/libft/srcs/str/ft_strstr.c
-  */
-  char* strstr_s(char* haystack, char* needle);
-  char* strpbrk_s(char* s, char* accept);
-  size_t strspn_s(char* s, char* accept);
-  char* strtok_s(char* string, char* delim);
-  char* strcat_s(char* dest, char* src);
-  char* strchr_s(char* str, char chr);
-  int strcmp_s(char* firstStr, char* secondStr);
-  void* memcpy_s(void* destination, void* source, size_t num);
-  void* memset_s(void* pointer, unsigned char value, size_t num);
-  int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
-
-#pragma endregion
+/*
+Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
+Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+Return checksum.
+*/
+unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
 
 #endif

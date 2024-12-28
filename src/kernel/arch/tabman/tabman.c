@@ -10,7 +10,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     directory_t* directory = NULL;
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory from disk to memory
-        directory = DRM_load_directory(NULL, table->dir_names[i]);
+        directory = DRM_load_directory(table->dir_names[i]);
         if (directory == NULL) continue;
 
         // Check:
@@ -36,11 +36,12 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     // Allocate data for output
     unsigned char* output_content = (unsigned char*)malloc(size);
     unsigned char* output_content_pointer = output_content;
+    memset(output_content_pointer, 0, size);
 
     // Iterate from all directories in table
     for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
         // Load directory to memory
-        directory = DRM_load_directory(NULL, table->dir_names[i]);
+        directory = DRM_load_directory(table->dir_names[i]);
         if (directory == NULL) continue;
             // Get data from directory
             // After getting data, copy it to allocated output
@@ -73,7 +74,7 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
     // Iterate existed directories. Maybe we can store data here?
     for (int i = table->append_offset; i < table->header->dir_count; i++) {
         // Load directory to memory
-        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (directory != NULL) {
             if (directory->header->page_count + size4append <= PAGES_PER_DIRECTORY) {
                 int result = DRM_append_content(directory, data_pointer, size4append);
@@ -106,12 +107,17 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
     TBM_link_dir2table(table, new_directory);
 
     // Save directory to DDT
-    CHC_add_entry(new_directory, new_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
+    CHC_add_entry(
+        new_directory, new_directory->header->name, 
+        DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
+    );
+    
     DRM_flush_directory(new_directory);
     return 1;
 }
 
 int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
+#ifndef NO_UPDATE_COMMAND
     if (table->header->dir_count == 0) return -3;
 
     unsigned char* data_pointer = data;
@@ -120,7 +126,7 @@ int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __r
     // Iterate existed directories. Maybe we can insert data here?
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory to memory
-        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (directory == NULL) return -1;
 
         int result = DRM_insert_content(directory, offset, data_pointer, size4insert);
@@ -139,16 +145,18 @@ int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __r
 
     // If we reach end, return error code.
     // Check docs why we return error, instead dir creation.
+#endif
     return -2;
 }
 
 int TBM_delete_content(table_t* table, int offset, size_t size) {
+#ifndef NO_DELETE_COMMAND
     int size4delete = (int)size;
 
     // Iterate existed directories. Maybe we can insert data here?
     for (int i = 0; i < table->header->dir_count; i++) {
         // Load directory to memory
-        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (directory == NULL) return -1;
         table->append_offset = i;
 
@@ -160,13 +168,15 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
     }
 
     // If we reach end, return error code.
+#endif
     return -2;
 }
 
 int TBM_cleanup_dirs(table_t* table) {
+#ifndef NO_DELETE_COMMAND
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < table->header->dir_count; i++) {
-        directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(table->dir_names[i]);
         DRM_cleanup_pages(directory);
         if (directory->header->page_count == 0) {
             TBM_unlink_dir_from_table(table, directory->header->name);
@@ -175,40 +185,41 @@ int TBM_cleanup_dirs(table_t* table) {
         else DRM_flush_directory(directory);
     }
 
+#endif
     return 1;
 }
 
 int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
+    unsigned char* data_pointer = data;
     int directory_offset    = 0;
     int size4seach          = (int)data_size;
     int target_global_index = -1;
 
-    unsigned char* data_pointer = data;
-    for (directory_offset = 0; directory_offset < table->header->dir_count && size4seach > 0; directory_offset++) {
+    for (; directory_offset < table->header->dir_count && size4seach > 0; directory_offset++) {
         // We load current page to memory
-        directory_t* directory = DRM_load_directory(NULL, table->dir_names[directory_offset]);
+        directory_t* directory = DRM_load_directory(table->dir_names[directory_offset]);
         if (directory == NULL) return -2;
 
         // We search part of data in this page, save index and unload page.
-        int result = DRM_find_content(directory, offset, data_pointer, size4seach);
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            int result = DRM_find_content(directory, offset, data_pointer, size4seach);
+            THR_release_lock(&directory->lock, omp_get_thread_num());
 
-        // If TGI is -1, we know that we start seacrhing from start.
-        // Save current TGI of find part of data.
-        if (target_global_index == -1) {
-            target_global_index = result;
-        }
-
-        if (result == -1) {
-            // We don`t find any entry of data part.
-            // This indicates, that we don`t find any data.
-            // Restore size4search and datapointer, we go to start
-            size4seach          = (int)data_size;
-            data_pointer        = data;
-            target_global_index = -1;
-        } else {
-            // Move pointer to next position
-            size4seach   -= directory->header->page_count * PAGE_CONTENT_SIZE - result;
-            data_pointer += directory->header->page_count * PAGE_CONTENT_SIZE - result;
+            // If TGI is -1, we know that we start seacrhing from start.
+            // Save current TGI of find part of data.
+            if (target_global_index == -1) target_global_index = result;
+            if (result == -1) {
+                // We don`t find any entry of data part.
+                // This indicates, that we don`t find any data.
+                // Restore size4search and datapointer, we go to start
+                size4seach   = (int)data_size;
+                data_pointer = data;
+            } 
+            else {
+                // Move pointer to next position
+                size4seach   -= directory->header->page_count * PAGE_CONTENT_SIZE - result;
+                data_pointer += directory->header->page_count * PAGE_CONTENT_SIZE - result;
+            }
         }
 
         DRM_flush_directory(directory);
@@ -216,7 +227,7 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
 
     if (target_global_index != -1) {
         for (int i = 0; i < MAX(directory_offset - 1, 0); i++) {
-            directory_t* directory = DRM_load_directory(NULL, table->dir_names[i]);
+            directory_t* directory = DRM_load_directory(table->dir_names[i]);
             if (directory != NULL) {
                 target_global_index += directory->header->page_count * PAGE_CONTENT_SIZE;
                 DRM_flush_directory(directory);

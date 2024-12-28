@@ -27,7 +27,7 @@ directory_t* DRM_create_empty_directory() {
     return DRM_create_directory(directory_name);
 }
 
-int DRM_save_directory(directory_t* __restrict directory, char* __restrict path) {
+int DRM_save_directory(directory_t* directory) {
     int status = -1;
     #pragma omp critical (directory_save)
     {
@@ -60,16 +60,14 @@ int DRM_save_directory(directory_t* __restrict directory, char* __restrict path)
     return status;
 }
 
-directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
+directory_t* DRM_load_directory(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, DIRECTORY_NAME_SIZE, path, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
-        print_error("Path or name should be provided!");
+    if (get_load_path(name, DIRECTORY_NAME_SIZE, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
+        print_error("Name should be provided!");
         return NULL;
     }
 
-    char file_name[DIRECTORY_NAME_SIZE] = { 0 };
-    if (get_filename(name, path, file_name, DIRECTORY_NAME_SIZE) == -1) return NULL;
-    directory_t* loaded_directory = (directory_t*)CHC_find_entry(file_name, DIRECTORY_CACHE);
+    directory_t* loaded_directory = (directory_t*)CHC_find_entry(name, DIRECTORY_CACHE);
     if (loaded_directory != NULL) {
         print_debug("Loading directory [%s] from GCT", load_path);
         return loaded_directory;
@@ -105,9 +103,11 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
 
                 directory->header = header;
                 loaded_directory  = directory;
-                directory->append_offset = 0;
 
-                CHC_add_entry(loaded_directory, loaded_directory->header->name, DIRECTORY_CACHE, DRM_free_directory, DRM_save_directory);
+                CHC_add_entry(
+                    loaded_directory, loaded_directory->header->name, 
+                    DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
+                );
             }
         }
     }
@@ -116,6 +116,7 @@ directory_t* DRM_load_directory(char* __restrict path, char* __restrict name) {
 }
 
 int DRM_delete_directory(directory_t* directory, int full) {
+#ifndef NO_DELETE_COMMAND
     if (directory == NULL) return -1;
     if (full) {
         for (int i = 0; i < directory->header->page_count; i++) {
@@ -140,7 +141,7 @@ int DRM_flush_directory(directory_t* directory) {
     if (directory == NULL) return -2;
     if (directory->is_cached == 1) return -1;
 
-    DRM_save_directory(directory, NULL);
+    DRM_save_directory(directory);
     return DRM_free_directory(directory);
 }
 

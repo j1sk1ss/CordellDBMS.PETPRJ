@@ -76,42 +76,33 @@
     uaccess - user access level.
     taccess - table access level.
     */
-    #define CHECK_READ_ACCESS(uaccess, taccess) GET_READ_ACCESS(taccess) < GET_READ_ACCESS(uaccess) ? -1 : 0
+    static inline int check_read_access(int uaccess, int taccess) {
+        return GET_READ_ACCESS(taccess) < GET_READ_ACCESS(uaccess) ? -1 : 0;
+    }
     /*
     Macros for checking write access level. Will return -1 if access denied.
     Note: This function usualy used in lower abstraction levels.
     uaccess - user access level.
     taccess - table access level.
     */
-    #define CHECK_WRITE_ACCESS(uaccess, taccess) GET_WRITE_ACCESS(taccess) < GET_WRITE_ACCESS(uaccess) ? -1 : 0
+    static inline int check_write_access(int uaccess, int taccess) {
+        return GET_WRITE_ACCESS(taccess) < GET_WRITE_ACCESS(uaccess) ? -1 : 0;
+    }
     /*
     Macros for checking delete access level. Will return -1 if access denied.
     Note: This function usualy used in lower abstraction levels.
     uaccess - user access level.
     taccess - table access level.
     */
-    #define CHECK_DELETE_ACCESS(uaccess, taccess) GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0
+    static inline int check_delete_access(int uaccess, int taccess) {
+        return GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0;
+    }
 
 #pragma endregion
 
 #pragma region [Column]
 
-    /*
-    <DEPRECATED>
-    Main idea is create a simple presentation of info in binary data.
-    With this delimiters we know, that every row has at start ROW_DELIMITER (it allows us use \n character).
-    */
-    #define COLUMN_DELIMITER    0xEE
-    /*
-    <DEPRECATED>
-    For splitting data by columns, we reserve another byte value.
-    In summary data has next structure:
-    ... -> CD -> DATA_DATA_DATA -> CD -> DATA_DATA_DATA -> RD -> DATA_DATA_DATA -> CD -> ...
-    Row delimiter equals column delimiter, but says, that this is a different column and different row
-    */
-    #define ROW_DELIMITER       0xEF
     #define COLUMN_MAX_SIZE     0xFFF
-
     #define COLUMN_MAGIC        0xEA
     /*
     Column name size indicates how much bytes will reserve name field on disk.
@@ -126,7 +117,9 @@
     #define COLUMN_MODULE_BOTH      0x02
 
     // Column auto increment bits.
-    // <Already not implemented yet>
+    // That means, that every primary columns (one at table), will have 
+    // value equals of value of rows in table.
+    // Note: Work only with TYPE_INT columns.
     #define COLUMN_NO_AUTO_INC       0x00
     #define COLUMN_AUTO_INCREMENT    0x01
 
@@ -163,7 +156,7 @@
 // HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) -> | LINKS -> | DIR_NAMES -> dyn. -> end |
 //========================================================================================================================================
 
-    typedef struct table_column {
+    typedef struct {
         // Column magic byte
         unsigned char magic;
 
@@ -194,7 +187,7 @@
         char module_querry[COLUMN_MODULE_SIZE];
     } table_column_t;
 
-    typedef struct table_header {
+    typedef struct {
         // Table magic
         unsigned char magic;
 
@@ -219,13 +212,14 @@
         // Column count in this table
         // How much columns in this table
         unsigned char column_count;
+        unsigned int row_count;
 
         // Dir count in this table
         // How much directories in this table
         unsigned char dir_count;
     } table_header_t;
 
-    typedef struct table {
+    typedef struct {
         // Lock table flag
         unsigned short lock;
         unsigned char is_cached;
@@ -250,9 +244,9 @@
     Note: This function don't check signature, and can return any values, that's why be sure that you get right size of content.
 
     Params:
-    - table - pointer to table
-    - offset - global offset in bytes
-    - size - size of content
+    - table - Pointer to table.
+    - offset - Global offset in bytes.
+    - size - Size of content.
 
     Return point to allocated copy of data from table
     */
@@ -395,6 +389,17 @@
     */
     table_column_t* TBM_create_column(unsigned char type, unsigned short size, char* name);
 
+    /*
+    This function get offset in row for getting data.
+
+    Params:
+    - table - Pointer to table.
+    - column_name - Columns name.
+
+    Return offset in row of column.
+    */
+    int TBM_get_column_offset(table_t* table, char* column_name);
+
 #pragma endregion
 
 #pragma region [Table]
@@ -460,8 +465,7 @@
     Save table to the disk
 
     Params:
-    - table - pointer to table (Can be freed after function)
-    - path - place where table will be saved (Can be freed after function). If provided NULL, function try to save file by default path.
+    - table - Pointer to table (Can be freed after function).
 
     Return -5 if dir names write corrupt.
     Return -4 if column links write corrupt.
@@ -471,20 +475,19 @@
     Return 0 - if something goes wrong
     Return 1 - if save was success
     */
-    int TBM_save_table(table_t* __restrict table, char* __restrict path);
+    int TBM_save_table(table_t* table);
 
     /*
     Load table from .tb bin file
 
     Params:
-    - path - path to table.tb file. (Should be NULL, if provided name).
     - name - name of table. This function will try to load table by
              default path (Should be NULL, if provided path).
     Note: Don't forget about full path. Be sure that all code coreectly use paths
 
     Return allocated table from disk
     */
-    table_t* TBM_load_table(char* __restrict path, char* __restrict name);
+    table_t* TBM_load_table(char* name);
 
     /*
     Delete table from disk.

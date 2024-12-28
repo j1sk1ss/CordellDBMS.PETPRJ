@@ -4,7 +4,6 @@
 Global Cache Table used for caching results of I/O operations.
 */
 static cache_t GCT[ENTRY_COUNT];
-static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
 
 /*
 This defined vars guaranty, that database will take only:
@@ -23,8 +22,21 @@ Z * 4112 bytes (for page_t)
 1 index - directories,
 2 index - tables
 */
+static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
 static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
 
+
+static int _flush_index(int index) {
+    if (GCT[index].pointer == NULL) return -1;
+    GCT[index].free(GCT[index].pointer);
+    GCT[index].pointer = NULL;
+
+    GCT[index].free = NULL;
+    GCT[index].save = NULL;
+    GCT[index].type = ANY_CACHE;
+
+    return 1;
+}
 
 int CHC_init() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
@@ -41,11 +53,10 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
     if (entry == NULL) return -2;
     ((cache_body_t*)entry)->is_cached = 0;
 
-    int free_current = -1;
-    int occup_current = -1;
-
+    int free_current   = -1;
+    int occup_current  = -1;
     int should_replace = 0;
-    int found_replace = 0;
+    int found_replace  = 0;
 
     if (GCT_TYPES[type] >= GCT_TYPES_MAX[type]) should_replace = 1;
     for (int i = 0; i < ENTRY_COUNT; i++) {
@@ -65,10 +76,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
     int current = -1;
     if (free_current != -1) current = free_current;
     else if (occup_current != -1) current = occup_current;
-    else if (free_current == -1 && occup_current == -1) {
-        print_error("Can't find empty space for entry [%s] with type [%i]", name, type);
-        return -1;
-    }
+    else if (free_current == -1 && occup_current == -1) return -4;
 
     if (should_replace == 1 && found_replace == 0) return -3;
     else if (should_replace == 1 && found_replace == 1 && occup_current == -1) return -4;
@@ -135,19 +143,7 @@ int CHC_flush_entry(void* entry, unsigned char type) {
         }
     }
 
-    if (index != -1) CHC_flush_index(index);
+    if (index != -1) _flush_index(index);
     else return -2;
-    return 1;
-}
-
-int CHC_flush_index(int index) {
-    if (GCT[index].pointer == NULL) return -1;
-    GCT[index].free(GCT[index].pointer);
-    GCT[index].pointer = NULL;
-
-    GCT[index].free = NULL;
-    GCT[index].save = NULL;
-    GCT[index].type = ANY_CACHE;
-
     return 1;
 }

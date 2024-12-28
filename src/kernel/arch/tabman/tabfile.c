@@ -2,6 +2,7 @@
 
 
 table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access) {
+#ifndef NO_CREATE_COMMAND
     int row_size = 0;
     for (int i = 0; i < col_count; i++)
         row_size += columns[i]->size;
@@ -31,9 +32,11 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     table->is_cached = 0;
     table->header    = header;
     return table;
+#endif
+    return NULL;
 }
 
-int TBM_save_table(table_t* __restrict table, char* __restrict path) {
+int TBM_save_table(table_t* table) {
     int status = -1;
     #pragma omp critical (table_save)
     {
@@ -73,17 +76,15 @@ int TBM_save_table(table_t* __restrict table, char* __restrict path) {
     return status;
 }
 
-table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
+table_t* TBM_load_table(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, TABLE_NAME_SIZE, path, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
-        print_error("Path or name should be provided!");
+    if (get_load_path(name, TABLE_NAME_SIZE, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
+        print_error("Name should be provided!");
         return NULL;
     }
 
     // If path is not NULL, we use function for getting file name
-    char file_name[TABLE_NAME_SIZE] = { 0 };
-    if (get_filename(name, path, file_name, TABLE_NAME_SIZE) == -1) return NULL;
-    table_t* loaded_table = (table_t*)CHC_find_entry(file_name, TABLE_CACHE);
+    table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_CACHE);
     if (loaded_table != NULL) {
         print_debug("Loading table [%s] from GCT", load_path);
         return loaded_table;
@@ -114,10 +115,10 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
 
                 for (int i = 0; i < header->column_count; i++) {
                     columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
+                    memset(columns[i], 0, sizeof(table_column_t));
                     fread(columns[i], sizeof(table_column_t), 1, file);
                 }
 
-                table->row_size = 0;
                 for (int i = 0; i < header->column_count; i++)
                     table->row_size += columns[i]->size;
 
@@ -132,7 +133,7 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
                 table->append_offset = 0;
 
                 table->header = header;
-                CHC_add_entry(table, table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
+                CHC_add_entry(table, table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
                 loaded_table = table;
             }
         }
@@ -142,6 +143,7 @@ table_t* TBM_load_table(char* __restrict path, char* __restrict name) {
 }
 
 int TBM_delete_table(table_t* table, int full) {
+#ifndef NO_DELETE_COMMAND
     if (table == NULL) return -1;
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < table->header->dir_count; i++) {
@@ -165,7 +167,7 @@ int TBM_flush_table(table_t* table) {
     if (table == NULL) return -2;
     if (table->is_cached == 1) return -1;
 
-    TBM_save_table(table, NULL);
+    TBM_save_table(table);
     return TBM_free_table(table);
 }
 

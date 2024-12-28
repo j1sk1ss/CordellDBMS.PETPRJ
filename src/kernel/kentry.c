@@ -87,7 +87,7 @@ int kernel(char* querry) {
                 if (database_name == NULL) return -1;
 
                 database_t* new_database = DB_create_database(database_name);
-                int result = DB_save_database(new_database, NULL);
+                int result = DB_save_database(new_database);
 
                 print_log("Database [%.*s.%s] create succes!", DATABASE_NAME_SIZE, new_database->header->name, DATABASE_EXTENSION);
                 DB_free_database(new_database);
@@ -130,7 +130,7 @@ int kernel(char* querry) {
                                     column_stack[column_stack_index++] = SAFE_GET_VALUE(commands, argc, command_index);
                                 }
 
-                                for (int j = 0; j < 256; j += 5) {
+                                for (int j = 0; j < 512; j += 5) {
                                     if (column_stack[j] == NULL) break;
 
                                     // Get column data type
@@ -192,12 +192,15 @@ int kernel(char* querry) {
                 }
 
                         DB_link_table2database(database, new_table);
-                        CHC_add_entry(new_table, new_table->header->name, TABLE_CACHE, TBM_free_table, TBM_save_table);
+                        CHC_add_entry(
+                            new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table
+                        );
 
                 print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
                 return 1;
             }
         }
+#endif
         /*
         Handle data append.
         Command syntax: append row <table_name> values <data>
@@ -235,7 +238,7 @@ int kernel(char* querry) {
         */
         else if (strcmp_s(command, DELETE) == 0) {
             /*
-            Command syntax: delete database <name>
+            Command syntax: delete database
             */
             command_index++;
             if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
@@ -280,7 +283,7 @@ int kernel(char* querry) {
                     index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                 }
                 /*
-                Note: will delete first row, where will find value in provided column.
+                Note: will delete all rows, where will find value in provided column.
                 Command syntax: delete row <table_name> by_value column <column_name> value <value>
                 */
                 else if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
@@ -304,6 +307,7 @@ int kernel(char* querry) {
                 return DB_delete_row(database, table_name, index, access);
             }
         }
+#endif
         /*
         Handle get command.
         Command syntax: get <option>
@@ -316,7 +320,6 @@ int kernel(char* querry) {
                 int index = -1;
                 int answer_size = 0;
                 unsigned char* answer_data = NULL;
-
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) {
                     return 5;
@@ -348,7 +351,7 @@ int kernel(char* querry) {
                     TBM_flush_table(table);
                 }
                 /*
-                Note: will get first row, where will find value in provided column.
+                Note: will get list of rows, where will find value in provided column.
                 Command syntax: get row table <table_name> by_value column <column_name> value <value>
                 */
                 else if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
@@ -381,7 +384,6 @@ int kernel(char* querry) {
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
                                 offset += (index + 1) * table->row_size;
-
                                 answer_data = (unsigned char*)realloc(answer_data, answer_size);
                                 unsigned char* copy_pointer = answer_data + data_start;
 
@@ -392,6 +394,7 @@ int kernel(char* querry) {
                         }
                     }
                 }
+#endif
 
                 print_info("%.*s", answer_size, answer_data);
                 return 1;

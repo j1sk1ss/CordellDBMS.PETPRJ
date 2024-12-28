@@ -25,9 +25,12 @@ MODULE_SOURCES = $(wildcard $(MODULE_DIR)/*.c)
 SOURCES = $(KERNEL_DIR)/kentry.c $(KSTD_SOURCES) $(DATAMAN_SOURCES) $(DIRMAN_SOURCES) $(PAGEMAN_SOURCES) $(TABMAN_SOURCES) $(MODULE_SOURCES)
 OUTPUT = builds/cdbms_x86-64
 
+
 all: force_build $(OUTPUT)
 force_build:
-	@echo "Force building..."
+ifeq ($(shell [ -e $(OUTPUT) ] && echo yes), yes)
+	@rm -f $(OUTPUT)
+endif
 	
 $(OUTPUT): $(SOURCES)
 	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES)

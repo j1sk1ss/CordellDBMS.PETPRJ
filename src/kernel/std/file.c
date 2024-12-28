@@ -166,3 +166,9 @@ int file_exists(const char* path, const char* filename) {
     if (CHC_find_entry((char*)filename, ANY_CACHE) == NULL) return status;
     else return 1;
 }
+
+int delete_file(const char* filename, const char* basepath, const char* extension) {
+    char delete_path[DEFAULT_PATH_SIZE] = { 0 };
+    get_load_path((char*)filename, strlen(filename), (char*)delete_path, (char*)basepath, (char*)extension);
+    return remove(delete_path);
+}
