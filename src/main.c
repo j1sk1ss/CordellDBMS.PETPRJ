@@ -77,7 +77,7 @@ void _cleanup() {
     }
 
     int _send2destination_byte(int destination, int byte) {
-        return _send2destination(destination, byte, 1);
+        return _send2destination(destination, &byte, 1);
     }
 
 #pragma endregion
