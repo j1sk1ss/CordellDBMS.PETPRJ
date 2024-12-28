@@ -47,19 +47,18 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
             // After getting data, copy it to allocated output
             int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
             unsigned char* directory_content = DRM_get_content(directory, offset, current_size);
-            THR_release_lock(&directory->lock, omp_get_thread_num());
             if (directory_content != NULL) {
                 memcpy_s(output_content_pointer, directory_content, current_size);
 
-            // Realise data
-            free(directory_content);
+                // Realise data
+                free(directory_content);
 
-            // Set offset to 0, because we go to next directory
-            // Update size of getcontent
-            offset = 0;
-            content2get_size       -= current_size;
-            output_content_pointer += current_size;
-        }
+                // Set offset to 0, because we go to next directory
+                // Update size of getcontent
+                offset = 0;
+                content2get_size       -= current_size;
+                output_content_pointer += current_size;
+            }
 
         DRM_flush_directory(directory);
     }
@@ -201,25 +200,22 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
         if (directory == NULL) return -2;
 
         // We search part of data in this page, save index and unload page.
-        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            int result = DRM_find_content(directory, offset, data_pointer, size4seach);
-            THR_release_lock(&directory->lock, omp_get_thread_num());
+        int result = DRM_find_content(directory, offset, data_pointer, size4seach);
 
-            // If TGI is -1, we know that we start seacrhing from start.
-            // Save current TGI of find part of data.
-            if (target_global_index == -1) target_global_index = result;
-            if (result == -1) {
-                // We don`t find any entry of data part.
-                // This indicates, that we don`t find any data.
-                // Restore size4search and datapointer, we go to start
-                size4seach   = (int)data_size;
-                data_pointer = data;
-            } 
-            else {
-                // Move pointer to next position
-                size4seach   -= directory->header->page_count * PAGE_CONTENT_SIZE - result;
-                data_pointer += directory->header->page_count * PAGE_CONTENT_SIZE - result;
-            }
+        // If TGI is -1, we know that we start seacrhing from start.
+        // Save current TGI of find part of data.
+        if (target_global_index == -1) target_global_index = result;
+        if (result == -1) {
+            // We don`t find any entry of data part.
+            // This indicates, that we don`t find any data.
+            // Restore size4search and datapointer, we go to start
+            size4seach   = (int)data_size;
+            data_pointer = data;
+        } 
+        else {
+            // Move pointer to next position
+            size4seach   -= directory->header->page_count * PAGE_CONTENT_SIZE - result;
+            data_pointer += directory->header->page_count * PAGE_CONTENT_SIZE - result;
         }
 
         DRM_flush_directory(directory);

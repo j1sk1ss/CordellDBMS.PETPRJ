@@ -127,10 +127,7 @@ int DB_insert_row(
     }
 
     TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_insert_content(table, _get_global_offset(table->row_size, row), data, data_size);
-        THR_release_lock(&table->lock, omp_get_thread_num());
-    }
+    result = TBM_insert_content(table, _get_global_offset(table->row_size, row), data, data_size);
 
     TBM_flush_table(table);
     return result;
@@ -143,12 +140,7 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
     table_t* table = _get_table_access(database, table_name, access, check_delete_access);
     if (table == NULL) return -1;
 
-    int result = -1;
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        result = TBM_delete_content(table, _get_global_offset(table->row_size, row), table->row_size);
-        THR_release_lock(&table->lock, omp_get_thread_num());
-    }
-
+    int result = TBM_delete_content(table, _get_global_offset(table->row_size, row), table->row_size);
     table->header->row_count = MAX(table->header->row_count - 1, 0);
     TBM_flush_table(table);
     return result;
@@ -196,28 +188,24 @@ int DB_find_data_row(
     }
 
     int answer = -1;
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
-        while (1) {
-            int global_offset = TBM_find_content(table, offset, data, data_size);
-            TBM_flush_table(table);
-            if (global_offset < 0) break;
+    while (1) {
+        int global_offset = TBM_find_content(table, offset, data, data_size);
+        TBM_flush_table(table);
+        if (global_offset < 0) break;
 
-            int row = global_offset / row_size;
-            if (column_offset == -1 && column_size == -1) {
-                answer = row;
-                break;
-            }
-
-            int position_in_row = global_offset % row_size;
-            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
-                answer = row;
-                break;
-            }
-            
-            offset = global_offset + data_size;
+        int row = global_offset / row_size;
+        if (column_offset == -1 && column_size == -1) {
+            answer = row;
+            break;
         }
 
-        THR_release_lock(&table->lock, omp_get_thread_num());
+        int position_in_row = global_offset % row_size;
+        if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
+            answer = row;
+            break;
+        }
+        
+        offset = global_offset + data_size;
     }
 
     return answer;
@@ -277,12 +265,4 @@ int DB_unlink_table_from_database(database_t* __restrict database, char* __restr
     }
 
     return status;
-}
-
-int _get_global_offset(int row_size, int row) {
-    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-    return global_offset;
 }

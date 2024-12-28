@@ -5,9 +5,11 @@
  * Copyright (c) 2017, Arm Limited. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause
  */
-#include "../include/lfs.h"
-#include "../include/lfs_util.h"
+#include "../../include/lfs.h"
+#include "../../include/lfs_util.h"
 
+
+lfs_t lfs_body;
 
 // some constants used throughout the code
 #define LFS_BLOCK_NULL ((lfs_block_t)-1)

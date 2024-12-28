@@ -123,7 +123,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
             sprintf(page_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
             print_debug(
                 "Page [%s] was deleted and flushed with results [%i | %i]",
-                page_path, CHC_flush_entry(PGM_load_page(page_path, NULL), PAGE_CACHE), remove(page_path)
+                directory->page_names[i], CHC_flush_entry(PGM_load_page(directory->page_names[i]), PAGE_CACHE), remove(page_path)
             );
         }
     }

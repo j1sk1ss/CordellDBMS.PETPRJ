@@ -10,7 +10,6 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
 
     header->magic = PAGE_MAGIC;
     strncpy_s(header->name, name, PAGE_NAME_SIZE);
-    page->lock = THR_create_lock();
 
     page->header = header;
     if (buffer != NULL) memcpy_s(page->content, buffer, data_size);
@@ -36,21 +35,16 @@ int PGM_save_page(page_t* page) {
 
     // Write data to disk
     status  = 1;
-    int eof = PGM_set_pe_symbol(page, PAGE_START);
-    int page_size = PGM_find_value(page, 0, PAGE_END);
-    if (page_size <= 0) page_size = 0;
+    int eof = PGM_get_page_occupie_size(page, PAGE_START);
 
     lfs_file_write(&lfs_body, &file, page->header, sizeof(page_header_t));
-    lfs_file_write(&lfs_body, &file, page->content, sizeof(unsigned char) * page_size);
+    lfs_file_write(&lfs_body, &file, page->content, sizeof(unsigned char) * eof);
     lfs_file_close(&lfs_body, &file);
-    
-    page->content[eof] = PAGE_EMPTY;
 
     return status;
 }
 
-page_t* PGM_load_page(char* __restrict path, char* __restrict name) {
-    char load_path[DEFAULT_PATH_SIZE] = { 0 };
+page_t* PGM_load_page(char* __restrict name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, PAGE_NAME_SIZE, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Name should be provided!");

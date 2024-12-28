@@ -117,7 +117,7 @@ char* strncpy_s(char* dst, char* src, int n) {
 	return dst;
 }
 
-int strncmp_s(char* str1, const char* str2, size_t n) {
+int strncmp_s(char* str1, char* str2, size_t n) {
     for (size_t i = 0; i < n; ++i) 
         if (str1[i] != str2[i] || str1[i] == '\0' || str2[i] == '\0') 
             return (unsigned char)str1[i] - (unsigned char)str2[i];

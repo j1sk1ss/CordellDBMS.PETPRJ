@@ -108,9 +108,8 @@ void get_file_path_parts(char* path, char* path_, char* base_, char* ext_) {
     }
 }
 
-int get_load_path(char* name, int name_size, char* path, char* buffer, char* base_path, char* extension) {
-    if (path == NULL && name != NULL) sprintf(buffer, "%s%.*s.%s", base_path, name_size, name, extension);
-    else if (path != NULL) strcpy_s(buffer, path);
+int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension) {
+    if (name != NULL) sprintf(buffer, "%s%.*s.%s", base_path, name_size, name, extension);
     else return -1;
     return 1;
 }
@@ -169,6 +168,6 @@ int file_exists(const char* path, const char* filename) {
 
 int delete_file(const char* filename, const char* basepath, const char* extension) {
     char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-    get_load_path((char*)filename, strlen(filename), NULL, (char*)delete_path, (char*)basepath, (char*)extension);
+    get_load_path((char*)filename, strlen(filename), (char*)delete_path, (char*)basepath, (char*)extension);
     return remove(delete_path);
 }

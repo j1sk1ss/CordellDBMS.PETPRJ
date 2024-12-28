@@ -86,7 +86,7 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
         #pragma omp critical (gct_types_decreese)
         GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
         GCT[current].save(GCT[current].pointer);
-        CHC_flush_index(current);
+        _flush_index(current);
     }
 
     ((cache_body_t*)entry)->is_cached = 1;
@@ -125,7 +125,7 @@ int CHC_sync() {
 int CHC_free() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        CHC_flush_index(i);
+        _flush_index(i);
     }
 
     return 1;

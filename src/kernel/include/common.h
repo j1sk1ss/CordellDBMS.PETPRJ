@@ -187,13 +187,17 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
     /*
     Took from: https://github.com/appinha/42cursus-00-Libft/blob/master/libft/srcs/str/ft_strstr.c
     */
+    size_t strlen_s(char* str);
+    char* strncpy_s(char* dst, char* src, int n);
     char* strstr_s(char* haystack, char* needle);
+    char* strcpy_s(char* dst, char* src);
     char* strpbrk_s(char* s, char* accept);
     size_t strspn_s(char* s, char* accept);
     char* strtok_s(char* string, char* delim);
     char* strcat_s(char* dest, char* src);
     char* strchr_s(char* str, char chr);
     int strcmp_s(char* firstStr, char* secondStr);
+    int strncmp_s(char* firstStr, char* secondStr, size_t n);
     void* memcpy_s(void* destination, void* source, size_t num);
     void* memset_s(void* pointer, unsigned char value, size_t num);
     int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
