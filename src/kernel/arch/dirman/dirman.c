@@ -34,19 +34,15 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
         // abstraction levels.
         if (page_content_pointer != NULL) {
             page_content_pointer += current_index;
+            // We work with page
+            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
+            memcpy(content_pointer, page_content_pointer, current_size);
 
-                // We work with page
-                int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
-                memcpy(content_pointer, page_content_pointer, current_size);
-
-                // We reload local index and update size2get
-                // Also we move content pointer to next location
-                current_index   = 0;
-                data_lenght -= current_size;
-                content_pointer += current_size;
-            }
-
-            THR_release_lock(&page->lock, omp_get_thread_num());
+            // We reload local index and update size2get
+            // Also we move content pointer to next location
+            current_index   = 0;
+            data_lenght -= current_size;
+            content_pointer += current_size;
         }
 
         PGM_flush_page(page);
@@ -116,16 +112,13 @@ int DRM_insert_content(
         if (page == NULL) return -1;
 
         // We insert current part of content with local offset
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) { 
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
-            PGM_insert_content(page, current_index, data_pointer, current_size);
-            THR_release_lock(&page->lock, omp_get_thread_num());
+        int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
+        PGM_insert_content(page, current_index, data_pointer, current_size);
 
-            // We reload local index and update size2delete
-            current_index = 0;
-            data_lenght -= current_size;
-            data_pointer += current_size;
-        }
+        // We reload local index and update size2delete
+        current_index = 0;
+        data_lenght -= current_size;
+        data_pointer += current_size;
 
         PGM_flush_page(page);
     }
@@ -159,17 +152,14 @@ int DRM_delete_content(directory_t* directory, int offset, size_t data_size) {
             }
         }
 
-            // We work with page
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_size);
-            PGM_delete_content(page, current_index, current_size);
-            directory->append_offset = page_offset - 1;
+        // We work with page
+        int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_size);
+        PGM_delete_content(page, current_index, current_size);
+        directory->append_offset = page_offset - 1;
 
-            // We reload local index and update size2delete
-            current_index = 0;
-            data_size -= current_size;
-
-            THR_release_lock(&page->lock, omp_get_thread_num());
-        }
+        // We reload local index and update size2delete
+        current_index = 0;
+        data_size -= current_size;
 
         PGM_flush_page(page);
     }
@@ -218,34 +208,31 @@ int DRM_find_content(
 
         // We search part of data in this page, save index and unload page.
         int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_size);
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-            int result = PGM_find_content(page, current_index, data_pointer, current_size);
-            THR_release_lock(&page->lock, omp_get_thread_num());
+        int result = PGM_find_content(page, current_index, data_pointer, current_size);
 
-            // If TGI is -1, we know that we start seacrhing from start.
-            // Save current TGI of find part of data.
-            if (target_global_index == -1) {
-                target_global_index = result + page_offset * PAGE_CONTENT_SIZE;
-            }
-
-            if (result == -1) {
-                // We don`t find any entry of data part.
-                // This indicates, that we don`t find any data.
-                // Restore size4search and datapointer, we go to start
-                data_size = (int)data_size;
-                data_pointer = data;
-                target_global_index = -1;
-            } 
-            else {
-                // Move pointer to next position
-                data_size -= current_size;
-                data_pointer += current_size;
-            }
-
-            // Set local index to 0. We don`t need offset now.
-            current_index = 0;
-            page_offset++;
+        // If TGI is -1, we know that we start seacrhing from start.
+        // Save current TGI of find part of data.
+        if (target_global_index == -1) {
+            target_global_index = result + page_offset * PAGE_CONTENT_SIZE;
         }
+
+        if (result == -1) {
+            // We don`t find any entry of data part.
+            // This indicates, that we don`t find any data.
+            // Restore size4search and datapointer, we go to start
+            data_size = (int)data_size;
+            data_pointer = data;
+            target_global_index = -1;
+        } 
+        else {
+            // Move pointer to next position
+            data_size -= current_size;
+            data_pointer += current_size;
+        }
+
+        // Set local index to 0. We don`t need offset now.
+        current_index = 0;
+        page_offset++;
 
         PGM_flush_page(page);
     }

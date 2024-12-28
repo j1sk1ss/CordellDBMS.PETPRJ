@@ -29,8 +29,7 @@ int PGM_save_page(page_t* page) {
     int status = -1;
     // We generate default path
     char save_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (path == NULL) sprintf(save_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, page->header->name, PAGE_EXTENSION);
-    else strcpy(save_path, path);
+    sprintf(save_path, "%s%.*s.%s", PAGE_BASE_PATH, PAGE_NAME_SIZE, page->header->name, PAGE_EXTENSION);
 
     lfs_file_t file;
     lfs_file_open(&lfs_body, &file, save_path, LFS_O_WRONLY | LFS_O_CREAT | LFS_O_TRUNC);

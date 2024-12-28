@@ -36,8 +36,7 @@ int DRM_save_directory(directory_t* directory) {
         #endif
         {
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
-            if (path == NULL) sprintf(save_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
-            else strcpy_s(save_path, path);
+            sprintf(save_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
 
             FILE* file = fopen(save_path, "wb");
             if (file == NULL) print_error("Can`t create file: [%s]", save_path);
@@ -133,7 +132,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
     sprintf(delete_path, "%s%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, directory->header->name, DIRECTORY_EXTENSION);
     CHC_flush_entry(directory, DIRECTORY_CACHE);
     print_debug("Directory [%s] was deleted with result [%i]", delete_path, remove(delete_path));
-
+#endif
     return 1;
 }
 

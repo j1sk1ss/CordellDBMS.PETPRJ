@@ -49,7 +49,7 @@ int kernel(char* querry) {
     char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
 
     if (database == NULL) {
-        database = DB_load_database(NULL, db_name);
+        database = DB_load_database(db_name);
         if (database == NULL) {
             print_warn("Database wasn`t found. Create a new one with [create database <name>].");
             current_start = 1;
@@ -200,7 +200,6 @@ int kernel(char* querry) {
                 return 1;
             }
         }
-#endif
         /*
         Handle data append.
         Command syntax: append row <table_name> values <data>
@@ -307,7 +306,6 @@ int kernel(char* querry) {
                 return DB_delete_row(database, table_name, index, access);
             }
         }
-#endif
         /*
         Handle get command.
         Command syntax: get <option>
@@ -394,7 +392,6 @@ int kernel(char* querry) {
                         }
                     }
                 }
-#endif
 
                 print_info("%.*s", answer_size, answer_data);
                 return 1;

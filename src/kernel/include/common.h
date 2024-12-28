@@ -177,11 +177,25 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
   */
   char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
-/*
-Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
-Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
-Return checksum.
-*/
-unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
+  /*
+  Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
+  Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+  Return checksum.
+  */
+  unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
+
+    /*
+    Took from: https://github.com/appinha/42cursus-00-Libft/blob/master/libft/srcs/str/ft_strstr.c
+    */
+    char* strstr_s(char* haystack, char* needle);
+    char* strpbrk_s(char* s, char* accept);
+    size_t strspn_s(char* s, char* accept);
+    char* strtok_s(char* string, char* delim);
+    char* strcat_s(char* dest, char* src);
+    char* strchr_s(char* str, char chr);
+    int strcmp_s(char* firstStr, char* secondStr);
+    void* memcpy_s(void* destination, void* source, size_t num);
+    void* memset_s(void* pointer, unsigned char value, size_t num);
+    int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
 
 #endif

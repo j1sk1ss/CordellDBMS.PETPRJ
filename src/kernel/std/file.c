@@ -169,6 +169,6 @@ int file_exists(const char* path, const char* filename) {
 
 int delete_file(const char* filename, const char* basepath, const char* extension) {
     char delete_path[DEFAULT_PATH_SIZE] = { 0 };
-    get_load_path((char*)filename, strlen(filename), (char*)delete_path, (char*)basepath, (char*)extension);
+    get_load_path((char*)filename, strlen(filename), NULL, (char*)delete_path, (char*)basepath, (char*)extension);
     return remove(delete_path);
 }
