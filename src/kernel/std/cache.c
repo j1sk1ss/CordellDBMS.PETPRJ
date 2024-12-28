@@ -26,7 +26,7 @@ static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
 static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
 
 
-int _flush_index(int index) {
+static int _flush_index(int index) {
     if (GCT[index].pointer == NULL) return -1;
     GCT[index].free(GCT[index].pointer);
     GCT[index].pointer = NULL;

@@ -6,10 +6,7 @@ static database_t* connections[MAX_CONNECTIONS] = { NULL };
 
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
-
-    answer->answer_body = NULL;
-    answer->answer_code = -1;
-    answer->answer_size = 0;
+    memset(answer, 0, sizeof(kernel_answer_t));
 
     int current_start = 1;
     database_t* database = NULL;
@@ -122,18 +119,17 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                             );
 
                             if (access_byte < access) {
-                                answer->answer_code = 6;
-                                return answer;
+                                access_byte = access;
                             }
                         }
 
                         int column_count = 0;
                         table_column_t** columns = NULL;
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
-                            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), OPEN_BRACKET) == 0) {
+                            if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
                                 int column_stack_index = 0;
                                 char* column_stack[512] = { NULL };
-                                while (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), CLOSE_BRACKET) != 0) {
+                                while (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != CLOSE_BRACKET) {
                                     column_stack[column_stack_index++] = SAFE_GET_VALUE(commands, argc, command_index);
                                 }
 
@@ -176,10 +172,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                                         size_t module_name_len = equals_pos - column_data_type;
                                         size_t module_query_len = comma_pos - equals_pos - 1;
 
-                                        memset(columns[column_count]->module_name, 0, MODULE_NAME_SIZE);
                                         strncpy(columns[column_count]->module_name, column_data_type, MIN(module_name_len, MODULE_NAME_SIZE));
-                                        if (equals_pos != NULL) {
-                                            strncpy(columns[column_count]->module_querry, equals_pos + 1, module_query_len);
+                                        if (equals_pos) {
+                                            strncpy(columns[column_count]->module_querry, equals_pos + 1, MIN(module_query_len, COLUMN_MODULE_SIZE));
                                             print_log(
                                                 "Module [%.*s] registered with [%s] querry", 
                                                 MODULE_NAME_SIZE, columns[column_count]->module_name, columns[column_count]->module_querry
@@ -202,8 +197,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         DB_link_table2database(database, new_table);
                         CHC_add_entry(
-                            new_table, new_table->header->name, 
-                            TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table
+                            new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table
                         );
 
                         print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
@@ -251,13 +245,12 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 #ifndef NO_DELETE_COMMAND
         else if (strcmp(command, DELETE) == 0) {
             /*
-            Command syntax: delete database <name>
+            Command syntax: delete database
             */
             command_index++;
             if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
-                char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (DB_delete_database(database, 1) != 1) print_error("Error code 1 during deleting %s", database_name);
-                else print_log("Database [%s] was delete successfully.", database_name);
+                if (DB_delete_database(database, 1) != 1) print_error("Error code 1 during deleting current database!");
+                else print_log("Current database was delete successfully.");
 
                 database = NULL;
                 connections[connection] = NULL;
@@ -414,7 +407,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                             int index = 0;
                             int offset = 0;
-                            unsigned char* row_data = (unsigned char*)" ";
+                            unsigned char* row_data = NULL;
 
                             while (*row_data != '\0') {
                                 row_data = DB_get_row(database, table_name, index++, access);
@@ -508,13 +501,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
     return answer;
 }
 
-int flush_tables() {
+static int _flush_tables() {
     CHC_free();
     return 1;
 }
 
 int close_connection(int connection) {
-    flush_tables();
+    _flush_tables();
     if (connections[connection] == NULL) return -2;
     DB_free_database(connections[connection]);
     connections[connection] = NULL;
@@ -528,7 +521,7 @@ int kernel_free_answer(kernel_answer_t* answer) {
 }
 
 void cleanup_kernel() {
-    flush_tables();
+    _flush_tables();
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
         if (connections[i] == NULL) continue;
         DB_free_database(connections[i]);

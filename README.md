@@ -10,6 +10,7 @@ Also this project can be launched on Windows, MacOS (ARM / Intel), and Linux (Ub
 | OS                       | Size (bytes)|
 |--------------------------|-------------|
 | Ubuntu 24.04.1           | 34488       |
+| Fedora 40                | 35536       |
 | Windows 10 22H2          | 37376       |
 | MacOSX 10.15.7           | 87064       |
 
@@ -85,7 +86,7 @@ db get row table_1 by_exp column col2 "!=" "100"
 *DELETE* </br>
 Delete function template:
 ```
-delete database <db_name>
+<db_name> delete database
 <db_name> delete table <tb_name>
 <db_name> delete row <tb_name> by_index <index>
 <db_name> delete row <tb_name> by_value column <col_name> value <value>

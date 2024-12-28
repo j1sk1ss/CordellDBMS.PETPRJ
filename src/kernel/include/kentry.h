@@ -79,8 +79,8 @@
     #define BY_VALUE        "by_value"
     #define BY_EXPRESSION   "by_exp"
 
-    #define OPEN_BRACKET    "("
-    #define CLOSE_BRACKET   ")"
+    #define OPEN_BRACKET    '('
+    #define CLOSE_BRACKET   ')'
 
     #pragma region [Types]
 
@@ -153,13 +153,6 @@ Params:
 Return -1 or 1.
 */
 int kernel_free_answer(kernel_answer_t* answer);
-
-/*
-Flush GCT
-
-Return 1 if flush success.
-*/
-int flush_tables();
 
 /*
 Cleanup kernel will free all entries from GCT.

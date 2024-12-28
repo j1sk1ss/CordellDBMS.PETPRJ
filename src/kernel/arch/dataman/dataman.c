@@ -1,7 +1,7 @@
 #include "../../include/dataman.h"
 
 
-int _get_global_offset(int row_size, int row) {
+static int _get_global_offset(int row_size, int row) {
     int rows_per_page = PAGE_CONTENT_SIZE / row_size;
     int pages_offset  = row / rows_per_page;
     int page_offset   = row % rows_per_page;
@@ -9,7 +9,7 @@ int _get_global_offset(int row_size, int row) {
     return global_offset;
 }
 
-table_t* _get_table_access(
+static table_t* _get_table_access(
     database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)
 ) {
     table_t* table = DB_get_table(database, table_name);
