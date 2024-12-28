@@ -76,7 +76,7 @@ int kernel(char* querry) {
         Handle creation.
         Command syntax: create <option>
         */
-        else if (strcmp_s(command, CREATE) == 0) {
+        if (strcmp_s(command, CREATE) == 0) {
             /*
             Handle database creation.
             Command syntax: create database <name>

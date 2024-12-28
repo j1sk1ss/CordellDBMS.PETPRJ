@@ -36,7 +36,6 @@
 #include "cache.h"
 #include "common.h"
 #include "dataman.h"
-#include "sighandler.h"
 
 
 #define SAFE_GET_VALUE(argv, max, index)            index >= max ? NULL : argv[index]
@@ -112,12 +111,17 @@
 #define KERNEL_VERSION     "v2.4"
 
 
-typedef struct kernel_answer {
+typedef struct {
     unsigned short commands_processed;
     signed char answer_code;
     unsigned short answer_size;
     unsigned char* answer_body;
 } kernel_answer_t;
+
+typedef struct {
+    char** argv;
+    int argc;
+} commands_t;
 
 
 /*
