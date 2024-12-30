@@ -58,7 +58,7 @@
     #define SYNC            "sync"
 
     #define CREATE          "create"
-    #define LINK            "link"
+    #define MIGRATE         "migrate"
     #define DELETE          "delete"
     #define APPEND          "append"
     #define UPDATE          "update"
@@ -68,6 +68,7 @@
     #define DATABASE        "database"
     #define VERSION         "version"
 
+    #define NAV             "nav"
     #define COLUMNS         "columns"
     #define COLUMN          "column"
     #define VALUES          "values"

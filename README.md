@@ -99,6 +99,16 @@ db delete row table_1 by_index 0
 db delete row table_1 by_value column col1 value 'data'
 ```
 
+*MIGRATE* </br>
+Migrate function template:
+```
+<db_name> migrate <src_table_name> <dst_table_name> nav ( ... )
+```
+Migrate function example:
+```
+db migrate table_1 table_2 nav ( 0 1 1 1 4 2 )
+```
+
 *SYNC* </br>
 Sync function template:
 ```

@@ -25,6 +25,9 @@ DISABLE_DELETE ?= 0
 # Disable all commands with create functionality
 # Exmpl: create table / create database
 DISABLE_CREATE ?= 0
+# Disable all commands with migration functionality
+# Exmpl: migrate table
+DISABLE_MIGRATION ?= 0
 
 
 ifeq ($(PROD), 1)
@@ -53,6 +56,10 @@ endif
 
 ifeq ($(DISABLE_CREATE), 1)
 	CFLAGS += -DNO_CREATE_COMMAND
+endif
+
+ifeq ($(DISABLE_MIGRATION), 1)
+	CFLAGS += -NO_MIGRATE_COMMAND
 endif
 
 ifeq ($(PTHREADS), 0)

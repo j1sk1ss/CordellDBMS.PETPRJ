@@ -78,6 +78,32 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             answer->answer_size = strlen(KERNEL_VERSION);
         }
         /*
+        Handle migration.
+        Command syntax: migrate <src_table_name> <dst_table_name> nav ( ... )
+        */
+#ifndef NO_MIGRATE_COMMAND
+        else if (strcmp(command, MIGRATE) == 0) {
+            char* src_table_name = SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index);
+            char* dst_table_name = SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index);
+            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), NAV) == 0) {
+                if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
+                    int nav_stack_index = 0;
+                    int* nav_stack[128] = { NULL };
+                    while (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != CLOSE_BRACKET) {
+                        nav_stack[nav_stack_index++] = atoi(SAFE_GET_VALUE_S(commands, argc, command_index));
+                    }
+
+                    table_t* src_table = DB_get_table(database, src_table_name);
+                    table_t* dst_table = DB_get_table(database, dst_table_name);
+                    TBM_migrate_table(src_table, dst_table, nav_stack, nav_stack_index);
+
+                    TBM_flush_table(src_table);
+                    TBM_flush_table(dst_table);
+                }
+            }
+        }
+#endif
+        /*
         Handle creation.
         Command syntax: create <option>
         */
