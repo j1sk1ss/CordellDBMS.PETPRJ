@@ -8,6 +8,7 @@ int get_load_path(char* name, int name_size, char* buffer, char* base_path, char
 
 char* generate_unique_filename(char* base_path, int name_size, char* extension) {
     char* name = (char*)malloc(name_size);
+    if (!name) return NULL;
     memset(name, 0, name_size);
 
     int offset = 0;

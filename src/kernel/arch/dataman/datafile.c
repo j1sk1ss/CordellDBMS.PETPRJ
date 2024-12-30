@@ -4,12 +4,17 @@
 database_t* DB_create_database(char* name) {
     database_t* database = (database_t*)malloc(sizeof(database_t));
     database_header_t* header = (database_header_t*)malloc(sizeof(database_header_t));
+    if (!database || !header) {
+        SOFT_FREE(database);
+        SOFT_FREE(header);
+        return NULL;
+    }
 
     memset(database, 0, sizeof(database_t));
     memset(header, 0, sizeof(database_header_t));
 
     header->magic = DATABASE_MAGIC;
-    if (name != NULL) { strncpy(header->name, name, DATABASE_NAME_SIZE); }
+    if (name != NULL) strncpy(header->name, name, DATABASE_NAME_SIZE);
 
     database->header = header;
     return database;

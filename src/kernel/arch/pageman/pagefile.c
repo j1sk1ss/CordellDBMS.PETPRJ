@@ -4,6 +4,11 @@
 page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
     page_t* page = (page_t*)malloc(sizeof(page_t));
     page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
+    if (!page || !header) {
+        SOFT_FREE(page);
+        SOFT_FREE(header);
+        return NULL;
+    }
 
     memset(page, 0, sizeof(page_t));
     memset(header, 0, sizeof(page_header_t));
@@ -88,30 +93,35 @@ page_t* PGM_load_page(char* name) {
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
-            memset(header, 0, sizeof(page_header_t));
-            fread(header, sizeof(page_header_t), 1, file);
+            if (header) {
+                memset(header, 0, sizeof(page_header_t));
+                fread(header, sizeof(page_header_t), 1, file);
 
-            // Check page magic
-            if (header->magic != PAGE_MAGIC) {
-                print_error("Page file wrong magic for [%s]", load_path);
-                free(header);
-                fclose(file);
-            } else {
-                // Allocate memory for page structure
-                page_t* page = (page_t*)malloc(sizeof(page_t));
-                memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
-                fread(page->content, sizeof(unsigned char), PAGE_CONTENT_SIZE, file);
+                // Check page magic
+                if (header->magic != PAGE_MAGIC) {
+                    print_error("Page file wrong magic for [%s]", load_path);
+                    free(header);
+                    fclose(file);
+                } else {
+                    // Allocate memory for page structure
+                    page_t* page = (page_t*)malloc(sizeof(page_t));
+                    if (!page) free(header);
+                    else {
+                        memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
+                        fread(page->content, sizeof(unsigned char), PAGE_CONTENT_SIZE, file);
 
-                fclose(file);
+                        fclose(file);
 
-                page->lock      = THR_create_lock();
-                page->header    = header;
-                loaded_page     = page;
+                        page->lock      = THR_create_lock();
+                        page->header    = header;
+                        loaded_page     = page;
 
-                CHC_add_entry(
-                    loaded_page, loaded_page->header->name, 
-                    PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
-                );
+                        CHC_add_entry(
+                            loaded_page, loaded_page->header->name, 
+                            PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
+                        );
+                    }
+                }
             }
         }
     }

@@ -360,22 +360,6 @@
 #pragma region [Column]
 
     /*
-    Update column in provided table.
-    Note: Provided column should have same size and same name with column, that we want to replace.
-          If you want to change name of column, provide index of column to by_index variable.
-    Note 1: If you don't want to change table by index, pass -1 to by_index variable.
-
-    Params:
-    - table - Pointer to table, where we want update column.
-    - column - Column for update.
-
-    Return -2 if provided column has different size.
-    Return -1 if we don't find column with same name.
-    Return 1 if update was success.
-    */
-    int TBM_update_column_in_table(table_t* __restrict table, table_column_t* __restrict column, int by_index);
-
-    /*
     Create column and allocate memory for.
     Note: Use only defined types of column.
     Note 2: If you want use any value (disable in-build check), use TYPE_ANY type.
@@ -543,6 +527,24 @@
     Return table checksum.
     */
     unsigned int TBM_get_checksum(table_t* table);
+
+    /*
+    Migrate table data to new table structure.
+    Note: Before migration dst table should have structure, with columns that has size greater or equal size.
+    Note 2: querry should store structure navigation for migration with indexes of columns. Like:
+    src index | dst index | src index | dst index 
+
+    Params:
+    - src - Source table for migration.
+    - dst - Destination table (Optional can be empty).
+    - querry - Navigation array (Check notes).
+    - querry_size - Size of navigation array.
+
+    Return -2 if was allocation error.
+    Return -1 if was lock error.
+    Return 1 if migration success.
+    */
+    int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __restrict querry, size_t querry_size);
 
     /*
     Invoke modules in table and change input data.

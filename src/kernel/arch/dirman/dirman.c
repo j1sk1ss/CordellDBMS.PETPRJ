@@ -3,6 +3,7 @@
 
 unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght) {
     unsigned char* content = (unsigned char*)malloc(data_lenght);
+    if (!content) return NULL;
     unsigned char* content_pointer = content;
     memset(content_pointer, 0, data_lenght);
 

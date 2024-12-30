@@ -12,8 +12,13 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     // then page size, because that will brake all DB structure.
     if (row_size >= PAGE_CONTENT_SIZE) return NULL;
 
-    table_t* table  = (table_t*)malloc(sizeof(table_t));
+    table_t* table = (table_t*)malloc(sizeof(table_t));
     table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
+    if (!table || !header) {
+        SOFT_FREE(table);
+        SOFT_FREE(header);
+        return NULL;
+    }
 
     memset(table, 0, sizeof(table_t));
     memset(header, 0, sizeof(table_header_t));
@@ -104,40 +109,47 @@ table_t* TBM_load_table(char* name) {
             // Note: If magic is wrong, we can say, that this file isn`t table.
             //       We just return error code.
             table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
-            fread(header, sizeof(table_header_t), 1, file);
-            if (header->magic != TABLE_MAGIC) {
-                print_error("Table file wrong magic for [%s]", load_path);
-                free(header);
-                fclose(file);
-            } else {
-                // Read columns from file.
-                table_t* table = (table_t*)malloc(sizeof(table_t));
-                table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
+            if (header) {
+                fread(header, sizeof(table_header_t), 1, file);
+                if (header->magic != TABLE_MAGIC) {
+                    print_error("Table file wrong magic for [%s]", load_path);
+                    free(header);
+                    fclose(file);
+                } else {
+                    // Read columns from file.
+                    table_t* table = (table_t*)malloc(sizeof(table_t));
+                    table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
+                    if (!table || !columns) {
+                        SOFT_FREE(table);
+                        SOFT_FREE(columns);
+                    } else {
+                        memset(table, 0, sizeof(table_t));
+                        memset(columns, 0, header->column_count * sizeof(table_column_t*));
 
-                memset(table, 0, sizeof(table_t));
-                memset(columns, 0, header->column_count * sizeof(table_column_t*));
+                        for (int i = 0; i < header->column_count; i++) {
+                            columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
+                            if (!columns[i]) continue;
+                            memset(columns[i], 0, sizeof(table_column_t));
+                            fread(columns[i], sizeof(table_column_t), 1, file);
+                        }
 
-                for (int i = 0; i < header->column_count; i++) {
-                    columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
-                    memset(columns[i], 0, sizeof(table_column_t));
-                    fread(columns[i], sizeof(table_column_t), 1, file);
+                        for (int i = 0; i < header->column_count; i++)
+                            table->row_size += columns[i]->size;
+
+                        // Read directory names from file, that linked to this directory.
+                        for (int i = 0; i < header->dir_count; i++)
+                            fread(table->dir_names[i], sizeof(unsigned char), DIRECTORY_NAME_SIZE, file);
+
+                        fclose(file);
+
+                        table->columns = columns;
+                        table->lock    = THR_create_lock();
+
+                        table->header = header;
+                        CHC_add_entry(table, table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
+                        loaded_table = table;
+                    }
                 }
-
-                for (int i = 0; i < header->column_count; i++)
-                    table->row_size += columns[i]->size;
-
-                // Read directory names from file, that linked to this directory.
-                for (int i = 0; i < header->dir_count; i++)
-                    fread(table->dir_names[i], sizeof(unsigned char), DIRECTORY_NAME_SIZE, file);
-
-                fclose(file);
-
-                table->columns = columns;
-                table->lock    = THR_create_lock();
-
-                table->header = header;
-                CHC_add_entry(table, table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
-                loaded_table = table;
             }
         }
     }

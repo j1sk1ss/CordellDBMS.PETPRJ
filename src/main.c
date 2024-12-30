@@ -68,11 +68,12 @@ void _cleanup() {
 
     int _send2destination(int destination, void* data, size_t data_size) {
         #ifdef _WIN32
-            send(destination, (const char*)data, data_size, 0);
+            int sent_size = send(destination, (const char*)data, data_size, 0);
         #else
-            if (write(destination, data, data_size) != (ssize_t)data_size) print_warn("Data send size != data write");
+            int sent_size = (int)write(destination, data, data_size);
         #endif
 
+        if (sent_size != data_size) print_warn("Data send size != data write");
         return 1;
     }
 
@@ -107,9 +108,9 @@ void* _handle_client(void* client_socket_fd) {
  * - destination - destination FD for kernel answer.
 */
 void _start_kernel_session(int source, int destination, int session) {
+    unsigned char buffer[MESSAGE_BUFFER] = { 0 };
     user_t* user = NULL;
     int count = 0;
-    unsigned char buffer[MESSAGE_BUFFER] = { 0 };
 
     #ifdef _WIN32
     while ((count = recv(source, (char*)buffer, MESSAGE_BUFFER, 0)) > 0)
@@ -244,6 +245,8 @@ int main() {
         }
 
         int* client_socket_fd_ptr = (int*)malloc(sizeof(int) * 3);
+        if (!client_socket_fd_ptr) return -1;
+        
         client_socket_fd_ptr[0] = client_socket_fd;
 
         int session = 0;

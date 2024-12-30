@@ -35,6 +35,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
 
     // Allocate data for output
     unsigned char* output_content = (unsigned char*)malloc(size);
+    if (!output_content) return NULL;
     unsigned char* output_content_pointer = output_content;
     memset(output_content_pointer, 0, size);
 
@@ -58,7 +59,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
                 // Set offset to 0, because we go to next directory
                 // Update size of getcontent
                 offset = 0;
-                content2get_size       -= current_size;
+                content2get_size -= current_size;
                 output_content_pointer += current_size;
             }
         }
@@ -273,6 +274,54 @@ int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
     }
 
     return status;
+}
+
+int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __restrict querry, size_t querry_size) {
+#ifndef NO_MIGRATE_COMMAND
+    if (THR_require_lock(&src->lock, omp_get_thread_num()) == 1 && THR_require_lock(&dst->lock, omp_get_thread_num()) == 1) {
+        table_column_t** src_columns = src->columns;
+        table_column_t** dst_columns = dst->columns;
+
+        int offset = 0;
+        unsigned char* data = " ";
+
+        while (*data != '\0') {
+            SOFT_FREE(data);
+            data = TBM_get_content(src, offset, src->row_size);
+            unsigned char* new_row = (unsigned char*)malloc(dst->row_size);
+            if (!new_row || !data) {
+                SOFT_FREE(new_row);
+                SOFT_FREE(data);
+
+                THR_release_lock(&src->lock, omp_get_thread_num());
+                THR_release_lock(&dst->lock, omp_get_thread_num());
+
+                return -2;
+            }
+
+            memset(new_row, '0', dst->row_size);
+            for (size_t i = 0; i < querry_size; i += 2) {
+                memcpy(
+                    new_row + TBM_get_column_offset(dst, dst_columns[querry[i + 1]]->name),
+                    data + TBM_get_column_offset(src, src_columns[querry[i]]->name),
+                    src_columns[querry[i]]->size
+                );
+            }
+
+            TBM_append_content(dst, new_row, dst->row_size);
+
+            SOFT_FREE(new_row);
+            offset += src->row_size;
+        }
+
+        SOFT_FREE(data);
+        THR_release_lock(&src->lock, omp_get_thread_num());
+        THR_release_lock(&dst->lock, omp_get_thread_num());
+        return 1;
+    }
+    else return -1;
+#endif
+    return 1;
 }
 
 int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data, unsigned char type) {

@@ -1,26 +1,11 @@
 #include "../../include/tabman.h"
 
 
-int TBM_update_column_in_table(table_t* __restrict table, table_column_t* __restrict column, int by_index) {
-    if (by_index == -1) {
-        for (by_index = 0; by_index < table->header->column_count; by_index++) {
-            if (strncmp(table->columns[by_index]->name, column->name, COLUMN_NAME_SIZE) == 0) {
-                if (table->columns[by_index]->size != column->size && table->header->dir_count != 0) return -2;
-                break;
-            }
-        }
-    }
-
-    SOFT_FREE(table->columns[by_index]);
-    table->columns[by_index] = column;
-
-    return 1;
-}
-
 table_column_t* TBM_create_column(unsigned char type, unsigned short size, char* name) {
 #ifndef NO_CREATE_COMMAND
     if (size > COLUMN_MAX_SIZE) return NULL;
     table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
+    if (!column) return NULL;
     memset(column, 0, sizeof(table_column_t));
 
     column->magic = COLUMN_MAGIC;

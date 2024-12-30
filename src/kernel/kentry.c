@@ -6,6 +6,8 @@ static database_t* connections[MAX_CONNECTIONS] = { NULL };
 
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
+    if (!answer) return NULL;
+    
     memset(answer, 0, sizeof(kernel_answer_t));
 
     int current_start = 1;
@@ -71,6 +73,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         */
         else if (strcmp(command, VERSION) == 0) {
             answer->answer_body = (unsigned char*)malloc(strlen(KERNEL_VERSION));
+            if (!answer->answer_body) return answer;
             memcpy(answer->answer_body, KERNEL_VERSION, strlen(KERNEL_VERSION));
             answer->answer_size = strlen(KERNEL_VERSION);
         }
@@ -407,7 +410,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                             int index = 0;
                             int offset = 0;
-                            unsigned char* row_data = NULL;
+                            unsigned char* row_data = " ";
 
                             while (*row_data != '\0') {
                                 row_data = DB_get_row(database, table_name, index++, access);

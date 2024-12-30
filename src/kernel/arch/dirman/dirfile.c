@@ -4,6 +4,11 @@
 directory_t* DRM_create_directory(char* name) {
     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
     directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
+    if (!directory || !header) {
+        SOFT_FREE(directory);
+        SOFT_FREE(header);
+        return NULL;
+    }
 
     memset(directory, 0, sizeof(directory_t));
     memset(header, 0, sizeof(directory_header_t));
@@ -86,33 +91,38 @@ directory_t* DRM_load_directory(char* name) {
         else {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
-            memset(header, 0, sizeof(directory_header_t));
-            fread(header, sizeof(directory_header_t), 1, file);
+            if (header) {
+                memset(header, 0, sizeof(directory_header_t));
+                fread(header, sizeof(directory_header_t), 1, file);
 
-            // Check directory magic
-            if (header->magic != DIRECTORY_MAGIC) {
-                print_error("Directory file wrong magic for [%s]", load_path);
-                free(header);
-                fclose(file);
-            } else {
-                // First we allocate memory for directory struct
-                // Then we read page names
-                directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-                memset(directory, 0, sizeof(directory_t));
-                for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
-                    fread(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file);
+                // Check directory magic
+                if (header->magic != DIRECTORY_MAGIC) {
+                    print_error("Directory file wrong magic for [%s]", load_path);
+                    free(header);
+                    fclose(file);
+                } else {
+                    // First we allocate memory for directory struct
+                    // Then we read page names
+                    directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
+                    if (!directory) free(header);
+                    else {
+                        memset(directory, 0, sizeof(directory_t));
+                        for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
+                            fread(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file);
 
-                // Close file directory
-                fclose(file);
+                        // Close file directory
+                        fclose(file);
 
-                directory->lock   = THR_create_lock();
-                directory->header = header;
-                loaded_directory  = directory;
+                        directory->lock   = THR_create_lock();
+                        directory->header = header;
+                        loaded_directory  = directory;
 
-                CHC_add_entry(
-                    loaded_directory, loaded_directory->header->name, 
-                    DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
-                );
+                        CHC_add_entry(
+                            loaded_directory, loaded_directory->header->name, 
+                            DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
+                        );
+                    }
+                }
             }
         }
     }
