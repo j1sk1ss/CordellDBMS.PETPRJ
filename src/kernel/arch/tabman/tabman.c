@@ -283,7 +283,7 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __r
         table_column_t** dst_columns = dst->columns;
 
         int offset = 0;
-        unsigned char* data = " ";
+        unsigned char* data = (unsigned char*)" ";
 
         while (*data != '\0') {
             SOFT_FREE(data);

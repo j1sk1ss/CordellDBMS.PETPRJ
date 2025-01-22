@@ -88,7 +88,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), NAV) == 0) {
                 if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
                     int nav_stack_index = 0;
-                    int* nav_stack[128] = { NULL };
+                    int nav_stack[128] = { 0 };
                     while (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != CLOSE_BRACKET) {
                         nav_stack[nav_stack_index++] = atoi(SAFE_GET_VALUE_S(commands, argc, command_index));
                     }
@@ -436,7 +436,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                             int index = 0;
                             int offset = 0;
-                            unsigned char* row_data = " ";
+                            unsigned char* row_data = (unsigned char*)" ";
 
                             while (*row_data != '\0') {
                                 row_data = DB_get_row(database, table_name, index++, access);

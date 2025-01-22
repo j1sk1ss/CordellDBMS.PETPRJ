@@ -73,7 +73,7 @@ void _cleanup() {
             int sent_size = (int)write(destination, data, data_size);
         #endif
 
-        if (sent_size != data_size) print_warn("Data send size != data write");
+        if (sent_size != (int)data_size) print_warn("Data send size != data write");
         return 1;
     }
 
