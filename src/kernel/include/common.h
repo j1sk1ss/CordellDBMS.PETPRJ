@@ -44,6 +44,10 @@
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#define ARRAY_SOFT_FREE(ptr, size) do {               \
+    for (int i = 0; i < size; i++) SOFT_FREE(ptr[i]); \
+    SOFT_FREE(ptr);                                   \
+  } while(0) 
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
       free((ptr));           \

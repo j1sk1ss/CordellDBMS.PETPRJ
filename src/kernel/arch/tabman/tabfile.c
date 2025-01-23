@@ -143,7 +143,7 @@ table_t* TBM_load_table(char* name) {
                         fclose(file);
 
                         table->columns = columns;
-                        table->lock    = THR_create_lock();
+                        table->lock = THR_create_lock();
 
                         table->header = header;
                         CHC_add_entry(table, table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
@@ -192,11 +192,8 @@ int TBM_flush_table(table_t* table) {
 
 int TBM_free_table(table_t* table) {
     if (table == NULL) return -1;
-    for (int i = 0; i < table->header->column_count; i++) SOFT_FREE(table->columns[i]);
-
-    SOFT_FREE(table->columns);
+    ARRAY_SOFT_FREE(table->columns, table->header->column_count);
     SOFT_FREE(table);
-
     return 1;
 }
 

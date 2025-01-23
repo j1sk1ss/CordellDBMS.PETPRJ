@@ -385,10 +385,6 @@
     */
     int TBM_get_column_offset(table_t* table, char* column_name);
 
-#pragma endregion
-
-#pragma region [Table]
-
     /*
     Check signature function check input data with column signature.
     Be sure that you include CD symbols into your data.
@@ -405,6 +401,11 @@
     Return 1 if signature is correct.
     */
     int TBM_check_signature(table_t* __restrict table, unsigned char* __restrict data);
+
+#pragma endregion
+
+#pragma region [Table]
+
 
     /*
     Link directory to table

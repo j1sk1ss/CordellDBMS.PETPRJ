@@ -138,105 +138,97 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 if (table_name == NULL) return answer;
 
                 table_t* table = DB_get_table(database, table_name);
-                if (table == NULL) {
-                    char* table_access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    if (table_access != NULL) {
-                        unsigned char access_byte = access;
-                        if (strcmp(table_access, ACCESS_SAME) != 0) {
-                            access_byte = CREATE_ACCESS_BYTE(
-                                (table_access[0] - '0'), (table_access[1] - '0'), (table_access[2] - '0')
+                if (table != NULL) {
+                    TBM_flush_table(table);
+                    return answer;
+                }
+
+                char* table_access = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (!table_access) return answer;
+                
+                unsigned char access_byte = access;
+                if (strcmp(table_access, ACCESS_SAME) != 0) {
+                    access_byte = CREATE_ACCESS_BYTE((table_access[0] - '0'), (table_access[1] - '0'), (table_access[2] - '0'));
+                    access_byte = (access_byte < access) ? access : access_byte;
+                }
+
+                int column_count = 0;
+                table_column_t** columns = NULL;
+                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
+                    if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
+                        char* column_stack[512] = { NULL };
+                        while (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != CLOSE_BRACKET) {
+                            column_stack[column_count++] = SAFE_GET_VALUE(commands, argc, command_index);
+                        }
+
+                        columns = (table_column_t**)malloc(column_count * sizeof(table_column_t*));
+                        if (!columns) return answer;
+
+                        for (int j = 0, k = 0; j < 512; j += 5, k++) {
+                            if (column_stack[j] == NULL) break;
+
+                            char* column_data_type = column_stack[j + 2];
+                            char* column_primary   = column_stack[j + 3];
+                            char* column_increment = column_stack[j + 4];
+
+                            // Get column data type
+                            unsigned char data_type = COLUMN_TYPE_MODULE;
+                            if (strcmp(column_data_type, TYPE_INT) == 0) data_type = COLUMN_TYPE_INT;
+                            else if (strcmp(column_data_type, TYPE_ANY) == 0) data_type = COLUMN_TYPE_ANY;
+                            else if (strcmp(column_data_type, TYPE_STRING) == 0) data_type = COLUMN_TYPE_STRING;
+
+                            // Get column primary status
+                            unsigned char primary_status = COLUMN_NOT_PRIMARY;
+                            if (strcmp(column_primary, PRIMARY) == 0) primary_status = COLUMN_PRIMARY;
+
+                            // Get column increment status
+                            unsigned char increment_status = COLUMN_NO_AUTO_INC;
+                            if (strcmp(column_increment, AUTO_INC) == 0) increment_status = COLUMN_AUTO_INCREMENT;
+
+                            columns[k] = TBM_create_column(
+                                CREATE_COLUMN_TYPE_BYTE(primary_status, data_type, increment_status), atoi(column_stack[j + 1]), column_stack[j]
                             );
 
-                            if (access_byte < access) {
-                                access_byte = access;
-                            }
-                        }
+                            if (data_type == COLUMN_TYPE_MODULE) {
+                                char* equals_pos = strchr(column_data_type, '=');
+                                char* comma_pos  = strchr(column_data_type, ',');
 
-                        int column_count = 0;
-                        table_column_t** columns = NULL;
-                        if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
-                            if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
-                                int column_stack_index = 0;
-                                char* column_stack[512] = { NULL };
-                                while (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != CLOSE_BRACKET) {
-                                    column_stack[column_stack_index++] = SAFE_GET_VALUE(commands, argc, command_index);
-                                }
+                                columns[k]->module_params = COLUMN_MODULE_POSTLOAD;
+                                if (strncmp(comma_pos + 1, MODULE_PRELOAD, strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
+                                else if (strncmp(comma_pos + 1, MODULE_BOTH_LOAD, strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
 
-                                for (int j = 0; j < 512; j += 5) {
-                                    if (column_stack[j] == NULL) break;
+                                if (equals_pos) {
+                                    strncpy(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
+                                    strncpy(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
 
-                                    // Get column data type
-                                    unsigned char data_type = COLUMN_TYPE_MODULE;
-                                    char* column_data_type = column_stack[j + 2];
-                                    if (strcmp(column_data_type, TYPE_INT) == 0) data_type = COLUMN_TYPE_INT;
-                                    else if (strcmp(column_data_type, TYPE_ANY) == 0) data_type = COLUMN_TYPE_ANY;
-                                    else if (strcmp(column_data_type, TYPE_STRING) == 0) data_type = COLUMN_TYPE_STRING;
-
-                                    // Get column primary status
-                                    unsigned char primary_status = COLUMN_NOT_PRIMARY;
-                                    char* column_primary = column_stack[j + 3];
-                                    if (strcmp(column_primary, PRIMARY) == 0) primary_status = COLUMN_PRIMARY;
-
-                                    // Get column increment status
-                                    unsigned char increment_status = COLUMN_NO_AUTO_INC;
-                                    char* column_increment = column_stack[j + 4];
-                                    if (strcmp(column_increment, AUTO_INC) == 0) increment_status = COLUMN_AUTO_INCREMENT;
-
-                                    columns = (table_column_t**)realloc(columns, sizeof(table_column_t*) * (column_count + 1));
-                                    columns[column_count] = TBM_create_column(
-                                        CREATE_COLUMN_TYPE_BYTE(primary_status, data_type, increment_status),
-                                        atoi(column_stack[j + 1]), column_stack[j]
+                                    print_log(
+                                        "Module [%.*s] registered with [%s] querry", MODULE_NAME_SIZE, columns[k]->module_name, columns[column_count]->module_querry
                                     );
-
-                                    if (data_type == COLUMN_TYPE_MODULE) {
-                                        char* equals_pos = strchr(column_data_type, '=');
-                                        char* comma_pos = strchr(column_data_type, ',');
-
-                                        columns[column_count]->module_params = COLUMN_MODULE_POSTLOAD;
-                                        if (strncmp(comma_pos + 1, MODULE_PRELOAD, strlen(MODULE_PRELOAD)) == 0)
-                                            columns[column_count]->module_params = COLUMN_MODULE_PRELOAD;
-                                        else if (strncmp(comma_pos + 1, MODULE_BOTH_LOAD, strlen(MODULE_PRELOAD)) == 0)
-                                            columns[column_count]->module_params = COLUMN_MODULE_BOTH;
-
-                                        size_t module_name_len = equals_pos - column_data_type;
-                                        size_t module_query_len = comma_pos - equals_pos - 1;
-
-                                        strncpy(columns[column_count]->module_name, column_data_type, MIN(module_name_len, MODULE_NAME_SIZE));
-                                        if (equals_pos) {
-                                            strncpy(columns[column_count]->module_querry, equals_pos + 1, MIN(module_query_len, COLUMN_MODULE_SIZE));
-                                            print_log(
-                                                "Module [%.*s] registered with [%s] querry", 
-                                                MODULE_NAME_SIZE, columns[column_count]->module_name, columns[column_count]->module_querry
-                                            );
-                                        }
-                                    }
-
-                                    print_log("%i) Column [%s] with args: [%i], created success!", column_count, column_stack[j], columns[column_count]->type);
-                                    column_count++;
                                 }
                             }
+
+                            print_log("%i) Column [%s] with args: [%i], created success!", k, column_stack[j], columns[k]->type);
                         }
-
-                        table_t* new_table = TBM_create_table(table_name, columns, column_count, access_byte);
-                        if (new_table == NULL) {
-                            answer->answer_code = 6;
-                            TBM_flush_table(new_table);
-                            return answer;
-                        }
-
-                        DB_link_table2database(database, new_table);
-                        CHC_add_entry(
-                            new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table
-                        );
-
-                        print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
-
-                        answer->answer_size = -1;
-                        answer->answer_code = 1;
-                        TBM_flush_table(new_table);
                     }
                 }
-                else TBM_flush_table(table);
+
+                table_t* new_table = TBM_create_table(table_name, columns, column_count, access_byte);
+                if (new_table == NULL) {
+                    answer->answer_code = 6;
+                    ARRAY_SOFT_FREE(columns, column_count);
+                    return answer;
+                }
+
+                DB_link_table2database(database, new_table);
+                CHC_add_entry(
+                    new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table
+                );
+
+                print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
+
+                answer->answer_size = -1;
+                answer->answer_code = 1;
+                TBM_flush_table(new_table);
             }
         }
 #endif
@@ -257,8 +249,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     if (result >= 0) print_log("Row [%s] successfully added to [%.*s] database!", input_data, DATABASE_NAME_SIZE, database->header->name);
                     else {
                         print_error(
-                            "Error code: %i, Params: [%.*s] [%s] [%s] [%i]", 
-                            result, DATABASE_NAME_SIZE, database->header->name, table_name, input_data, access
+                            "Error code: %i, Params: [%.*s] [%s] [%s] [%i]", result, DATABASE_NAME_SIZE, database->header->name, table_name, input_data, access
                         );
                     }
 
@@ -353,7 +344,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
                 /*
-                Note: Will get entire row. (If table has links, it will cause CASCADE operations).
+                Note: Will get entire row.
                 Command syntax: get row <table_name> by_index <index>
                 */
                 command_index++;
@@ -362,8 +353,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     answer_data = DB_get_row(database, table_name, index, access);
                     if (answer_data == NULL) {
                         print_error(
-                            "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", 
-                            DATABASE_NAME_SIZE, database->header->name, table_name, index, access
+                            "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", DATABASE_NAME_SIZE, database->header->name, table_name, index, access
                         );
 
                         answer->answer_code = 8;
@@ -417,49 +407,53 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 #endif
                 /*
                 Note: will get line of rows, that equals expression.
-                Command syntax: get row table <table_name> by_exp column <column_name> <</>/!=> <value>
+                Command syntax: get row table <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value>
                 */
 #ifndef NO_GET_EXPRESSION_COMMAND
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
                         char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* expression  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* value       = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
-                        if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
-                            char* expression = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-
-                            table_t* table = DB_get_table(database, table_name);
-                            if (table == NULL) {
-                                print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name);
-                                return answer;
-                            }
-
-                            int index = 0;
-                            int offset = 0;
-                            unsigned char* row_data = (unsigned char*)" ";
-
-                            while (*row_data != '\0') {
-                                row_data = DB_get_row(database, table_name, index++, access);
-                                if (row_data == NULL) break;
-                                
-                                unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
-                                int comparison = strcmp((char*)column_data, value);
-                                if (strcmp(expression, NEQUALS) == 0) comparison = comparison != 0;
-                                else if (strcmp(expression, LESS_THAN) == 0) comparison = comparison < 0;
-                                else if (strcmp(expression, MORE_THAN) == 0) comparison = comparison > 0;
-                                
-                                if (comparison == 1) {
-                                    int data_start = answer_size;
-                                    answer_size += table->row_size;
-                                    answer_data = (unsigned char*)realloc(answer_data, answer_size);
-                                    memcpy(answer_data + data_start, row_data, table->row_size);
-                                }
-
-                                offset += (index + 1) * table->row_size;
-                            }
-
-                            TBM_flush_table(table);
+                        table_t* table = DB_get_table(database, table_name);
+                        if (table == NULL) {
+                            print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name);
+                            return answer;
                         }
+
+                        int index = 0;
+                        int offset = 0;
+                        unsigned char* row_data = (unsigned char*)" ";
+
+                        while (*row_data != '\0') {
+                            row_data = DB_get_row(database, table_name, index++, access);
+                            if (row_data == NULL) break;
+                            
+                            int comparison = 0;
+                            unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
+                            if (strcmp(expression, STR_EQUALS) == 0) comparison = (strcmp((char*)column_data, value) == 0);
+                            else if (strcmp(expression, STR_NEQUALS) == 0) comparison = (strcmp((char*)column_data, value) != 0);
+                            else {
+                                int first = atoi(column_data);
+                                int second = atoi(value);
+                                if (strcmp(expression, NEQUALS) == 0) comparison = first != second;
+                                else if (strcmp(expression, EQUALS) == 0) comparison = first == second;
+                                else if (strcmp(expression, LESS_THAN) == 0) comparison = first < second;
+                                else if (strcmp(expression, MORE_THAN) == 0) comparison = first > second;
+                            }
+                            
+                            if (comparison) {
+                                int data_start = answer_size;
+                                answer_size += table->row_size;
+                                answer_data = (unsigned char*)realloc(answer_data, answer_size);
+                                memcpy(answer_data + data_start, row_data, table->row_size);
+                            }
+
+                            offset += (index + 1) * table->row_size;
+                        }
+
+                        TBM_flush_table(table);
                     }
                 }
 #endif
