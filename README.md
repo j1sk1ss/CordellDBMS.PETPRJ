@@ -73,13 +73,11 @@ db update row table_1 by_value column col1 value "goodbye" values "goodbye   hel
 Get function template:
 ```
 <db_name> get row <tb_name> by_index <index>
-<db_name> get row <tb_name> by_value column <col_name> value <value>
 <db_name> get row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> (<eq> and <neq> will compare char*, instead converting data to int)
 ```
 Get function example: 
 ```
 db get row table_1 by_index 0
-db get row table_1 by_value column col2 value "value"
 db get row table_1 by_exp column col2 "!=" "100"
 db get row table_1 by_exp column col2 "eq" "hello world"
 ```
@@ -90,14 +88,14 @@ Delete function template:
 <db_name> delete database
 <db_name> delete table <tb_name>
 <db_name> delete row <tb_name> by_index <index>
-<db_name> delete row <tb_name> by_value column <col_name> value <value>
+<db_name> delete row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> (<eq> and <neq> will compare char*, instead converting data to int)
 ```
 Delete function example:
 ```
 delete database db
 db delete table table_1
 db delete row table_1 by_index 0
-db delete row table_1 by_value column col1 value 'data'
+db delete row table_1 by_exp column col2 "eq" "hello world"
 ```
 
 *MIGRATE* </br>

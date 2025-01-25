@@ -1,7 +1,30 @@
 #include "include/kentry.h"
 
 
-static database_t* connections[MAX_CONNECTIONS] = { NULL };
+static database_t* _connections[MAX_CONNECTIONS] = { NULL };
+
+
+static table_t* _get_table(database_t* database, const char* table_name) {
+    table_t* table = DB_get_table(database, table_name);
+    if (!table) print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name);
+    return table;
+}
+
+static int _compare_data(char* expression, char* fdata, char* sdata) {
+    int comparison = 0;
+    if (strcmp(expression, STR_EQUALS) == 0) comparison = (strcmp((char*)fdata, sdata) == 0);
+    else if (strcmp(expression, STR_NEQUALS) == 0) comparison = (strcmp((char*)fdata, sdata) != 0);
+    else {
+        int first = atoi(fdata);
+        int second = atoi(sdata);
+        if (strcmp(expression, NEQUALS) == 0) comparison = first != second;
+        else if (strcmp(expression, EQUALS) == 0) comparison = first == second;
+        else if (strcmp(expression, LESS_THAN) == 0) comparison = first < second;
+        else if (strcmp(expression, MORE_THAN) == 0) comparison = first > second;
+    }
+
+    return comparison;
+}
 
 
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
@@ -15,24 +38,24 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
     char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
 
     while (1) {
-        if (connections[connection] == NULL) {
+        if (_connections[connection] == NULL) {
             database = DB_load_database(db_name);
             if (database == NULL) {
                 print_warn("Database wasn`t found. Create a new one with [create database <name>].");
                 current_start = 1;
             }
 
-            connections[connection] = database;
+            _connections[connection] = database;
             break;
         }
         else {
-            if (strncmp(connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) {
-                database = connections[connection];
+            if (strncmp(_connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) {
+                database = _connections[connection];
                 break;
             }
             else {
-                DB_free_database(connections[connection]);
-                connections[connection] = NULL;
+                DB_free_database(_connections[connection]);
+                _connections[connection] = NULL;
             }
         }
     }
@@ -65,18 +88,20 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Command syntax: rollback
         */
         else if (strcmp(command, ROLLBACK) == 0) {
-            answer->answer_code = DB_rollback(&connections[connection]);
+            answer->answer_code = DB_rollback(&_connections[connection]);
         }
         /*
         Handle info command about cdbms kernel version.
         Command syntax: version
         */
+#ifndef NO_VERSION_COMMAND
         else if (strcmp(command, VERSION) == 0) {
             answer->answer_body = (unsigned char*)malloc(strlen(KERNEL_VERSION));
             if (!answer->answer_body) return answer;
             memcpy(answer->answer_body, KERNEL_VERSION, strlen(KERNEL_VERSION));
             answer->answer_size = strlen(KERNEL_VERSION);
         }
+#endif
         /*
         Handle migration.
         Command syntax: migrate <src_table_name> <dst_table_name> nav ( ... )
@@ -93,8 +118,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         nav_stack[nav_stack_index++] = atoi(SAFE_GET_VALUE_S(commands, argc, command_index));
                     }
 
-                    table_t* src_table = DB_get_table(database, src_table_name);
-                    table_t* dst_table = DB_get_table(database, dst_table_name);
+                    table_t* src_table = _get_table(database, src_table_name);
+                    table_t* dst_table = _get_table(database, dst_table_name);
+                    if (!src_table || !dst_table) return answer;
                     TBM_migrate_table(src_table, dst_table, nav_stack, nav_stack_index);
 
                     TBM_flush_table(src_table);
@@ -116,9 +142,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             command_index++;
             if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
                 char* database_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (database_name == NULL) return answer;
+                if (!database_name) return answer;
 
                 database_t* new_database = DB_create_database(database_name);
+                if (!new_database) return answer;
                 int result = DB_save_database(new_database);
 
                 print_log("Database [%.*s.%s] create succes!", DATABASE_NAME_SIZE, new_database->header->name, DATABASE_EXTENSION);
@@ -137,8 +164,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (table_name == NULL) return answer;
 
-                table_t* table = DB_get_table(database, table_name);
-                if (table != NULL) {
+                table_t* table = _get_table(database, table_name);
+                if (table) {
                     TBM_flush_table(table);
                     return answer;
                 }
@@ -213,17 +240,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 }
 
                 table_t* new_table = TBM_create_table(table_name, columns, column_count, access_byte);
-                if (new_table == NULL) {
+                if (!new_table) {
                     answer->answer_code = 6;
                     ARRAY_SOFT_FREE(columns, column_count);
                     return answer;
                 }
 
                 DB_link_table2database(database, new_table);
-                CHC_add_entry(
-                    new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table
-                );
-
+                CHC_add_entry(new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
                 print_log("Table [%.*s] create success!", TABLE_NAME_SIZE, new_table->header->name);
 
                 answer->answer_size = -1;
@@ -248,9 +272,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     int result = DB_append_row(database, table_name, (unsigned char*)input_data, strlen(input_data), access);
                     if (result >= 0) print_log("Row [%s] successfully added to [%.*s] database!", input_data, DATABASE_NAME_SIZE, database->header->name);
                     else {
-                        print_error(
-                            "Error code: %i, Params: [%.*s] [%s] [%s] [%i]", result, DATABASE_NAME_SIZE, database->header->name, table_name, input_data, access
-                        );
+                        print_error("Error code: %i, Params: [%.*s] [%s] [%s] [%i]", result, DATABASE_NAME_SIZE, database->header->name, table_name, input_data, access);
                     }
 
                     answer->answer_size = -1;
@@ -270,10 +292,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             command_index++;
             if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
                 if (DB_delete_database(database, 1) != 1) print_error("Error code 1 during deleting current database!");
-                else print_log("Current database was delete successfully.");
+                else { print_log("Current database was delete successfully."); }
 
                 database = NULL;
-                connections[connection] = NULL;
+                _connections[connection] = NULL;
 
                 answer->answer_code = 1;
                 answer->answer_size = -1;
@@ -284,7 +306,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (DB_delete_table(database, table_name, 1) != 1) print_error("Error code 1 during deleting %s", table_name);
-                else print_log("Table [%s] was delete successfully.", table_name);
+                else { print_log("Table [%s] was delete successfully.", table_name); }
 
                 answer->answer_code = 1;
                 answer->answer_size = -1;
@@ -297,28 +319,34 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
                 /*
-                Note: Will delete entire row. (If table has links, it will cause CASCADE operations).
+                Note: Will delete entire row.
                 Command syntax: delete row <table_name> by_index <index>
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    answer->answer_code = DB_delete_row(
-                        database, table_name, atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)), access
-                    );
+                    answer->answer_code = DB_delete_row(database, table_name, atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)), access);
                 }
                 /*
                 Note: will delete all rows, where will find value in provided column.
-                Command syntax: delete row <table_name> by_value column <column_name> value <value>
+                Command syntax: delete row <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value>
                 */
-                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
+                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
+                        table_t* table = _get_table(database, table_name);
+                        if (!table) return answer;
+                        
                         char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* expression = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
-                        if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
-                            char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            while (1) {
-                                int index = DB_find_data_row(database, table_name, column_name, 0, (unsigned char*)value, strlen(value), access);
-                                if (index == -1) break;
+                        int index = 0;
+                        unsigned char* row_data = (unsigned char*)" ";
+                        while (*row_data != '\0') {
+                            row_data = DB_get_row(database, table_name, index++, access);
+                            if (!row_data) break;
+
+                            unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
+                            if (_compare_data(expression, value, column_data)) {
                                 answer->answer_code = DB_delete_row(database, table_name, index, access);
                             }
                         }
@@ -352,75 +380,28 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                     answer_data = DB_get_row(database, table_name, index, access);
                     if (answer_data == NULL) {
-                        print_error(
-                            "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", DATABASE_NAME_SIZE, database->header->name, table_name, index, access
-                        );
-
+                        print_error("Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", DATABASE_NAME_SIZE, database->header->name, table_name, index, access);
                         answer->answer_code = 8;
                         return answer;
                     }
 
-                    table_t* table = DB_get_table(database, table_name);
+                    table_t* table = _get_table(database, table_name);
                     answer_size = table->row_size;
                     TBM_flush_table(table);
                 }
-                /*
-                Note: will get list of rows, where will find value in provided column.
-                Command syntax: get row table <table_name> by_value column <column_name> value <value>
-                */
-#ifndef NO_GET_VALUE_COMMAND
-                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
-                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
-                        char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                        
-                        if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
-                            char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                            table_t* table = DB_get_table(database, table_name);
-                            int offset = 0;
-
-                            while (index != -1) {
-                                index = DB_find_data_row(database, table_name, column_name, offset, (unsigned char*)value, strlen(value), access);
-                                if (index == -1) break;
-                                
-                                unsigned char* row_data = DB_get_row(database, table_name, index, access);
-                                if (row_data == NULL) {
-                                    print_error(
-                                        "Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", 
-                                        DATABASE_NAME_SIZE, database->header->name, table_name, index, access
-                                    );
-                                    
-                                    return answer;
-                                }
-
-                                int data_start = answer_size;
-                                answer_size += table->row_size;
-                                offset += (index + 1) * table->row_size;
-                                answer_data = (unsigned char*)realloc(answer_data, answer_size);
-
-                                memcpy(answer_data + data_start, row_data, table->row_size);
-                            }
-
-                            TBM_flush_table(table);
-                        }
-                    }
-                }
-#endif
                 /*
                 Note: will get line of rows, that equals expression.
                 Command syntax: get row table <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value>
                 */
 #ifndef NO_GET_EXPRESSION_COMMAND
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
-                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
+                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {  // TODO: Incapsulate
                         char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                         char* expression  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                         char* value       = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
-                        table_t* table = DB_get_table(database, table_name);
-                        if (table == NULL) {
-                            print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name);
-                            return answer;
-                        }
+                        table_t* table = _get_table(database, table_name);
+                        if (!table) return answer;
 
                         int index = 0;
                         int offset = 0;
@@ -430,20 +411,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                             row_data = DB_get_row(database, table_name, index++, access);
                             if (row_data == NULL) break;
                             
-                            int comparison = 0;
                             unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
-                            if (strcmp(expression, STR_EQUALS) == 0) comparison = (strcmp((char*)column_data, value) == 0);
-                            else if (strcmp(expression, STR_NEQUALS) == 0) comparison = (strcmp((char*)column_data, value) != 0);
-                            else {
-                                int first = atoi(column_data);
-                                int second = atoi(value);
-                                if (strcmp(expression, NEQUALS) == 0) comparison = first != second;
-                                else if (strcmp(expression, EQUALS) == 0) comparison = first == second;
-                                else if (strcmp(expression, LESS_THAN) == 0) comparison = first < second;
-                                else if (strcmp(expression, MORE_THAN) == 0) comparison = first > second;
-                            }
-                            
-                            if (comparison) {
+                            if (_compare_data(expression, value, column_data)) {
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
                                 answer_data = (unsigned char*)realloc(answer_data, answer_size);
@@ -493,22 +462,30 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     }
                 }
                 /*
-                Command syntax: update row <table_name> by_value column <column_name> value <value> values <data>
+                Command syntax: update row <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value> values <data>
                 */
-                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_VALUE) == 0) {
+                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
-                        char* col_name  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        table_t* table = _get_table(database, table_name);
+                        if (!table) return answer;
                         
-                        if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
-                            char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* expression = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        char* value = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                        
+                        if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
+                            data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                            unsigned char* row_data = (unsigned char*)" ";
+                            while (*row_data != '\0') {
+                                row_data = DB_get_row(database, table_name, index, access);
+                                if (!row_data) break;
 
-                            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
-                                data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                                index = DB_find_data_row(database, table_name, col_name, 0, (unsigned char*)value, strlen(value), access);
-                                if (index == -1) {
-                                    print_error("Value [%s] not presented in table [%s]", data, table_name);
-                                    return answer;
+                                unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
+                                if (_compare_data(expression, value, column_data)) {
+                                    answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
                                 }
+
+                                index++;
                             }
                         }
                     }
@@ -531,9 +508,9 @@ static int _flush_tables() {
 
 int close_connection(int connection) {
     _flush_tables();
-    if (connections[connection] == NULL) return -2;
-    DB_free_database(connections[connection]);
-    connections[connection] = NULL;
+    if (_connections[connection] == NULL) return -2;
+    DB_free_database(_connections[connection]);
+    _connections[connection] = NULL;
     return 1;
 }
 
@@ -546,7 +523,7 @@ int kernel_free_answer(kernel_answer_t* answer) {
 void cleanup_kernel() {
     _flush_tables();
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
-        if (connections[i] == NULL) continue;
-        DB_free_database(connections[i]);
+        if (_connections[i] == NULL) continue;
+        DB_free_database(_connections[i]);
     }
 }

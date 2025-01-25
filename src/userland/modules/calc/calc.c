@@ -157,7 +157,6 @@ void shunting_yard(const char* input, simple_stack_t* ops, simple_queue_t* outpu
                 break;
             }
 
-            /* Rest of input: we only accept (positive) numbers. TODO: accepet negative numbers */
             default: {
                 int64_t number = 0;
                 if (!isdigit(c)){
