@@ -155,6 +155,11 @@
 //========================================================================================================================================
 
     typedef struct {
+        int size;
+        int offset;
+    } table_columns_info_t;
+
+    typedef struct {
         // Column magic byte
         unsigned char magic;
 
@@ -383,7 +388,7 @@
 
     Return offset in row of column.
     */
-    int TBM_get_column_offset(table_t* table, char* column_name);
+    int TBM_get_column_info(table_t* table, char* column_name, table_columns_info_t* info);
 
     /*
     Check signature function check input data with column signature.

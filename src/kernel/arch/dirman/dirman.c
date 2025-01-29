@@ -222,15 +222,16 @@ int DRM_find_content(
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int current_index = offset % PAGE_CONTENT_SIZE;
     int pages4search  = directory->header->page_count - page_offset;
+    size_t temp_data_size = data_size;
 
     unsigned char* data_pointer = data;
-    for (; pages4search > 0 && data_size > 0 && page_offset < directory->header->page_count; pages4search--) {
+    for (; pages4search > 0 && temp_data_size > 0 && page_offset < directory->header->page_count; pages4search--) {
         // We load current page to memory.
         page_t* page = PGM_load_page(directory->page_names[page_offset]);
         if (page == NULL) return -2;
 
         // We search part of data in this page, save index and unload page.
-        int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_size);
+        int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)temp_data_size);
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             int result = PGM_find_content(page, current_index, data_pointer, current_size);
             THR_release_lock(&page->lock, omp_get_thread_num());
@@ -245,13 +246,13 @@ int DRM_find_content(
                 // We don`t find any entry of data part.
                 // This indicates, that we don`t find any data.
                 // Restore size4search and datapointer, we go to start
-                data_size = (int)data_size;
+                temp_data_size = data_size;
                 data_pointer = data;
                 target_global_index = -1;
             } 
             else {
                 // Move pointer to next position
-                data_size -= current_size;
+                temp_data_size -= current_size;
                 data_pointer += current_size;
             }
 

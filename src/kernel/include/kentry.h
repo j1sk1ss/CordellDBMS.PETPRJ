@@ -116,7 +116,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.6.2 (main)"
+#define KERNEL_VERSION     "v2.7 (main)"
 
 
 typedef struct {

@@ -57,14 +57,9 @@ int DB_append_row(
     // Get primary column and column offset
     int column_offset = 0;
     table_column_t* primary_column = NULL;
-    #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < table->header->column_count; i++) {
-        if (primary_column == NULL) {
-            if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) primary_column = table->columns[i];
-            else {
-                #pragma omp critical (primary_column_offset)
-                column_offset += table->columns[i]->size;
-            }
+        if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) {
+            primary_column = table->columns[i];
         }
 
         unsigned char* current_data = data + column_offset;
@@ -74,21 +69,29 @@ int DB_append_row(
         ) {
             unsigned char* previous_data = DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), access);
             if (previous_data != NULL) {
-                char number_buffer[128] = { 0 };
-                strncpy(number_buffer, (char*)previous_data, table->columns[i]->size);
+                if (*previous_data != '\n') {
+                    char number_buffer[128] = { 0 };
+                    strncpy(number_buffer, (char*)(previous_data + column_offset), table->columns[i]->size);
 
-                char buffer[128] = { 0 };
-                sprintf(buffer, "%0*d", table->columns[i]->size, atoi((char*)number_buffer) + 1);
-                memcpy(current_data, buffer, table->columns[i]->size);
+                    char buffer[128] = { 0 };
+                    sprintf(buffer, "%0*d", table->columns[i]->size, atoi(number_buffer) + 1);
+
+                    memcpy(current_data, buffer, table->columns[i]->size);
+                }
+
                 free(previous_data);
             }
         }
+
+        column_offset += table->columns[i]->size;
     }
 
     // If in provided table presented primary column
     if (primary_column != NULL) {
+        table_columns_info_t primary_info;
+        TBM_get_column_info(table, primary_column->name, &primary_info);
         int row = DB_find_data_row(
-            database, table_name, primary_column->name, 0, data + column_offset, primary_column->size, access
+            database, table_name, primary_column->name, 0, data + primary_info.offset, primary_column->size, access
         );
 
         // If in table already presented this value.
@@ -178,10 +181,10 @@ int DB_find_data_row(
     if (table == NULL) return -1;
 
     int row_size      = 0;
-    int column_offset = -1;
     int column_size   = -1;
-    for (int i = 0; i < table->header->column_count; i++) {
-        if (column != NULL) {
+    int column_offset = -1;
+    if (column != NULL) {
+        for (int i = 0; i < table->header->column_count; i++) {
             if (strncmp(table->columns[i]->name, column, COLUMN_NAME_SIZE) == 0) {
                 column_offset = row_size;
                 column_size = table->columns[i]->size;
@@ -189,10 +192,9 @@ int DB_find_data_row(
 
             row_size += table->columns[i]->size;
         }
-        else {
-            row_size = table->row_size;
-            break;
-        }
+    }
+    else {
+        row_size = table->row_size;
     }
 
     int answer = -1;

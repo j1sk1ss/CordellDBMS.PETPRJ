@@ -18,10 +18,14 @@ table_column_t* TBM_create_column(unsigned char type, unsigned short size, char*
     return NULL;
 }
 
-int TBM_get_column_offset(table_t* table, char* column_name) {
+int TBM_get_column_info(table_t* table, char* column_name, table_columns_info_t* info) {
     int offset = 0;
     for (int i = 0; i < table->header->column_count; i++) {
-        if (strcmp(table->columns[i]->name, column_name) == 0) return offset;
+        if (strcmp(table->columns[i]->name, column_name) == 0) {
+            info->offset = offset;
+            info->size = table->columns[i]->size;
+            return 1;
+        }
         else offset += table->columns[i]->size;
     }
 

@@ -169,7 +169,7 @@ void _start_kernel_session(int source, int destination, int session) {
         kernel_answer_t* result = kernel_process_command(argc, argv, user->access, session);
         if (result->answer_body != NULL) {
             _send2destination(destination, result->answer_body, result->answer_size);
-            print_log("Answer body: [%.*s]", result->answer_size, result->answer_body);
+            print_log("Answer body: [%.*s], Size: %i", result->answer_size, result->answer_body, result->answer_size);
         }
         else {
             _send2destination_byte(destination, result->answer_code);

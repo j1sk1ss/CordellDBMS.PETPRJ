@@ -204,17 +204,18 @@ int TBM_cleanup_dirs(table_t* table) {
 int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
     unsigned char* data_pointer = data;
     int directory_offset    = 0;
-    int size4seach          = (int)data_size;
     int target_global_index = -1;
+    size_t temp_data_size = data_size;
 
-    for (; directory_offset < table->header->dir_count && size4seach > 0; directory_offset++) {
+    for (; directory_offset < table->header->dir_count && temp_data_size > 0; directory_offset++) {
         // We load current page to memory
         directory_t* directory = DRM_load_directory(table->dir_names[directory_offset]);
         if (directory == NULL) return -2;
 
-        // We search part of data in this page, save index and unload page.
+        // We search part of data in this directory, save index and unload directory.
+        int current_size = MIN((directory->header->page_count * PAGE_CONTENT_SIZE) - offset, (int)temp_data_size);
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            int result = DRM_find_content(directory, offset, data_pointer, size4seach);
+            int result = DRM_find_content(directory, offset, data_pointer, current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
 
             // If TGI is -1, we know that we start seacrhing from start.
@@ -224,13 +225,13 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
                 // We don`t find any entry of data part.
                 // This indicates, that we don`t find any data.
                 // Restore size4search and datapointer, we go to start
-                size4seach   = (int)data_size;
+                temp_data_size = data_size;
                 data_pointer = data;
             } 
             else {
                 // Move pointer to next position
-                size4seach   -= directory->header->page_count * PAGE_CONTENT_SIZE - result;
-                data_pointer += directory->header->page_count * PAGE_CONTENT_SIZE - result;
+                temp_data_size -= current_size;
+                data_pointer += current_size;
             }
         }
 
@@ -301,11 +302,11 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __r
 
             memset(new_row, '0', dst->row_size);
             for (size_t i = 0; i < querry_size; i += 2) {
-                memcpy(
-                    new_row + TBM_get_column_offset(dst, dst_columns[querry[i + 1]]->name),
-                    data + TBM_get_column_offset(src, src_columns[querry[i]]->name),
-                    src_columns[querry[i]]->size
-                );
+                table_columns_info_t fquerry;
+                table_columns_info_t squerry;
+                TBM_get_column_info(dst, dst_columns[querry[i + 1]]->name, &fquerry);
+                TBM_get_column_info(src, src_columns[querry[i]]->name, &squerry);
+                memcpy(new_row + fquerry.offset, data + squerry.offset, src_columns[querry[i]]->size);
             }
 
             TBM_append_content(dst, new_row, dst->row_size);

@@ -4,16 +4,19 @@
 static database_t* _connections[MAX_CONNECTIONS] = { NULL };
 
 
-static table_t* _get_table(database_t* database, const char* table_name) {
+static table_t* _get_table(database_t* database, char* table_name) {
     table_t* table = DB_get_table(database, table_name);
     if (!table) print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name);
     return table;
 }
 
 static int _compare_data(char* expression, char* fdata, char* sdata) {
+    fdata += strspn(fdata, " ");
+    sdata += strspn(sdata, " ");
+
     int comparison = 0;
-    if (strcmp(expression, STR_EQUALS) == 0) comparison = (strcmp((char*)fdata, sdata) == 0);
-    else if (strcmp(expression, STR_NEQUALS) == 0) comparison = (strcmp((char*)fdata, sdata) != 0);
+    if (strcmp(expression, STR_EQUALS) == 0) comparison = !strcmp(fdata, sdata);
+    else if (strcmp(expression, STR_NEQUALS) == 0) comparison = strcmp(fdata, sdata);
     else {
         int first = atoi(fdata);
         int second = atoi(sdata);
@@ -25,7 +28,6 @@ static int _compare_data(char* expression, char* fdata, char* sdata) {
 
     return comparison;
 }
-
 
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
@@ -183,11 +185,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 table_column_t** columns = NULL;
                 if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
                     if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
+                        int current_stack_pointer = 0;
                         char* column_stack[512] = { NULL };
                         while (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != CLOSE_BRACKET) {
-                            column_stack[column_count++] = SAFE_GET_VALUE(commands, argc, command_index);
+                            column_stack[current_stack_pointer++] = SAFE_GET_VALUE(commands, argc, command_index);
                         }
 
+                        column_count = current_stack_pointer / 5;
                         columns = (table_column_t**)malloc(column_count * sizeof(table_column_t*));
                         if (!columns) return answer;
 
@@ -341,14 +345,24 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         int index = 0;
                         unsigned char* row_data = (unsigned char*)" ";
-                        while (*row_data != '\0') {
+                        while (1) {
                             row_data = DB_get_row(database, table_name, index++, access);
                             if (!row_data) break;
+                            if (*row_data == '\0') break;
 
-                            unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
-                            if (_compare_data(expression, value, column_data)) {
+                            table_columns_info_t col_info;
+                            TBM_get_column_info(table, column_name, &col_info);
+
+                            unsigned char* column_data = row_data + col_info.offset;
+                            char prev_stop = column_data[col_info.size];
+                            column_data[col_info.size] = '\0';
+
+                            if (_compare_data(expression, (char*)column_data, value)) {
+                                column_data[col_info.size] = prev_stop;
                                 answer->answer_code = DB_delete_row(database, table_name, index, access);
                             }
+
+                            free(row_data);
                         }
                     }
                 }
@@ -395,7 +409,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 */
 #ifndef NO_GET_EXPRESSION_COMMAND
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
-                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {  // TODO: Incapsulate
+                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMN) == 0) {
                         char* column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                         char* expression  = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                         char* value       = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
@@ -403,16 +417,24 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         table_t* table = _get_table(database, table_name);
                         if (!table) return answer;
 
-                        int index = 0;
+                        index = 0;
                         int offset = 0;
                         unsigned char* row_data = (unsigned char*)" ";
 
-                        while (*row_data != '\0') {
+                        while (1) {
                             row_data = DB_get_row(database, table_name, index++, access);
-                            if (row_data == NULL) break;
+                            if (!row_data) break;
+                            if (*row_data == '\0') break;
                             
-                            unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
-                            if (_compare_data(expression, value, column_data)) {
+                            table_columns_info_t col_info;
+                            TBM_get_column_info(table, column_name, &col_info);
+
+                            unsigned char* column_data = row_data + col_info.offset;
+                            char prev_stop = column_data[col_info.size];
+                            column_data[col_info.size] = '\0';
+
+                            if (_compare_data(expression, (char*)column_data, value)) {
+                                column_data[col_info.size] = prev_stop;
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
                                 answer_data = (unsigned char*)realloc(answer_data, answer_size);
@@ -420,6 +442,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                             }
 
                             offset += (index + 1) * table->row_size;
+                            free(row_data);
                         }
 
                         TBM_flush_table(table);
@@ -476,16 +499,25 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                             data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                             unsigned char* row_data = (unsigned char*)" ";
-                            while (*row_data != '\0') {
+                            while (1) {
                                 row_data = DB_get_row(database, table_name, index, access);
                                 if (!row_data) break;
+                                if (*row_data == '\0') break;
 
-                                unsigned char* column_data = row_data + TBM_get_column_offset(table, column_name);
-                                if (_compare_data(expression, value, column_data)) {
+                                table_columns_info_t col_info;
+                                TBM_get_column_info(table, column_name, &col_info);
+
+                                unsigned char* column_data = row_data + col_info.offset;
+                                char prev_stop = column_data[col_info.size];
+                                column_data[col_info.size] = '\0';
+
+                                if (_compare_data(expression, (char*)column_data, value)) {
+                                    column_data[col_info.size] = prev_stop;
                                     answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
                                 }
 
                                 index++;
+                                free(row_data);
                             }
                         }
                     }
