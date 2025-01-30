@@ -19,35 +19,38 @@ table_column_t* TBM_create_column(unsigned char type, unsigned short size, char*
 }
 
 int TBM_get_column_info(table_t* table, char* column_name, table_columns_info_t* info) {
+    info->offset = -1;
+    info->size = -1;
+
     int offset = 0;
     for (int i = 0; i < table->header->column_count; i++) {
-        if (strcmp(table->columns[i]->name, column_name) == 0) {
+        if (strcmp(table->columns[i]->name, column_name)) offset += table->columns[i]->size;
+        else {
             info->offset = offset;
             info->size = table->columns[i]->size;
             return 1;
         }
-        else offset += table->columns[i]->size;
     }
 
-    return 0;
+    return -1;
 }
 
 int TBM_check_signature(table_t* __restrict table, unsigned char* __restrict data) {
     unsigned char* data_pointer = data;
     for (int i = 0; i < table->header->column_count; i++) {
+        unsigned char data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
+        if (data_type == COLUMN_TYPE_ANY || data_type == COLUMN_TYPE_MODULE) continue;
+
         char value[COLUMN_MAX_SIZE] = { 0 };
         strncpy(value, (char*)data_pointer, table->columns[i]->size);
         data_pointer += table->columns[i]->size;
 
-        unsigned char data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
         switch (data_type) {
             case COLUMN_TYPE_INT:
                 if (!is_integer(value)) return -2;
                 break;
 
-            case COLUMN_TYPE_STRING: 
-            case COLUMN_TYPE_ANY: 
-            case COLUMN_TYPE_MODULE: break;
+            case COLUMN_TYPE_STRING: break;
             default: return -4;
         }
     }

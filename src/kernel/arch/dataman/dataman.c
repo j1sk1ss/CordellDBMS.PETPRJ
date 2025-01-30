@@ -42,7 +42,6 @@ int DB_append_row(
 ) {
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return -4;
-
     if (table->row_size > data_size) {
         TBM_flush_table(table);
         return -5;
@@ -180,22 +179,8 @@ int DB_find_data_row(
     table_t* table = _get_table_access(database, table_name, access, check_read_access);
     if (table == NULL) return -1;
 
-    int row_size      = 0;
-    int column_size   = -1;
-    int column_offset = -1;
-    if (column != NULL) {
-        for (int i = 0; i < table->header->column_count; i++) {
-            if (strncmp(table->columns[i]->name, column, COLUMN_NAME_SIZE) == 0) {
-                column_offset = row_size;
-                column_size = table->columns[i]->size;
-            }
-
-            row_size += table->columns[i]->size;
-        }
-    }
-    else {
-        row_size = table->row_size;
-    }
+    table_columns_info_t col_info;
+    TBM_get_column_info(table, column, &col_info);
 
     int answer = -1;
     if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
@@ -204,14 +189,14 @@ int DB_find_data_row(
             TBM_flush_table(table);
             if (global_offset < 0) break;
 
-            int row = global_offset / row_size;
-            if (column_offset == -1 && column_size == -1) {
+            int row = global_offset / table->row_size;
+            if (col_info.offset == -1 && col_info.size == -1) {
                 answer = row;
                 break;
             }
 
-            int position_in_row = global_offset % row_size;
-            if (position_in_row >= column_offset && position_in_row < column_offset + column_size) {
+            int position_in_row = global_offset % table->row_size;
+            if (position_in_row >= col_info.offset && position_in_row < col_info.offset + col_info.size) {
                 answer = row;
                 break;
             }

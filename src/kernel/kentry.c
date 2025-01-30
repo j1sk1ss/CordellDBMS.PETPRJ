@@ -6,7 +6,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
 
 static table_t* _get_table(database_t* database, char* table_name) {
     table_t* table = DB_get_table(database, table_name);
-    if (!table) print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name);
+    if (!table) { print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name); }
     return table;
 }
 
@@ -32,7 +32,6 @@ static int _compare_data(char* expression, char* fdata, char* sdata) {
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
     if (!answer) return NULL;
-    
     memset(answer, 0, sizeof(kernel_answer_t));
 
     int current_start = 1;
@@ -42,11 +41,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
     while (1) {
         if (_connections[connection] == NULL) {
             database = DB_load_database(db_name);
-            if (database == NULL) {
-                print_warn("Database wasn`t found. Create a new one with [create database <name>].");
-                current_start = 1;
-            }
-
+            if (database == NULL) current_start = 1;
             _connections[connection] = database;
             break;
         }

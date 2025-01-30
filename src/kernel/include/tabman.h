@@ -154,6 +154,9 @@
 // HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) -> | LINKS -> | DIR_NAMES -> dyn. -> end |
 //========================================================================================================================================
 
+    /*
+    Column info struct for getting size and offset in table
+    */
     typedef struct {
         int size;
         int offset;
@@ -385,8 +388,10 @@
     Params:
     - table - Pointer to table.
     - column_name - Columns name.
+    - info - Pointer to pre-allocated info structure.
 
-    Return offset in row of column.
+    Return -1 if column not found.
+    Return 1 if operation was success.
     */
     int TBM_get_column_info(table_t* table, char* column_name, table_columns_info_t* info);
 

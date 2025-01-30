@@ -56,33 +56,26 @@ int CHC_add_entry(void* entry, char* name, unsigned char type, void* free, void*
     int free_current   = -1;
     int occup_current  = -1;
     int should_replace = 0;
-    int found_replace  = 0;
 
     if (GCT_TYPES[type] >= GCT_TYPES_MAX[type]) should_replace = 1;
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer != NULL) {
             if (THR_test_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) == UNLOCKED) {
-                occup_current = i;
                 if (GCT[i].type == type && should_replace == 1) {
-                    found_replace = 1;
+                    occup_current = i;
                     break;
                 }
             }
         }
         else {
             free_current = i;
-            break;
         }
     }
 
     int current = -1;
-    if (free_current != -1) current = free_current;
-    else if (occup_current != -1) current = occup_current;
-    else if (free_current == -1 && occup_current == -1) return -4;
-
-    if (should_replace == 1 && found_replace == 0) return -3;
-    else if (should_replace == 1 && found_replace == 1 && occup_current == -1) return -4;
-    else if (should_replace == 1 && found_replace == 1 && occup_current != -1) current = occup_current;
+    if (occup_current != -1) current = occup_current;
+    else if (free_current != -1 && should_replace == 0) current = free_current;
+    else return -4;
 
     if (GCT[current].pointer != NULL) {
         if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, omp_get_thread_num()) != -1) {

@@ -53,7 +53,6 @@
 
 #pragma region [Commands]
 
-    #define HELP            "help"
     #define ROLLBACK        "rollback"
     #define SYNC            "sync"
 
@@ -77,7 +76,6 @@
     #define ROW             "row"
 
     #define BY_INDEX        "by_index"
-    #define BY_VALUE        "by_value"
     #define BY_EXPRESSION   "by_exp"
 
     #define OPEN_BRACKET    '('
