@@ -1,7 +1,8 @@
+.DS_Store
 builds/*
 .vscode/*
 *.pg
 *.db
 *.dr
 *.tb
-.DS_Store
+*.pyc

@@ -73,7 +73,7 @@ db update row table_1 by_value column col1 value "goodbye" values "goodbye   hel
 Get function template:
 ```
 <db_name> get row <tb_name> by_index <index>
-<db_name> get row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> (<eq> and <neq> will compare char*, instead converting data to int)
+<db_name> get row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> limit <count>
 ```
 Get function example: 
 ```
@@ -81,6 +81,9 @@ db get row table_1 by_index 0
 db get row table_1 by_exp column col2 "!=" "100"
 db get row table_1 by_exp column col2 "eq" "hello world"
 ```
+P.S. <eq> and <neq> will compare char*, instead converting data to int. </br>
+P.P.S. limit is optional. Providing -1 to limit will return all entries. </br>
+
 
 *DELETE* </br>
 Delete function template:

@@ -74,6 +74,7 @@
     #define VALUE           "value"
     #define EXPRESSION      "exp"
     #define ROW             "row"
+    #define LIMIT           "limit"
 
     #define BY_INDEX        "by_index"
     #define BY_EXPRESSION   "by_exp"
