@@ -46,6 +46,7 @@ db create table table_1 000 columns ( col1 10 calc=col2*10,mpre is_primary na co
 db create table table_1 000 columns ( uid 5 int p a name 8 str np na password 8 "hash=password 8,mpre" np na )
 ```
 
+----------------
 *APPEND* </br>
 Append function template: </br>
 Note: This function take solid string without any separators for columns.
@@ -57,6 +58,7 @@ Append function example:
 db append row table_1 values "hello     second col"
 ```
 
+----------------
 *UPDATE* </br>
 Update function template:
 ```
@@ -69,6 +71,7 @@ db update row table_1 by_index 0 "goodbye   hello  bye"
 db update row table_1 by_value column col1 value "goodbye" values "goodbye   hello  bye"
 ```
 
+----------------
 *GET* </br>
 Get function template:
 ```
@@ -84,7 +87,7 @@ db get row table_1 by_exp column col2 "eq" "hello world"
 P.S. *eq* and *neq* will compare strings, instead converting data to int. </br>
 P.P.S. Limit is optional. Providing -1 to limit will return all entries. </br>
 
-
+----------------
 *DELETE* </br>
 Delete function template:
 ```
@@ -101,6 +104,7 @@ db delete row table_1 by_index 0
 db delete row table_1 by_exp column col2 "eq" "hello world"
 ```
 
+----------------
 *MIGRATE* </br>
 Migrate function template:
 ```
@@ -108,9 +112,14 @@ Migrate function template:
 ```
 Migrate function example:
 ```
-db migrate table_1 table_2 nav ( 0 1 1 1 4 2 )
+db migrate table_1 table_2 nav ( 0 1 1 3 4 2 )
 ```
+P.S. In breckets placed navigation of columns. This means next:
+- 0-index columns will transfer data to 1-index column from destination table.
+- 1-index columns will transfer data to 3-index column from destination table.
+- 4-index columns will transfer data to 2-index column from destination table.
 
+----------------
 *SYNC* </br>
 Sync function template:
 ```
@@ -121,6 +130,7 @@ Sync function example:
 db sync
 ```
 
+----------------
 *ROLLBACK* </br>
 Rollback function template:
 ```
