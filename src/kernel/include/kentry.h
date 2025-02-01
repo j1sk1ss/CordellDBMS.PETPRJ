@@ -99,6 +99,9 @@
 
     #pragma region [Expressions]
 
+        #define OR  "or"
+        #define AND "and"
+
         #define MORE_THAN   ">"
         #define LESS_THAN   "<"
         #define NEQUALS     "!="

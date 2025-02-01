@@ -1,9 +1,30 @@
 from __future__ import annotations
+from dataclasses import dataclass
+from enum import Enum
 
 from cdbms_api.connection import Connection
 from cdbms_api.db_objects.db_object import DBobject
 from cdbms_api.db_objects.objects.table.row import Row
 from cdbms_api.db_objects.objects.table.column import Column
+
+
+class LogicOperator(Enum):
+    OR = "or"
+    AND = "and"
+
+class Expressions(Enum):
+    EQUALS = "="
+    NOT_EQUALS = "!="
+    STR_EQUALS = "eq"
+    STR_NOT_EQUALS = "neq"
+    MORE_THEN = ">"
+    LESS_THEN = "<"
+
+@dataclass
+class Statement:
+    column_name: str
+    expression: Expressions
+    value: int | str
 
 
 class Table(DBobject):
@@ -52,10 +73,6 @@ class Table(DBobject):
     def insert_row_by_index(self, row: Row, index: int) -> bytes | int | None:
         return self._execute_querry(f'{self._database} update row {self.name} by_index {index} "{row.data}"\0')
 
-    def insert_row_by_value(self, row: Row, value: str, column: Column) -> bytes | int | None:
-        column_name: str = column.name if isinstance(column, Column) else column
-        return self._execute_querry(f'{self._database} update row {self.name} by_value column {column_name} value "{value}" values "{row.data}"\0')
-
     def get_row_by_index(self, index: int):
         row_body: bytes | int | None = self._execute_querry(querry=f'{self._database} get row {self.name} by_index {index}\0', is_code=False)
         if not isinstance(row_body, bytes):
@@ -65,10 +82,19 @@ class Table(DBobject):
         row: Row = Row(data=row_body)
         return row.parse_bytes_to_object(self._columns)
 
-    def get_row_by_expression(self, exp: str, value: str, column: Column | str, limit: int = -1) -> list | None:
-        column_name: str = column.name if isinstance(column, Column) else column
+    def get_row_by_expression(self, expression: list[Statement | LogicOperator], limit: int = -1) -> list | None:
+        stmt = f"{self._database} get row {self.name} by_exp"
+        for exp in expression:
+            if isinstance(exp, Statement):
+                stmt += f" column {exp.column_name} {exp.expression.value} {exp.value}"
+            elif isinstance(exp, LogicOperator):
+                stmt += f" {exp.value}"
+        
+        if limit != -1:
+            stmt += f" limit {limit}"
+        
         row_body: bytes | int | None = self._execute_querry(
-            querry=f'{self._database} get row {self.name} by_exp column {column_name} "{exp}" "{value}" limit {limit}\0', is_code=False
+            querry=f"{stmt}\0", is_code=False
         )
 
         if not isinstance(row_body, bytes):
@@ -90,10 +116,6 @@ class Table(DBobject):
 
     def delete_row_by_index(self, index: int) -> bytes | int | None:
         return self._execute_querry(f'{self._database} delete row {self.name} by_index {index}\0')
-
-    def delete_row_by_value(self, value: str, column: Column | str) -> bytes | int | None:
-        column_name: str = column.name if isinstance(column, Column) else column
-        return self._execute_querry(f'{self._database} delete row {self.name} by_value column {column_name} value {value}\0')
 
     def _split_row_params(self) -> list | None:
         column_sizes: list = []

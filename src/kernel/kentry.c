@@ -6,14 +6,12 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
 
 #pragma region [Private]
 
-#pragma region _get_table
 static table_t* _get_table(database_t* database, char* table_name) {
     table_t* table = DB_get_table(database, table_name);
     if (!table) { print_error("Table [%s] not found in database [%.*s]", table_name, DATABASE_NAME_SIZE, database->header->name); }
     return table;
 }
 
-#pragma region _compare_data
 static int _compare_data(char* expression, char* fdata, size_t fdata_size, char* sdata, size_t sdata_size) {
     char* temp_fdata = (char*)malloc(fdata_size + 1);
     memcpy(temp_fdata, fdata, fdata_size);
@@ -26,8 +24,8 @@ static int _compare_data(char* expression, char* fdata, size_t fdata_size, char*
     char* mv_sdata = temp_sdata + strspn(temp_sdata, " ");
 
     int comparison = 0;
-    if (strcmp(expression, STR_EQUALS) == 0) comparison = !strcmp(mv_fdata, mv_sdata);
-    else if (strcmp(expression, STR_NEQUALS) == 0) comparison = strcmp(mv_fdata, mv_sdata);
+    if (strcmp(expression, STR_EQUALS) == 0) comparison = strcmp(mv_fdata, mv_sdata) == 0;
+    else if (strcmp(expression, STR_NEQUALS) == 0) comparison = strcmp(mv_fdata, mv_sdata) != 0;
     else {
         int first = atoi(mv_fdata);
         int second = atoi(mv_sdata);
@@ -42,7 +40,6 @@ static int _compare_data(char* expression, char* fdata, size_t fdata_size, char*
     return comparison;
 }
 
-#pragma region _evaluate_expression
 static int _evaluate_expression(
     table_t* table, unsigned char* row_data, char* commands[], int current_command, int argc, int* out_limit
 ) {
@@ -58,21 +55,25 @@ static int _evaluate_expression(
     int operator_count = 0;
     *out_limit = -1;
 
-    while (current_command < argc) {
-        if (strcmp(SAFE_GET_VALUE_S(commands, argc, current_command), COLUMN) == 0) {
+    while (1) {
+        char* operator = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
+        if (!operator) break;
+
+        if (strcmp(operator, COLUMN) == 0) {
             conditions[condition_count].column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             conditions[condition_count].expression = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             conditions[condition_count].value = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             condition_count++;
-        } else if (strcmp(SAFE_GET_VALUE_S(commands, argc, current_command), LIMIT) == 0) {
-            *out_limit = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
-            break;
-        } else {
-            operators[operator_count++] = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
+        } else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
+            operators[operator_count++] = operator;
+        } else if (strcmp(operator, LIMIT) == 0) {
+            *out_limit = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, current_command));
         }
+        else break;
     }
 
     int results[10] = { 0 };
+    #pragma omp parallel for schedule(dynamic, 2)
     for (int i = 0; i < condition_count; i++) {
         table_columns_info_t col_info;
         TBM_get_column_info(table, conditions[i].column_name, &col_info);
@@ -83,17 +84,16 @@ static int _evaluate_expression(
 
     int match = results[0];
     for (int i = 0; i < operator_count; i++) {
-        if (strcmp(operators[i], "and") == 0) match &= results[i + 1];
-        else match |= results[i + 1];
+        if (strcmp(operators[i], AND) == 0) match &= results[i + 1];
+        else if (strcmp(operators[i], OR) == 0) match |= results[i + 1];
     }
 
-    return match ? 1 : 0;
+    return match;
 }
 
 #pragma endregion
 
 
-#pragma region kernel_process_command
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
     if (!answer) return NULL;
@@ -139,7 +139,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle flush command. Init transaction start. Check docs.
         Command syntax: flush
         */
-#pragma region SYNC
         if (strcmp(command, SYNC) == 0) {
             answer->answer_code = DB_init_transaction(database);
         }
@@ -147,7 +146,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle rollback command.
         Command syntax: rollback
         */
-#pragma region ROLL
         else if (strcmp(command, ROLLBACK) == 0) {
             answer->answer_code = DB_rollback(&_connections[connection]);
         }
@@ -155,7 +153,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle info command about cdbms kernel version.
         Command syntax: version
         */
-#pragma region VERSION
 #ifndef NO_VERSION_COMMAND
         else if (strcmp(command, VERSION) == 0) {
             answer->answer_body = (unsigned char*)malloc(strlen(KERNEL_VERSION));
@@ -168,7 +165,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle migration.
         Command syntax: migrate <src_table_name> <dst_table_name> nav ( ... )
         */
-#pragma region MEGRATION
 #ifndef NO_MIGRATE_COMMAND
         else if (strcmp(command, MIGRATE) == 0) {
             char* src_table_name = SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index);
@@ -196,7 +192,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle creation.
         Command syntax: create <option>
         */
-#pragma region CREATE
 #ifndef NO_CREATE_COMMAND
         else if (strcmp(command, CREATE) == 0) {
             /*
@@ -328,7 +323,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         - Return -1 error if table not found.
         - Return -2 error if data size not equals row size.
         */
-#pragma region APPEND
         else if (strcmp(command, APPEND) == 0) {
             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
@@ -349,7 +343,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle get command.
         Command syntax: get <option>
         */
-#pragma region GET
         else if (strcmp(command, GET) == 0) {
             /*
             Command syntax: get row <table_name> <operation_type> <options>
@@ -418,34 +411,30 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle update command.
         Command syntax: update <option>
         */
-#pragma region UPDATE
 #ifndef NO_UPDATE_COMMAND
         else if (strcmp(command, UPDATE) == 0) {
             /*
-            Command syntax: update row <table_name> <option>
+            Command syntax: update row <table_name> <new_data> <option>
             */
             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
                 int index = -1;
-                char* data = NULL;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (table_name == NULL) {
+                char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                if (table_name == NULL || data == NULL) {
                     answer->answer_code = 5;
                     return answer;
                 }
 
                 /*
-                Command syntax: update row <table_name> by_index <index> value <new_data>
+                Command syntax: update row <table_name> <new_data> by_index <index>
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
-                    if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUE) == 0) {
-                        data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                        DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
-                    }
+                    DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
                 }
                 /*
-                Command syntax: update row <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value> values <data>
+                Command syntax: update row <table_name> <new_data> by_exp column <column_name> <</>/!=/=/eq/neq> <value> values <data>
                 */
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     table_t* table = _get_table(database, table_name);
@@ -473,7 +462,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle delete command.
         Command syntax: delete <option>
         */
-#pragma region DELETE
 #ifndef NO_DELETE_COMMAND
         else if (strcmp(command, DELETE) == 0) {
             answer->answer_code = 1;
