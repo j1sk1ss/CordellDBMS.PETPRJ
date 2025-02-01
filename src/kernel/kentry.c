@@ -353,9 +353,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                             table_columns_info_t col_info;
                             TBM_get_column_info(table, column_name, &col_info);
-
-                            unsigned char* column_data = row_data + col_info.offset;
-                            if (_compare_data(expression, (char*)column_data, col_info.size, value, strlen(value))) {
+                            if (_compare_data(expression, (char*)(row_data + col_info.offset), col_info.size, value, strlen(value))) {
                                 answer->answer_code = DB_delete_row(database, table_name, index, access);
                             }
 
@@ -424,14 +422,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         while (1) {
                             row_data = DB_get_row(database, table_name, index++, access);
-                            if (!row_data) break;
-                            if (*row_data == '\0') break;
+                            if (!row_data || *row_data == '\0') break;
                             
                             table_columns_info_t col_info;
                             TBM_get_column_info(table, column_name, &col_info);
-
-                            unsigned char* column_data = row_data + col_info.offset;
-                            if (_compare_data(expression, (char*)column_data, col_info.size, value, strlen(value))) {
+                            if (_compare_data(expression, (char*)(row_data + col_info.offset), col_info.size, value, strlen(value))) {
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
                                 answer_data = (unsigned char*)realloc(answer_data, answer_size);
@@ -507,9 +502,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                                 table_columns_info_t col_info;
                                 TBM_get_column_info(table, column_name, &col_info);
-
-                                unsigned char* column_data = row_data + col_info.offset;
-                                if (_compare_data(expression, (char*)column_data, col_info.size, value, strlen(value))) {
+                                if (_compare_data(expression, (char*)(row_data + col_info.offset), col_info.size, value, strlen(value))) {
                                     answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
                                 }
 
