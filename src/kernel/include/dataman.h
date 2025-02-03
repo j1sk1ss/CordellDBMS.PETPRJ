@@ -165,8 +165,8 @@ we use cache in pages (lowest level) and table cache at the highest level.
         Return -11 if provided data too small. Maybe you forgot additional CD? <DEPRECATED>
     }
     Return -1 if something goes wrong
-    Return 0 if row insert was success
-    Return 1 if row insert cause page creation
+    Return 1 if row insert success
+    Return 2 if row insert was success, but was trunc
     */
     int DB_insert_row(
         database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size, unsigned char access

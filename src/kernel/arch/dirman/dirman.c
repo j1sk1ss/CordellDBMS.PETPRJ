@@ -101,36 +101,27 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 }
 
 int DRM_insert_content(
-    directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght
+    directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_lenght
 ) {
 #ifndef NO_UPDATE_COMMAND
-    int page_offset     = offset / PAGE_CONTENT_SIZE;
-    int current_index   = offset % PAGE_CONTENT_SIZE;
+    int page_offset  = offset / PAGE_CONTENT_SIZE;
+    int index_offset = offset % PAGE_CONTENT_SIZE;
 
     unsigned char* data_pointer = data;
-    for (int i = 0; i < ((int)data_lenght / PAGE_CONTENT_SIZE) + 1 && data_lenght > 0; i++) {
-        // If we reach pages count in current directory, we return error code
-        // We return error instead creationg a new directory, because this is not our abstraction level
-        if (page_offset > directory->header->page_count) {
-            // To  many pages. We reach directory end.
-            // Return size, that we can't insert.
-            return data_lenght;
-        }
-
+    for (int i = page_offset; i < directory->header->page_count && data_lenght > 0; i++) {
         // We load current page to memory
-        page_t* page = PGM_load_page(directory->page_names[page_offset++]);
+        page_t* page = PGM_load_page(directory->page_names[i]);
         if (page == NULL) return -1;
 
         // We insert current part of content with local offset
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) { 
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
-            PGM_insert_content(page, current_index, data_pointer, current_size);
+            int result = PGM_insert_content(page, index_offset, data_pointer, (int)data_lenght);
             THR_release_lock(&page->lock, omp_get_thread_num());
 
             // We reload local index and update size2delete
-            current_index = 0;
-            data_lenght -= current_size;
-            data_pointer += current_size;
+            index_offset = 0;
+            data_lenght -= result;
+            data_pointer += result;
         }
 
         PGM_flush_page(page);

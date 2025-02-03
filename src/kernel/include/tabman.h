@@ -270,15 +270,15 @@
     ! In summary, this function shouldn't be used in ususal tasks. It may broke whole table at one time. !
 
     Params:
-    - table - pointer to table
-    - data - append data
-    - data_size - size of data
+    - table - Pointer to table.
+    - offset - Global table offset.
+    - data - Append data.
+    - data_size - Size of data.
 
-    Return -3 if table is empty
-    Return -2 if we reach page limit in directory (Prefere using append_content)
-    Return -1 if something goes wrong
-    Return 0 if row append was success
-    Return 1 if row append was success and we create new pages
+    Return -3 if table is empty.
+    Return -1 if something goes wrong.
+    Return 0 if row insert was success.
+    Return 1 if row insert was success and we create new pages.
     */
     int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size);
 

@@ -420,10 +420,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 int index = -1;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 char* data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (table_name == NULL || data == NULL) {
-                    answer->answer_code = 5;
-                    return answer;
-                }
 
                 /*
                 Command syntax: update row <table_name> <new_data> by_index <index>
@@ -431,7 +427,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
-                    DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
+                    answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
                 }
                 /*
                 Command syntax: update row <table_name> <new_data> by_exp column <column_name> <</>/!=/=/eq/neq> <value> values <data>
@@ -442,6 +438,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     
                     index = 0;
                     unsigned char* row_data = (unsigned char*)" ";
+                    int updated_rows_count = 0;
                     while (1) {
                         row_data = DB_get_row(database, table_name, index, access);
                         if (!row_data || *row_data == '\0') break;
@@ -449,6 +446,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         int limit = 0;
                         if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
                             answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
+                            if (limit != -1 && updated_rows_count++ >= limit) break;
                         }
                         
                         index++;

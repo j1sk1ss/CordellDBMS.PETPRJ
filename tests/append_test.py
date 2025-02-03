@@ -23,7 +23,7 @@ from cdbms_api.db_objects.objects.table.column import Column, ColumnDataType, Co
 from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator, Statement
 
 
-ROWS: int = 1000
+ROWS: int = 100
 connection: Connection = Connection(
     base_addr='0.0.0.0',
     port=7777,
@@ -117,4 +117,5 @@ for i in rows:
 
 # endregion
 
+database.sync()
 connection.close_connection()

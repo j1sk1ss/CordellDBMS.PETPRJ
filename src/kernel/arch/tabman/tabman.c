@@ -2,35 +2,8 @@
 
 
 unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
-    int global_page_offset = offset / PAGE_CONTENT_SIZE;
-    int directory_index    = -1;
-    int current_page       = 0;
-
-    // Find directory that has first page of data (first page).
-    directory_t* directory = NULL;
-    for (int i = 0; i < table->header->dir_count; i++) {
-        // Load directory from disk to memory
-        directory = DRM_load_directory(table->dir_names[i]);
-        if (directory == NULL) continue;
-
-        // Check:
-        // If current directory include page, that we want, we save this directory.
-        // Else we unload directory and go to the next dir. name.
-        int page_count = directory->header->page_count;
-        DRM_flush_directory(directory);
-        if (current_page + page_count < global_page_offset) {
-            current_page += page_count;
-            continue;
-        }
-        else {
-            // Get offset in pages for local directory and save directory index
-            directory_index = i;
-            break;
-        }
-    }
-
     // Data for DRM
-    if (directory_index == -1) return NULL;
+    directory_t* directory = NULL;
     int content2get_size = (int)size;
 
     // Allocate data for output
@@ -40,15 +13,18 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     memset(output_content_pointer, 0, size);
 
     // Iterate from all directories in table
-    for (int i = directory_index; i < table->header->dir_count && content2get_size > 0; i++) {
+    int current_index = 0;
+    for (int i = 0; i < table->header->dir_count && content2get_size > 0; i++) {
         // Load directory to memory
         directory = DRM_load_directory(table->dir_names[i]);
         if (directory == NULL) continue;
+
+        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE < offset) continue;        
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
             // Get data from directory
             // After getting data, copy it to allocated output
             int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
-            unsigned char* directory_content = DRM_get_content(directory, offset, current_size);
+            unsigned char* directory_content = DRM_get_content(directory, MAX(offset - current_index, 0), current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
             if (directory_content != NULL) {
                 memcpy(output_content_pointer, directory_content, current_size);
@@ -59,11 +35,14 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
                 // Set offset to 0, because we go to next directory
                 // Update size of getcontent
                 offset = 0;
+                current_index = 0;
+
                 content2get_size -= current_size;
                 output_content_pointer += current_size;
             }
         }
 
+        current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
         DRM_flush_directory(directory);
     }
 
@@ -124,36 +103,33 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
 
 int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
 #ifndef NO_UPDATE_COMMAND
-    if (table->header->dir_count == 0) return -3;
-
     unsigned char* data_pointer = data;
     int size4insert = (int)data_size;
 
-    // Iterate existed directories. Maybe we can insert data here?
-    for (int i = 0; i < table->header->dir_count; i++) {
+    int current_index = 0;
+    for (int i = 0; i < table->header->dir_count && size4insert > 0; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (directory == NULL) return -1;
 
+        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE < offset) continue;
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            int result = DRM_insert_content(directory, offset, data_pointer, size4insert);
+            int result = DRM_insert_content(directory, MAX(offset - current_index, 0), data_pointer, size4insert);
             THR_release_lock(&directory->lock, omp_get_thread_num());
-            DRM_flush_directory(directory);
 
             if (result == -1) return -1;
-            else if (result == 1 || result == 2) {
-                return result;
+            else if (result == 1 || result == 2) size4insert = 0;
+            else {
+                data_pointer += size4insert - result;
+                size4insert = result;
             }
-
-            // Move append data pointer.
-            int loaded_data = size4insert - result;
-            data_pointer += loaded_data;
-            size4insert = result;
         }
+
+        current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
+        DRM_flush_directory(directory);
     }
 
-    // If we reach end, return error code.
-    // Check docs why we return error, instead dir creation.
+    return 1;
 #endif
     return -2;
 }
