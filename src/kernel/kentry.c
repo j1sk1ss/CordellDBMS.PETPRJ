@@ -381,21 +381,28 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     if (!table) return answer;
 
                     index = 0;
+                    int get_data = 0;
                     unsigned char* row_data = (unsigned char*)" ";
+
                     while (1) {
                         row_data = DB_get_row(database, table_name, index++, access);
-                        if (!row_data || *row_data == '\0') break;
-
+                        if (!row_data) break;
+                        
                         int limit = 0;
-                        if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                            int data_start = answer_size;
-                            answer_size += table->row_size;
-                            answer_data = (unsigned char*)realloc(answer_data, answer_size);
-                            memcpy(answer_data + data_start, row_data, table->row_size);
-                            if (limit != -1 && (answer_size / table->row_size) >= limit) break;
+                        unsigned char tag = *row_data;
+
+                        if (tag != PAGE_EMPTY && tag != '\0') {
+                            if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
+                                int data_start = answer_size;
+                                answer_size += table->row_size;
+                                answer_data = (unsigned char*)realloc(answer_data, answer_size);
+                                memcpy(answer_data + data_start, row_data, table->row_size);
+                                if (limit != -1 && get_data++ >= limit) break;
+                            }
                         }
                         
                         free(row_data);
+                        if (tag == '\0') break;
                     }
 
                     TBM_flush_table(table);
@@ -437,20 +444,26 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     if (!table) return answer;
                     
                     index = 0;
+                    int updated_rows = 0;
                     unsigned char* row_data = (unsigned char*)" ";
-                    int updated_rows_count = 0;
+
                     while (1) {
                         row_data = DB_get_row(database, table_name, index, access);
-                        if (!row_data || *row_data == '\0') break;
+                        if (!row_data) break;
 
                         int limit = 0;
-                        if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                            answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
-                            if (limit != -1 && updated_rows_count++ >= limit) break;
+                        unsigned char tag = *row_data;
+
+                        if (tag != PAGE_EMPTY && tag != '\0') {
+                            if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
+                                answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
+                                if (limit != -1 && updated_rows++ >= limit) break;
+                            }
                         }
                         
                         index++;
                         free(row_data);
+                        if (tag == '\0') break;
                     }
                 }
             }
@@ -512,18 +525,26 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     if (!table) return answer;
                     
                     int index = 0;
+                    int deleted_rows = 0;
                     unsigned char* row_data = (unsigned char*)" ";
+
                     while (1) {
                         row_data = DB_get_row(database, table_name, index, access);
-                        if (!row_data || *row_data == '\0') break;
+                        if (!row_data) break;
 
                         int limit = 0;
-                        if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                            answer->answer_code = DB_delete_row(database, table_name, index, access);
+                        unsigned char tag = *row_data;
+
+                        if (tag != PAGE_EMPTY && tag != '\0') {
+                            if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
+                                answer->answer_code = DB_delete_row(database, table_name, index, access);
+                                if (limit != -1 && deleted_rows++ >= limit) break;
+                            }
                         }
                         
                         index++;
                         free(row_data);
+                        if (tag == '\0') break;
                     }
                 }
             }

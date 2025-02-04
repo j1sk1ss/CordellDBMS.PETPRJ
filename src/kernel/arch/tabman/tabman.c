@@ -138,24 +138,30 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 #ifndef NO_DELETE_COMMAND
     int size4delete = (int)size;
 
-    // Iterate existed directories. Maybe we can insert data here?
-    for (int i = 0; i < table->header->dir_count; i++) {
+    int current_index = 0;
+    int deleted_data = 0;
+    for (int i = 0; i < table->header->dir_count && size4delete > 0; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (directory == NULL) return -1;
+
+        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE < offset) continue;
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            int result = DRM_delete_content(directory, MAX(offset - current_index, 0), size4delete);
             table->append_offset = i;
 
-            size4delete = DRM_delete_content(directory, offset, size4delete);
-            THR_release_lock(&directory->lock, omp_get_thread_num());
-            DRM_flush_directory(directory);
+            offset = 0;
+            size4delete -= result;
+            deleted_data += result;
 
-            if (size4delete < 0) return -1;
-            else if (size4delete >= 0) return size4delete;
+            THR_release_lock(&directory->lock, omp_get_thread_num());
         }
+
+        current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
+        DRM_flush_directory(directory);
     }
 
-    // If we reach end, return error code.
+    return deleted_data;
 #endif
     return -2;
 }

@@ -30,11 +30,10 @@ table: Table = database.get_table(
 # region [Update]
 
 start_time: float = time.perf_counter()
-table.insert_row_by_expression(
+table.delete_row_by_expression(
     expression=[
-        Statement(column_name="name", expression=Expressions.STR_EQUALS, value="Porosenok")
-    ], 
-    uid=1, huid=1, name="Svinya", weight=500
+        Statement(column_name="name", expression=Expressions.STR_EQUALS, value="Svinya")
+    ]
 )
 
 retrieve_time = time.perf_counter() - start_time
@@ -58,10 +57,7 @@ rows: list = _by_exp_str_test(
     ]
 )
 
-for i in rows:
-    print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
-    assert i.weight == 500, "Test failed. Data incorrect"
-
+assert len(rows) == 0, "Deleted data exists"
 
 database.sync()
 connection.close_connection()

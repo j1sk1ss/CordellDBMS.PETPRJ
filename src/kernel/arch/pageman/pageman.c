@@ -9,8 +9,9 @@ int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __res
 
 int PGM_delete_content(page_t* page, int offset, size_t length) {
 #ifndef NO_DELETE_COMMAND
-    int end_index = MIN(PAGE_CONTENT_SIZE - offset, (int)length + offset);
+    int end_index = MIN(PAGE_CONTENT_SIZE, offset + (int)length);
     for (int i = offset; i < end_index; i++) page->content[i] = PAGE_EMPTY;
+    return end_index - offset;
 #endif
     return 1;
 }
@@ -66,7 +67,7 @@ int PGM_get_page_occupie_size(page_t* page, int offset) {
     for (int i = offset; i < PAGE_CONTENT_SIZE; i++) {
         if (page->content[i] != PAGE_EMPTY) continue;
         int current_eof = i;
-        for (int j = current_eof; j < PAGE_CONTENT_SIZE - current_eof; j++) {
+        for (int j = current_eof; j < PAGE_CONTENT_SIZE; j++) {
             if (page->content[j] != PAGE_EMPTY) {
                 current_eof = -1;
                 i = j;

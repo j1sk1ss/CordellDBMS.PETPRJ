@@ -62,14 +62,7 @@ class Table(DBobject):
             return 1
         else:
             return -1
-
-    def insert_row_by_index(self, index: int, **kwargs) -> bytes | int | None:
-        return self._execute_querry(f'{self._database} update row {self.name} "{self._generate_querry(**kwargs)}" by_index {index}\0')
-
-    def insert_row_by_expression(self, expression: list[Statement | LogicOperator], **kwargs) -> bytes | int | None:
-        stmt = Table._generate_stmt(base=f'{self._database} update row {self.name} "{self._generate_querry(**kwargs)}" by_exp', params=expression)
-        return self._execute_querry(querry=f'{stmt}\0')
-
+        
     def get_row_by_index(self, index: int):
         row_body: bytes | int | None = self._execute_querry(querry=f'{self._database} get row {self.name} by_index {index}\0', is_code=False)
         if not isinstance(row_body, bytes):
@@ -105,8 +98,19 @@ class Table(DBobject):
 
         return output
 
+    def insert_row_by_index(self, index: int, **kwargs) -> bytes | int | None:
+        return self._execute_querry(f'{self._database} update row {self.name} "{self._generate_querry(**kwargs)}" by_index {index}\0')
+
+    def insert_row_by_expression(self, expression: list[Statement | LogicOperator], **kwargs) -> bytes | int | None:
+        stmt = Table._generate_stmt(base=f'{self._database} update row {self.name} "{self._generate_querry(**kwargs)}" by_exp', params=expression)
+        return self._execute_querry(querry=f'{stmt}\0')
+
     def delete_row_by_index(self, index: int) -> bytes | int | None:
         return self._execute_querry(f'{self._database} delete row {self.name} by_index {index}\0')
+
+    def delete_row_by_expression(self, expression: list[Statement | LogicOperator]) -> bytes | int | None:
+        stmt = Table._generate_stmt(base=f"{self._database} delete row {self.name} by_exp", params=expression)
+        return self._execute_querry(f'{stmt}\0')
 
     @staticmethod
     def _generate_stmt(base: str, params: list[Statement | LogicOperator]) -> str:

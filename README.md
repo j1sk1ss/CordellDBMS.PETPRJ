@@ -57,20 +57,6 @@ Append function example:
 ```
 db append row table_1 values "hello     second col"
 ```
-
-----------------
-*UPDATE* </br>
-Update function template:
-```
-<db_name> update row <tb_name> <new_data> by_index <index>
-<db_name> update row <tb_name> <new_data> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> <and/or> ...
-```
-Update function example: 
-```
-db update row table_1 "goodbye   hello  bye" by_index 0
-db update row table_1 "goodbye   hello  bye" by_exp column col1 = 10 and col2 eq "Hello there!"
-```
-
 ----------------
 *GET* </br>
 Get function template:
@@ -88,13 +74,26 @@ P.S. *eq* and *neq* will compare strings, instead converting data to int. </br>
 P.P.S. Limit is optional. Providing -1 to limit will return all entries. </br>
 
 ----------------
+*UPDATE* </br>
+Update function template:
+```
+<db_name> update row <tb_name> <new_data> by_index <index>
+<db_name> update row <tb_name> <new_data> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> <and/or> ... limit <count>
+```
+Update function example: 
+```
+db update row table_1 "goodbye   hello  bye" by_index 0
+db update row table_1 "goodbye   hello  bye" by_exp column col1 = 10 and col2 eq "Hello there!"
+```
+
+----------------
 *DELETE* </br>
 Delete function template:
 ```
 <db_name> delete database
 <db_name> delete table <tb_name>
 <db_name> delete row <tb_name> by_index <index>
-<db_name> delete row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> <and/or> ...
+<db_name> delete row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> <and/or> ... limit <count>
 ```
 Delete function example:
 ```
