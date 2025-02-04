@@ -57,35 +57,34 @@ Append function example:
 ```
 db append row table_1 values "hello     second col"
 ```
-
-----------------
-*UPDATE* </br>
-Update function template:
-```
-<db_name> update row <tb_name> by_index <index> values <new_data>
-<db_name> update row <tb_name> by_value column <col_name> value <value> values <new_data>
-```
-Update function example: 
-```
-db update row table_1 by_index 0 "goodbye   hello  bye"
-db update row table_1 by_value column col1 value "goodbye" values "goodbye   hello  bye"
-```
-
 ----------------
 *GET* </br>
 Get function template:
 ```
 <db_name> get row <tb_name> by_index <index>
-<db_name> get row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> limit <count>
+<db_name> get row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> <and/or> ... limit <count>
 ```
 Get function example: 
 ```
 db get row table_1 by_index 0
-db get row table_1 by_exp column col2 "!=" "100"
-db get row table_1 by_exp column col2 "eq" "hello world"
+db get row table_1 by_exp column col2 != 100
+db get row table_1 by_exp column col2 eq "hello world" and column col1 > 200 limit 15
 ```
 P.S. *eq* and *neq* will compare strings, instead converting data to int. </br>
 P.P.S. Limit is optional. Providing -1 to limit will return all entries. </br>
+
+----------------
+*UPDATE* </br>
+Update function template:
+```
+<db_name> update row <tb_name> <new_data> by_index <index>
+<db_name> update row <tb_name> <new_data> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> <and/or> ... limit <count>
+```
+Update function example: 
+```
+db update row table_1 "goodbye   hello  bye" by_index 0
+db update row table_1 "goodbye   hello  bye" by_exp column col1 = 10 and col2 eq "Hello there!"
+```
 
 ----------------
 *DELETE* </br>
@@ -94,7 +93,7 @@ Delete function template:
 <db_name> delete database
 <db_name> delete table <tb_name>
 <db_name> delete row <tb_name> by_index <index>
-<db_name> delete row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> (<eq> and <neq> will compare char*, instead converting data to int)
+<db_name> delete row <tb_name> by_exp column <col_name> <expression (</>/!=/=/eq/neq)> <value> <and/or> ... limit <count>
 ```
 Delete function example:
 ```

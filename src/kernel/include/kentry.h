@@ -99,6 +99,9 @@
 
     #pragma region [Expressions]
 
+        #define OR  "or"
+        #define AND "and"
+
         #define MORE_THAN   ">"
         #define LESS_THAN   "<"
         #define NEQUALS     "!="
@@ -115,7 +118,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.7 (main)"
+#define KERNEL_VERSION     "v2.7 (kernel/kernel-refactor)"
 
 
 typedef struct {

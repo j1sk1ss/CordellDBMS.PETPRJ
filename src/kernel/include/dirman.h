@@ -171,7 +171,7 @@
     Return -1 if something goes wrong.
     Return data size, that can't be stored in existed pages if we reach directory end.
     */
-    int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght);
+    int DRM_insert_content(directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_lenght);
 
     /*
     Find data function return global index in directory of provided data. (Will return first entry of data).

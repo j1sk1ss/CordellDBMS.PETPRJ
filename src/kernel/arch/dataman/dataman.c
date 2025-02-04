@@ -4,8 +4,8 @@
 static int _get_global_offset(int row_size, int row) {
     int rows_per_page = PAGE_CONTENT_SIZE / row_size;
     int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
+    int row_offset    = row % rows_per_page;
+    int global_offset = pages_offset * PAGE_CONTENT_SIZE + row_offset * row_size;
     return global_offset;
 }
 
@@ -116,7 +116,6 @@ int DB_insert_row(
 #ifndef NO_UPDATE_COMMAND
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return -1;
-
     if (table->row_size > data_size) {
         TBM_flush_table(table);
         return -5;

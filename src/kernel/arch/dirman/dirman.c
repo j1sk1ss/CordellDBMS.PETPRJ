@@ -10,43 +10,20 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int current_index = offset % PAGE_CONTENT_SIZE;
 
-    for (int i = page_offset; i < page_offset + ((int)data_lenght / PAGE_CONTENT_SIZE) + 1 && data_lenght > 0; i++) {
-        if (i > directory->header->page_count) {
-            // Too  many pages. We reach directory end.
-            return content;
-        }
-
+    for (int i = page_offset; i < directory->header->page_count && data_lenght > 0; i++) {
         // We load current page
         page_t* page = PGM_load_page(directory->page_names[i]);
         if (page == NULL) continue;
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-            // We check, that we don't return Page Empty, because
-            // PE symbols != Content symbols.
-            unsigned char* page_content_pointer = page->content;
-            while (page->content[current_index] == PAGE_EMPTY) {
-                if (++current_index >= PAGE_CONTENT_SIZE) {
-                    page_content_pointer = NULL;
-                    break;
-                }
-            }
+            // We work with page
+            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
+            memcpy(content_pointer, (unsigned char*)page->content + current_index, current_size);
 
-            // Also we don't check full content body. I mean, that
-            // if situation CS ... CS, CS, PE, PE occur, we don't care,
-            // because this is not our fault. This is problem of higher
-            // abstraction levels.
-            if (page_content_pointer != NULL) {
-                page_content_pointer += current_index;
-
-                // We work with page
-                int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
-                memcpy(content_pointer, page_content_pointer, current_size);
-
-                // We reload local index and update size2get
-                // Also we move content pointer to next location
-                current_index   = 0;
-                data_lenght -= current_size;
-                content_pointer += current_size;
-            }
+            // We reload local index and update size2get
+            // Also we move content pointer to next location
+            current_index = 0;
+            data_lenght -= current_size;
+            content_pointer += current_size;
 
             THR_release_lock(&page->lock, omp_get_thread_num());
         }
@@ -101,36 +78,27 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 }
 
 int DRM_insert_content(
-    directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght
+    directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_lenght
 ) {
 #ifndef NO_UPDATE_COMMAND
-    int page_offset     = offset / PAGE_CONTENT_SIZE;
-    int current_index   = offset % PAGE_CONTENT_SIZE;
+    int page_offset  = offset / PAGE_CONTENT_SIZE;
+    int index_offset = offset % PAGE_CONTENT_SIZE;
 
     unsigned char* data_pointer = data;
-    for (int i = 0; i < ((int)data_lenght / PAGE_CONTENT_SIZE) + 1 && data_lenght > 0; i++) {
-        // If we reach pages count in current directory, we return error code
-        // We return error instead creationg a new directory, because this is not our abstraction level
-        if (page_offset > directory->header->page_count) {
-            // To  many pages. We reach directory end.
-            // Return size, that we can't insert.
-            return data_lenght;
-        }
-
+    for (int i = page_offset; i < directory->header->page_count && data_lenght > 0; i++) {
         // We load current page to memory
-        page_t* page = PGM_load_page(directory->page_names[page_offset++]);
+        page_t* page = PGM_load_page(directory->page_names[i]);
         if (page == NULL) return -1;
 
         // We insert current part of content with local offset
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) { 
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
-            PGM_insert_content(page, current_index, data_pointer, current_size);
+            int result = PGM_insert_content(page, index_offset, data_pointer, (int)data_lenght);
             THR_release_lock(&page->lock, omp_get_thread_num());
 
             // We reload local index and update size2delete
-            current_index = 0;
-            data_lenght -= current_size;
-            data_pointer += current_size;
+            index_offset = 0;
+            data_lenght -= result;
+            data_pointer += result;
         }
 
         PGM_flush_page(page);
@@ -147,34 +115,19 @@ int DRM_delete_content(directory_t* directory, int offset, size_t data_size) {
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int current_index = offset % PAGE_CONTENT_SIZE;
 
-    for (int i = 0; i < ((int)data_size / PAGE_CONTENT_SIZE) + 1 && data_size > 0; i++) {
-        if (page_offset > directory->header->page_count) {
-            // Too  many pages. We reach directory end.
-            return data_size;
-        }
-
+    int deleted_data = 0;
+    for (int i = page_offset; i < directory->header->page_count && data_size > 0; i++) {
         // We load current page
-        page_t* page = PGM_load_page(directory->page_names[page_offset++]);
+        page_t* page = PGM_load_page(directory->page_names[i]);
         if (page == NULL) return -1;
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-            // We check, that we don't return Page Empty, because
-            // PE symbols != Content symbols.
-            while (page->content[current_index] == PAGE_EMPTY) {
-                if (++current_index >= PAGE_CONTENT_SIZE) {
-                    THR_release_lock(&page->lock, omp_get_thread_num());
-                    PGM_flush_page(page);
-                    return -1;
-                }
-            }
-
-            // We work with page
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_size);
-            PGM_delete_content(page, current_index, current_size);
-            directory->append_offset = page_offset - 1;
+            int result = PGM_delete_content(page, current_index, data_size);
+            directory->append_offset = i;
 
             // We reload local index and update size2delete
             current_index = 0;
-            data_size -= current_size;
+            data_size -= result;
+            deleted_data += result;
 
             THR_release_lock(&page->lock, omp_get_thread_num());
         }
@@ -182,6 +135,7 @@ int DRM_delete_content(directory_t* directory, int offset, size_t data_size) {
         PGM_flush_page(page);
     }
 
+    return deleted_data;
 #endif
     return 1;
 }
