@@ -118,7 +118,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.7 (kernel/kernel-refactor)"
+#define KERNEL_VERSION     "v2.7 (main)"
 
 
 typedef struct {
