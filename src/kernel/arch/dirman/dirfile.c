@@ -13,7 +13,7 @@ directory_t* DRM_create_directory(char* name) {
     memset_s(directory, 0, sizeof(directory_t));
     memset_s(header, 0, sizeof(directory_header_t));
 
-    strncpy(header->name, name, DIRECTORY_NAME_SIZE);
+    strncpy_s(header->name, name, DIRECTORY_NAME_SIZE);
     header->magic = DIRECTORY_MAGIC;
 
     directory->lock   = THR_create_lock();
@@ -92,7 +92,7 @@ directory_t* DRM_load_directory(char* name) {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
             if (header) {
-                memset(header, 0, sizeof(directory_header_t));
+                memset_s(header, 0, sizeof(directory_header_t));
                 fread(header, sizeof(directory_header_t), 1, file);
 
                 // Check directory magic
@@ -106,7 +106,7 @@ directory_t* DRM_load_directory(char* name) {
                     directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
                     if (!directory) free(header);
                     else {
-                        memset(directory, 0, sizeof(directory_t));
+                        memset_s(directory, 0, sizeof(directory_t));
                         for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
                             fread(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file);
 

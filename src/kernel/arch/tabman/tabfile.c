@@ -25,7 +25,7 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
 
     header->access = access;
     header->magic  = TABLE_MAGIC;
-    strncpy(header->name, name, TABLE_NAME_SIZE);
+    strncpy_s(header->name, name, TABLE_NAME_SIZE);
     header->column_count = col_count;
 
     table->columns  = columns;
@@ -123,13 +123,13 @@ table_t* TBM_load_table(char* name) {
                         SOFT_FREE(table);
                         SOFT_FREE(columns);
                     } else {
-                        memset(table, 0, sizeof(table_t));
-                        memset(columns, 0, header->column_count * sizeof(table_column_t*));
+                        memset_s(table, 0, sizeof(table_t));
+                        memset_s(columns, 0, header->column_count * sizeof(table_column_t*));
 
                         for (int i = 0; i < header->column_count; i++) {
                             columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
                             if (!columns[i]) continue;
-                            memset(columns[i], 0, sizeof(table_column_t));
+                            memset_s(columns[i], 0, sizeof(table_column_t));
                             fread(columns[i], sizeof(table_column_t), 1, file);
                         }
 

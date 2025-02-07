@@ -392,15 +392,4 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
 #pragma endregion
 
-    /*
-    Get global offset.
-
-    Params:
-    - row_size - Row size in table.
-    - row - Index of row.
-
-    Return global offset.
-    */
-    int _get_global_offset(int row_size, int row);
-
 #endif

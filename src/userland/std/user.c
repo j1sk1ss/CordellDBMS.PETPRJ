@@ -11,7 +11,7 @@ user_t* USR_auth(char* name, char* password) {
 user_t* USR_load(char* path, char* name) {
     char load_path[128] = { 0 };
     if (path == NULL && name != NULL) sprintf(load_path, "%s%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, name, USER_EXTENSION);
-    else if (path != NULL) strcpy(load_path, path);
+    else if (path != NULL) strcpy_s(load_path, path);
     else return NULL;
 
     FILE* file = fopen(load_path, "rb");

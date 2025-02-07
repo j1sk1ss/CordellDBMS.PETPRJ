@@ -70,12 +70,12 @@ int DB_append_row(
             if (previous_data != NULL) {
                 if (*previous_data != '\n') {
                     char number_buffer[128] = { 0 };
-                    strncpy(number_buffer, (char*)(previous_data + column_offset), table->columns[i]->size);
+                    strncpy_s(number_buffer, (char*)(previous_data + column_offset), table->columns[i]->size);
 
                     char buffer[128] = { 0 };
-                    sprintf(buffer, "%0*d", table->columns[i]->size, atoi(number_buffer) + 1);
+                    sprintf(buffer, "%0*d", table->columns[i]->size, atoi_s(number_buffer) + 1);
 
-                    memcpy(current_data, buffer, table->columns[i]->size);
+                    memcpy_s(current_data, buffer, table->columns[i]->size);
                 }
 
                 free(previous_data);
@@ -216,7 +216,7 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     table_t* table = NULL;
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
-        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
+        if (strncmp_s(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
             table = TBM_load_table(table_name);
         }
     }
@@ -263,12 +263,4 @@ int DB_unlink_table_from_database(database_t* __restrict database, char* __restr
     }
 
     return status;
-}
-
-int _get_global_offset(int row_size, int row) {
-    int rows_per_page = PAGE_CONTENT_SIZE / row_size;
-    int pages_offset  = row / rows_per_page;
-    int page_offset   = row % rows_per_page;
-    int global_offset = pages_offset * PAGE_CONTENT_SIZE + page_offset * row_size;
-    return global_offset;
 }

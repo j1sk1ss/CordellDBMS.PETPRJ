@@ -31,7 +31,7 @@ char* hash_string(const char* input, size_t output_size) {
 int main(int argc, char* argv[]) {
     if (argc != 3) return 1;
 
-    char* hash_result = hash_string(argv[1], atoi(argv[2]));
+    char* hash_result = hash_string(argv[1], atoi_s(argv[2]));
     if (!hash_result) return 3;
 
     printf("%s", hash_result);

@@ -43,17 +43,15 @@
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
-#define ARRAY_SOFT_FREE(ptr, size) do {               \
-    for (int i = 0; i < size; i++) SOFT_FREE(ptr[i]); \
-    SOFT_FREE(ptr);                                   \
-  } while(0) 
-#define MIN(a, b) (((a)<(b)) ? (a) : (b))
-#define MAX(a, b) (((a)>(b)) ? (a) : (b))
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
       free((ptr));           \
       (ptr) = NULL;          \
     }                        \
+  } while(0)
+#define ARRAY_SOFT_FREE(ptr, size) do {               \
+    for (int i = 0; i < size; i++) SOFT_FREE(ptr[i]); \
+    SOFT_FREE(ptr);                                   \
   } while(0)
 
 
@@ -83,6 +81,8 @@ Get current time from time.h libraryю
 Return char* of current time in format: "%Y-%m-%d %H:%M:%S".
 */
 char* get_current_time();
+
+/*
 Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
 */
 unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
@@ -106,28 +106,24 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   /*
   Get load path by name or path.
 
-Params:
-- name - Name of file or NULL.
-- name_size - Name size.
-- buffer - Buffer, where will be stored load path.
-- base_path - Base path.
-- extension - File extension.
   Params:
   - name - Name of file or NULL.
   - name_size - Name size.
-  - path - Path for save or NULL.
   - buffer - Buffer, where will be stored load path.
   - base_path - Base path.
   - extension - File extension.
+    Params:
+    - name - Name of file or NULL.
+    - name_size - Name size.
+    - path - Path for save or NULL.
+    - buffer - Buffer, where will be stored load path.
+    - base_path - Base path.
+    - extension - File extension.
 
-Return 1 if load path generated.
-Return -1 if something goes wrong.
-*/
-int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension);
   Return 1 if load path generated.
   Return -1 if something goes wrong.
   */
-  int get_load_path(char* name, int name_size, char* path, char* buffer, char* base_path, char* extension);
+  int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension);
 
   /*
   Get filename by name or path.
@@ -162,24 +158,21 @@ int get_load_path(char* name, int name_size, char* buffer, char* base_path, char
   Params:
   - path - Path to file with filename and extension.
 
-Return 1 if exist, 0 if not.
-*/
-int file_exists(const char* path, const char* filename);
-
-/*
-Delete file by provided filename, basepath and extension.
-
-Params:
-- filename - File name.
-- basepath - Path, where placed file.
-- extension - File extension.
-
-Return remove status code.
-*/
-int delete_file(const char* filename, const char* basepath, const char* extension);
   Return 1 if exist, 0 if not.
   */
   int file_exists(const char* path, const char* filename);
+
+  /*
+  Delete file by provided filename, basepath and extension.
+
+  Params:
+  - filename - File name.
+  - basepath - Path, where placed file.
+  - extension - File extension.
+
+  Return remove status code.
+  */
+  int delete_file(const char* filename, const char* basepath, const char* extension);
 
   // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
   // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
@@ -230,13 +223,13 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
   */
   char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
-/*
-Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
-Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
-Return checksum.
-*/
-unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
-  size_t strlen_s(char* str);
+  /*
+  Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
+  Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+  Return checksum.
+  */
+  unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
+  size_t strlen_s(const char* str);
   char* strncpy_s(char* dst, char* src, int n);
   int strncmp_s(char* str1, const char* str2, size_t n);
   char* strcpy_s(char* dst, char* src);
@@ -251,6 +244,7 @@ unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
   char* strcat_s(char* dest, char* src);
   char* strchr_s(char* str, char chr);
   int strcmp_s(char* firstStr, char* secondStr);
+  int atoi_s(char *str);
   void* memcpy_s(void* destination, void* source, size_t num);
   void* memset_s(void* pointer, unsigned char value, size_t num);
   int memcmp_s(void* firstPointer, void* secondPointer, size_t num);

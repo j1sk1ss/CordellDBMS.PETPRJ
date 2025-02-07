@@ -5,7 +5,7 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
     unsigned char* content = (unsigned char*)malloc(data_lenght);
     if (!content) return NULL;
     unsigned char* content_pointer = content;
-    memset(content_pointer, 0, data_lenght);
+    memset_s(content_pointer, 0, data_lenght);
 
     int page_offset   = offset / PAGE_CONTENT_SIZE;
     int current_index = offset % PAGE_CONTENT_SIZE;
@@ -17,7 +17,7 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
-            memcpy(content_pointer, (unsigned char*)page->content + current_index, current_size);
+            memcpy_s(content_pointer, (unsigned char*)page->content + current_index, current_size);
 
             // We reload local index and update size2get
             // Also we move content pointer to next location

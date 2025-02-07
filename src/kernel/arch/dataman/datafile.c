@@ -14,7 +14,7 @@ database_t* DB_create_database(char* name) {
     memset_s(header, 0, sizeof(database_header_t));
 
     header->magic = DATABASE_MAGIC;
-    if (name != NULL) strncpy(header->name, name, DATABASE_NAME_SIZE);
+    if (name != NULL) strncpy_s(header->name, name, DATABASE_NAME_SIZE);
 
     database->header = header;
     return database;

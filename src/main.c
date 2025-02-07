@@ -210,7 +210,7 @@ int main() {
         return -1;
     }
 
-    int server_port = atoi(CDBMS_SERVER_PORT);
+    int server_port = atoi_s(CDBMS_SERVER_PORT);
     struct sockaddr_in client_address;
     struct sockaddr_in server_address = {
         .sin_port = htons(server_port),

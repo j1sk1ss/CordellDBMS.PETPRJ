@@ -19,7 +19,7 @@ int PGM_delete_content(page_t* page, int offset, size_t length) {
 int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size) {
     if (offset >= PAGE_CONTENT_SIZE) return -2;
     for (int i = offset; i <= PAGE_CONTENT_SIZE - (int)data_size; i++) {
-        if (memcmp(page->content + i, data, data_size) == 0) return i;
+        if (memcmp_s(page->content + i, data, data_size) == 0) return i;
     }
 
     return -1;

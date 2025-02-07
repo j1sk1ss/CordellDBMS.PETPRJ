@@ -10,7 +10,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     unsigned char* output_content = (unsigned char*)malloc(size);
     if (!output_content) return NULL;
     unsigned char* output_content_pointer = output_content;
-    memset(output_content_pointer, 0, size);
+    memset_s(output_content_pointer, 0, size);
 
     // Iterate from all directories in table
     int current_index = 0;
@@ -282,13 +282,13 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __r
                 return -2;
             }
 
-            memset(new_row, '0', dst->row_size);
+            memset_s(new_row, '0', dst->row_size);
             for (size_t i = 0; i < querry_size; i += 2) {
                 table_columns_info_t fquerry;
                 table_columns_info_t squerry;
                 TBM_get_column_info(dst, dst_columns[querry[i + 1]]->name, &fquerry);
                 TBM_get_column_info(src, src_columns[querry[i]]->name, &squerry);
-                memcpy(new_row + fquerry.offset, data + squerry.offset, src_columns[querry[i]]->size);
+                memcpy_s(new_row + fquerry.offset, data + squerry.offset, src_columns[querry[i]]->size);
             }
 
             TBM_append_content(dst, new_row, dst->row_size);

@@ -6,7 +6,7 @@ table_column_t* TBM_create_column(unsigned char type, unsigned short size, char*
     if (size > COLUMN_MAX_SIZE) return NULL;
     table_column_t* column = (table_column_t*)malloc(sizeof(table_column_t));
     if (!column) return NULL;
-    memset(column, 0, sizeof(table_column_t));
+    memset_s(column, 0, sizeof(table_column_t));
 
     column->magic = COLUMN_MAGIC;
     strncpy_s(column->name, name, COLUMN_NAME_SIZE);
@@ -24,7 +24,7 @@ int TBM_get_column_info(table_t* table, char* column_name, table_columns_info_t*
 
     int offset = 0;
     for (int i = 0; i < table->header->column_count; i++) {
-        if (strcmp(table->columns[i]->name, column_name)) offset += table->columns[i]->size;
+        if (strcmp_s(table->columns[i]->name, column_name)) offset += table->columns[i]->size;
         else {
             info->offset = offset;
             info->size = table->columns[i]->size;

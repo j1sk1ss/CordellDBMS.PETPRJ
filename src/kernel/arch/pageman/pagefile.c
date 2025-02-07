@@ -94,7 +94,7 @@ page_t* PGM_load_page(char* name) {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
             if (header) {
-                memset(header, 0, sizeof(page_header_t));
+                memset_s(header, 0, sizeof(page_header_t));
                 fread(header, sizeof(page_header_t), 1, file);
 
                 // Check page magic
@@ -107,7 +107,7 @@ page_t* PGM_load_page(char* name) {
                     page_t* page = (page_t*)malloc(sizeof(page_t));
                     if (!page) free(header);
                     else {
-                        memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
+                        memset_s(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
                         fread(page->content, sizeof(unsigned char), PAGE_CONTENT_SIZE, file);
 
                         fclose(file);

@@ -97,7 +97,7 @@ char* strstr_s(char* haystack, char* needle) {
 	return (0);
 }
 
-size_t strlen_s(char* str) {
+size_t strlen_s(const char* str) {
     size_t len = 0;
     while (*str) {
         ++len;
@@ -276,4 +276,27 @@ int strcmp_s(char* firstStr, char* secondStr) {
     }
 
     return (unsigned char)(*firstStr) - (unsigned char)(*secondStr);
+}
+
+int atoi_s(char *str) {
+	int neg = 1;
+	int num = 0;
+	int i   = 0;
+
+	while (str[i] <= ' ')
+		i++;
+
+	if (str[i] == '-' || str[i] == '+') {
+		if (str[i] == '-') 
+			neg *= -1;
+
+		i++;
+	}
+
+	while (str[i] >= '0' && str[i] <= '9') {
+		num = num * 10 + (str[i] - 48);
+		i++;
+	}
+    
+	return (num * neg);
 }

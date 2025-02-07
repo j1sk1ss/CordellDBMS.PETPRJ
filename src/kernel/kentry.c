@@ -14,25 +14,25 @@ static table_t* _get_table(database_t* database, char* table_name) {
 
 static int _compare_data(char* expression, char* fdata, size_t fdata_size, char* sdata, size_t sdata_size) {
     char* temp_fdata = (char*)malloc(fdata_size + 1);
-    memcpy(temp_fdata, fdata, fdata_size);
+    memcpy_s(temp_fdata, fdata, fdata_size);
     temp_fdata[fdata_size] = '\0';
-    char* mv_fdata = temp_fdata + strspn(temp_fdata, " ");
+    char* mv_fdata = temp_fdata + strspn_s(temp_fdata, " ");
 
     char* temp_sdata = (char*)malloc(sdata_size + 1);
-    memcpy(temp_sdata, sdata, sdata_size);
+    memcpy_s(temp_sdata, sdata, sdata_size);
     temp_sdata[sdata_size] = '\0';
-    char* mv_sdata = temp_sdata + strspn(temp_sdata, " ");
+    char* mv_sdata = temp_sdata + strspn_s(temp_sdata, " ");
 
     int comparison = 0;
-    if (strcmp(expression, STR_EQUALS) == 0) comparison = strcmp(mv_fdata, mv_sdata) == 0;
-    else if (strcmp(expression, STR_NEQUALS) == 0) comparison = strcmp(mv_fdata, mv_sdata) != 0;
+    if (strcmp_s(expression, STR_EQUALS) == 0) comparison = strcmp_s(mv_fdata, mv_sdata) == 0;
+    else if (strcmp_s(expression, STR_NEQUALS) == 0) comparison = strcmp_s(mv_fdata, mv_sdata) != 0;
     else {
-        int first = atoi(mv_fdata);
-        int second = atoi(mv_sdata);
-        if (strcmp(expression, NEQUALS) == 0) comparison = first != second;
-        else if (strcmp(expression, EQUALS) == 0) comparison = first == second;
-        else if (strcmp(expression, LESS_THAN) == 0) comparison = first < second;
-        else if (strcmp(expression, MORE_THAN) == 0) comparison = first > second;
+        int first = atoi_s(mv_fdata);
+        int second = atoi_s(mv_sdata);
+        if (strcmp_s(expression, NEQUALS) == 0) comparison = first != second;
+        else if (strcmp_s(expression, EQUALS) == 0) comparison = first == second;
+        else if (strcmp_s(expression, LESS_THAN) == 0) comparison = first < second;
+        else if (strcmp_s(expression, MORE_THAN) == 0) comparison = first > second;
     }
 
     free(temp_fdata);
@@ -59,15 +59,15 @@ static int _evaluate_expression(
         char* operator = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
         if (!operator) break;
 
-        if (strcmp(operator, COLUMN) == 0) {
+        if (strcmp_s(operator, COLUMN) == 0) {
             conditions[condition_count].column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             conditions[condition_count].expression = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             conditions[condition_count].value = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             condition_count++;
-        } else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
+        } else if (strcmp_s(operator, OR) == 0 || strcmp_s(operator, AND) == 0) {
             operators[operator_count++] = operator;
-        } else if (strcmp(operator, LIMIT) == 0) {
-            *out_limit = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, current_command));
+        } else if (strcmp_s(operator, LIMIT) == 0) {
+            *out_limit = atoi_s(SAFE_GET_VALUE_PRE_INC(commands, argc, current_command));
         }
         else break;
     }
@@ -78,14 +78,14 @@ static int _evaluate_expression(
         table_columns_info_t col_info;
         TBM_get_column_info(table, conditions[i].column_name, &col_info);
         results[i] = _compare_data(
-            conditions[i].expression, (char*)(row_data + col_info.offset), col_info.size, conditions[i].value, strlen(conditions[i].value)
+            conditions[i].expression, (char*)(row_data + col_info.offset), col_info.size, conditions[i].value, strlen_s(conditions[i].value)
         );
     }
 
     int match = results[0];
     for (int i = 0; i < operator_count; i++) {
-        if (strcmp(operators[i], AND) == 0) match &= results[i + 1];
-        else if (strcmp(operators[i], OR) == 0) match |= results[i + 1];
+        if (strcmp_s(operators[i], AND) == 0) match &= results[i + 1];
+        else if (strcmp_s(operators[i], OR) == 0) match |= results[i + 1];
     }
 
     return match;
@@ -97,7 +97,7 @@ static int _evaluate_expression(
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
     if (!answer) return NULL;
-    memset(answer, 0, sizeof(kernel_answer_t));
+    memset_s(answer, 0, sizeof(kernel_answer_t));
 
     int current_start = 1;
     char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
@@ -109,7 +109,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             break;
         }
         else {
-            if (strncmp(_connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) break;
+            if (strncmp_s(_connections[connection]->header->name, db_name, DATABASE_NAME_SIZE) == 0) break;
             else {
                 DB_free_database(_connections[connection]);
                 _connections[connection] = NULL;
@@ -146,7 +146,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Handle rollback command.
         Command syntax: rollback
         */
-        else if (strcmp(command, ROLLBACK) == 0) {
+        else if (strcmp_s(command, ROLLBACK) == 0) {
             answer->answer_code = DB_rollback(&_connections[connection]);
         }
         /*
@@ -154,11 +154,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Command syntax: version
         */
 #ifndef NO_VERSION_COMMAND
-        else if (strcmp(command, VERSION) == 0) {
-            answer->answer_body = (unsigned char*)malloc(strlen(KERNEL_VERSION));
+        else if (strcmp_s(command, VERSION) == 0) {
+            answer->answer_body = (unsigned char*)malloc(strlen_s(KERNEL_VERSION));
             if (!answer->answer_body) return answer;
-            memcpy(answer->answer_body, KERNEL_VERSION, strlen(KERNEL_VERSION));
-            answer->answer_size = strlen(KERNEL_VERSION);
+            memcpy_s(answer->answer_body, KERNEL_VERSION, strlen_s(KERNEL_VERSION));
+            answer->answer_size = strlen_s(KERNEL_VERSION);
         }
 #endif
         /*
@@ -166,15 +166,15 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Command syntax: migrate <src_table_name> <dst_table_name> nav ( ... )
         */
 #ifndef NO_MIGRATE_COMMAND
-        else if (strcmp(command, MIGRATE) == 0) {
+        else if (strcmp_s(command, MIGRATE) == 0) {
             char* src_table_name = SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index);
             char* dst_table_name = SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index);
-            if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), NAV) == 0) {
+            if (strcmp_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), NAV) == 0) {
                 if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
                     int nav_stack_index = 0;
                     int nav_stack[128] = { 0 };
                     while (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) != CLOSE_BRACKET) {
-                        nav_stack[nav_stack_index++] = atoi(SAFE_GET_VALUE_S(commands, argc, command_index));
+                        nav_stack[nav_stack_index++] = atoi_s(SAFE_GET_VALUE_S(commands, argc, command_index));
                     }
 
                     table_t* src_table = _get_table(database, src_table_name);
@@ -193,7 +193,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Command syntax: create <option>
         */
 #ifndef NO_CREATE_COMMAND
-        else if (strcmp(command, CREATE) == 0) {
+        else if (strcmp_s(command, CREATE) == 0) {
             /*
             Handle database creation.
             Command syntax: create database <name>
@@ -233,14 +233,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 if (!table_access) return answer;
                 
                 unsigned char access_byte = access;
-                if (strcmp(table_access, ACCESS_SAME) != 0) {
+                if (strcmp_s(table_access, ACCESS_SAME) != 0) {
                     access_byte = CREATE_ACCESS_BYTE((table_access[0] - '0'), (table_access[1] - '0'), (table_access[2] - '0'));
                     access_byte = (access_byte < access) ? access : access_byte;
                 }
 
                 int column_count = 0;
                 table_column_t** columns = NULL;
-                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
+                if (strcmp_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), COLUMNS) == 0) {
                     if (*(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)) == OPEN_BRACKET) {
                         int current_stack_pointer = 0;
                         char* column_stack[512] = { NULL };
@@ -251,7 +251,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         column_count = current_stack_pointer / 5;
                         columns = (table_column_t**)malloc(column_count * sizeof(table_column_t*));
                         if (!columns) return answer;
-                        memset(columns, 0, column_count * sizeof(table_column_t*));
+                        memset_s(columns, 0, column_count * sizeof(table_column_t*));
 
                         for (int j = 0, k = 0; j < 512; j += 5, k++) {
                             if (column_stack[j] == NULL) break;
@@ -259,33 +259,33 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                             // Get column data type
                             char* column_data_type = column_stack[j + 2];
                             unsigned char data_type = COLUMN_TYPE_MODULE;
-                            if (strcmp(column_data_type, TYPE_INT) == 0) data_type = COLUMN_TYPE_INT;
-                            else if (strcmp(column_data_type, TYPE_ANY) == 0) data_type = COLUMN_TYPE_ANY;
-                            else if (strcmp(column_data_type, TYPE_STRING) == 0) data_type = COLUMN_TYPE_STRING;
+                            if (strcmp_s(column_data_type, TYPE_INT) == 0) data_type = COLUMN_TYPE_INT;
+                            else if (strcmp_s(column_data_type, TYPE_ANY) == 0) data_type = COLUMN_TYPE_ANY;
+                            else if (strcmp_s(column_data_type, TYPE_STRING) == 0) data_type = COLUMN_TYPE_STRING;
 
                             // Get column primary status
                             unsigned char primary_status = COLUMN_NOT_PRIMARY;
-                            if (strcmp(column_stack[j + 3], PRIMARY) == 0) primary_status = COLUMN_PRIMARY;
+                            if (strcmp_s(column_stack[j + 3], PRIMARY) == 0) primary_status = COLUMN_PRIMARY;
 
                             // Get column increment status
                             unsigned char increment_status = COLUMN_NO_AUTO_INC;
-                            if (strcmp(column_stack[j + 4], AUTO_INC) == 0) increment_status = COLUMN_AUTO_INCREMENT;
+                            if (strcmp_s(column_stack[j + 4], AUTO_INC) == 0) increment_status = COLUMN_AUTO_INCREMENT;
 
                             columns[k] = TBM_create_column(
-                                CREATE_COLUMN_TYPE_BYTE(primary_status, data_type, increment_status), atoi(column_stack[j + 1]), column_stack[j]
+                                CREATE_COLUMN_TYPE_BYTE(primary_status, data_type, increment_status), atoi_s(column_stack[j + 1]), column_stack[j]
                             );
 
                             if (data_type == COLUMN_TYPE_MODULE) {
-                                char* equals_pos = strchr(column_data_type, '=');
-                                char* comma_pos  = strchr(column_data_type, ',');
+                                char* equals_pos = strchr_s(column_data_type, '=');
+                                char* comma_pos  = strchr_s(column_data_type, ',');
 
                                 columns[k]->module_params = COLUMN_MODULE_POSTLOAD;
-                                if (strncmp(comma_pos + 1, MODULE_PRELOAD, strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
-                                else if (strncmp(comma_pos + 1, MODULE_BOTH_LOAD, strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
+                                if (strncmp_s(comma_pos + 1, MODULE_PRELOAD, strlen_s(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
+                                else if (strncmp_s(comma_pos + 1, MODULE_BOTH_LOAD, strlen_s(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
 
                                 if (equals_pos) {
-                                    strncpy(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
-                                    strncpy(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
+                                    strncpy_s(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
+                                    strncpy_s(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
 
                                     print_log(
                                         "Module [%s] registered with [%s] querry", columns[k]->module_name, columns[column_count]->module_querry
@@ -326,9 +326,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         else if (strcmp_s(command, APPEND) == 0) {
             if (strcmp_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
+                if (strcmp_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                     char* input_data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    int result = DB_append_row(database, table_name, (unsigned char*)input_data, strlen(input_data), access);
+                    int result = DB_append_row(database, table_name, (unsigned char*)input_data, strlen_s(input_data), access);
                     if (result >= 0) print_log("Row [%s] successfully added to [%s] database!", input_data, database->header->name);
                     else {
                         print_error("Error code: %i, Params: [%s] [%s] [%s] [%i]", result, database->header->name, table_name, input_data, access);
@@ -359,7 +359,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 */
                 command_index++;
                 if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
+                    index = atoi_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                     answer_data = DB_get_row(database, table_name, index, access);
                     if (answer_data == NULL) {
                         print_error("Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", DATABASE_NAME_SIZE, database->header->name, table_name, index, access);
@@ -376,7 +376,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 Command syntax: get row table <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value> <or/and> ... limit <limit>
                 */
 #ifndef NO_GET_EXPRESSION_COMMAND
-                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
+                else if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     table_t* table = _get_table(database, table_name);
                     if (!table) return answer;
 
@@ -396,7 +396,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
                                 answer_data = (unsigned char*)realloc(answer_data, answer_size);
-                                memcpy(answer_data + data_start, row_data, table->row_size);
+                                memcpy_s(answer_data + data_start, row_data, table->row_size);
                                 if (limit != -1 && get_data++ >= limit) break;
                             }
                         }
@@ -419,7 +419,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Command syntax: update <option>
         */
 #ifndef NO_UPDATE_COMMAND
-        else if (strcmp(command, UPDATE) == 0) {
+        else if (strcmp_s(command, UPDATE) == 0) {
             /*
             Command syntax: update row <table_name> <new_data> <option>
             */
@@ -433,13 +433,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 */
                 command_index++;
                 if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
-                    answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
+                    index = atoi_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
+                    answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen_s(data), access);
                 }
                 /*
                 Command syntax: update row <table_name> <new_data> by_exp column <column_name> <</>/!=/=/eq/neq> <value> values <data>
                 */
-                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
+                else if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     table_t* table = _get_table(database, table_name);
                     if (!table) return answer;
                     
@@ -456,7 +456,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         if (tag != PAGE_EMPTY && tag != '\0') {
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
+                                answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen_s(data), access);
                                 if (limit != -1 && updated_rows++ >= limit) break;
                             }
                         }
@@ -474,14 +474,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         Command syntax: delete <option>
         */
 #ifndef NO_DELETE_COMMAND
-        else if (strcmp(command, DELETE) == 0) {
+        else if (strcmp_s(command, DELETE) == 0) {
             answer->answer_code = 1;
 
             /*
             Command syntax: delete database
             */
             command_index++;
-            if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
+            if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), DATABASE) == 0) {
                 if (DB_delete_database(database, 1)) {
                     print_log("Current database was delete successfully.");
                     _connections[connection] = NULL;
@@ -494,7 +494,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             /*
             Command syntax: delete table <name>
             */
-            else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
+            else if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), TABLE) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (DB_delete_table(database, table_name, 1)) print_log("Table [%s] was delete successfully.", table_name);
                 else {
@@ -505,7 +505,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             /*
             Command syntax: delete row <table_name> <operation_type> <options>
             */
-            else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), ROW) == 0) {
+            else if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), ROW) == 0) {
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
 
                 /*
@@ -513,14 +513,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 Command syntax: delete row <table_name> by_index <index>
                 */
                 command_index++;
-                if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    answer->answer_code = DB_delete_row(database, table_name, atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)), access);
+                if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
+                    answer->answer_code = DB_delete_row(database, table_name, atoi_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index)), access);
                 }
                 /*
                 Note: will delete all rows, where will find value in provided column.
                 Command syntax: delete row <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value>
                 */
-                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
+                else if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     table_t* table = _get_table(database, table_name);
                     if (!table) return answer;
                     
