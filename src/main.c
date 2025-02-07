@@ -122,6 +122,7 @@ void _start_kernel_session(int source, int destination, int session) {
         print_info("Session [%i]: [%s]", session, buffer);
 
         if (user == NULL) {
+#ifndef NO_USER
             char username[USERNAME_SIZE] = { 0 };
             char password[128] = { 0 };
             sscanf((char*)buffer, "%[^:]:%s", username, password);
@@ -137,6 +138,10 @@ void _start_kernel_session(int source, int destination, int session) {
             }
 
             continue;
+#else
+        user = (user_t*)malloc(sizeof(user_t));
+        user->access = CREATE_ACCESS_BYTE(0, 0, 0);
+#endif
         }
 
         char* argv[COMMANDS_BUFFER] = { NULL };

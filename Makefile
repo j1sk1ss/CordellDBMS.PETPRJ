@@ -3,13 +3,18 @@
 # 0 - Full debug with debug flags and debug logs.
 PROD ?= 0
 # Enable Pthreads (Without it will support only one session at server)
+# 1 - Pthreads enabled.
 PTHREADS ?= 0
 # Enable OpenMP flag
+# 1 - OpenMP enabled.
 OMP ?= 0
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
 MAX_OPT ?= 0
 # Include std libs with -static
 INCLUDE_LIBS ?= 0
+# User check at start. Will give max access to any session.
+# 1 - User (username and pass required) enabled.
+USERS ?= 1
 
 # Kernel commands setup.
 # Disable all commands with update functionality
@@ -59,7 +64,11 @@ ifeq ($(DISABLE_CREATE), 1)
 endif
 
 ifeq ($(DISABLE_MIGRATION), 1)
-	CFLAGS += -NO_MIGRATE_COMMAND
+	CFLAGS += -DNO_MIGRATE_COMMAND
+endif
+
+ifeq ($(USERS), 0)
+	CFLAGS += -DNO_USER
 endif
 
 ifeq ($(PTHREADS), 0)
@@ -67,7 +76,7 @@ ifeq ($(PTHREADS), 0)
 endif
 
 ifeq ($(MAX_OPT), 1)
-	CFLAGS += -DNO_TRACE -DNO_ENV
+	CFLAGS += -DNO_TRACE -DNO_ENV -DNO_VERSION_COMMAND
 endif
 
 ifeq ($(OMP), 1)
