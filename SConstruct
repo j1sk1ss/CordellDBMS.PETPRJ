@@ -1,6 +1,6 @@
 import os
 import SCons
-from SCons.Script import Environment, CleanTask, ARGUMENTS
+from SCons.Script import Environment, ARGUMENTS
 
 
 PROD = int(ARGUMENTS.get('PROD', 0))
@@ -21,7 +21,7 @@ if PROD:
     CC = "musl-gcc"
     CFLAGS = ["-Wall", "-Wextra", "-flto", "-fno-stack-protector", "-D_FORTUFY_SOURCE=0", "-Ikernel/include", "-Wcomment", "-Os", "-s", "-DWARNINGS", "-DERRORS", "-DINFORMING"]
 else:
-    CC = "gcc"
+    CC = "gcc-14"
     CFLAGS = ["-Wall", "-Wextra", "-Ikernel/include", "-Wcomment", "-DDEBUG", "-DLOGGING", "-DWARNINGS", "-DERRORS", "-DINFORMING", "-DSPECIAL"]
 
 
@@ -65,4 +65,4 @@ output = "builds/cdbms_x86-64"
 env = Environment(CC=CC, CFLAGS=CFLAGS)
 env.Program(target=output, source=sources)
 
-CleanTask(".", output)
+Clean(".", output)
