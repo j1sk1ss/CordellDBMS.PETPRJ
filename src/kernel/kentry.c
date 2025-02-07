@@ -207,7 +207,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 if (!new_database) return answer;
                 int result = DB_save_database(new_database);
 
-                print_log("Database [%s.%s] create succes!", new_database->header->name, DATABASE_EXTENSION);
+                print_log("Database [%s.%s] create success!", new_database->header->name, DATABASE_EXTENSION);
                 DB_free_database(new_database);
 
                 answer->answer_code = result;

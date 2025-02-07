@@ -1,17 +1,3 @@
-# CDMS Test case
-# 1) Append test (with speed test) of N rows V
-# 2) Index get test V
-# 3) Expression get test
-#   3.1) By value (equals) V
-#   3.2) By value (nequals) V
-#   3.3) By integer (equals) V
-#   3.4) By integer (nequals) V
-#   3.5) By integer (bigger) V
-#   3.6) By integer (smaller) V
-# 4) Delete test
-#   4.1) Row delete by index
-#   4.2) Try to get row
-
 import time
 import random
 
@@ -207,6 +193,7 @@ assert len(rows) == ROWS, f"Rows wasn't append: {len(rows)}/{ROWS}"
 print('New rows:')
 for i in rows:
     print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
+    assert i.name == "Kitty", "Wrong name for new data"
 
 database.sync()
 
