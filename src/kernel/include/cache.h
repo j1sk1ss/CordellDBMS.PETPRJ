@@ -24,33 +24,32 @@
 #include <stdlib.h>
 
 #include "common.h"
-#include "logging.h"
 #include "threading.h"
 
 
-#define ENTRY_COUNT     10
+#define ENTRY_COUNT     8
 #define ENTRY_NAME_SIZE 8
 
 #define CACHE_TYPES_COUNT   3
-#define ANY_CACHE       0xFF
-#define TABLE_CACHE     2
-#define DIRECTORY_CACHE 1
-#define PAGE_CACHE      0
+#define ANY_CACHE           0xFF
+#define TABLE_CACHE         2
+#define DIRECTORY_CACHE     1
+#define PAGE_CACHE          0
 
 
-typedef struct cache_body {
+typedef struct {
     unsigned short lock;
     unsigned char is_cached;
     void* body;
 } cache_body_t;
 
-typedef struct cache_entry {
+typedef struct {
     char name[ENTRY_NAME_SIZE];
     unsigned char type;
     void* pointer;
 
     void (*free)(void* p);
-    void (*save)(void* p, char* path);
+    void (*save)(void* p);
 } cache_t;
 
 
@@ -71,6 +70,7 @@ Params:
 - free - Pointer to object free function | free(void* entry).
 - save - Pointer to object save file function | save(void* entry, char* path).
 
+Return -4 if can't find empty space for entry with provided type.
 Return -3 if entry type reach limit in GCT.
 Return -2 if entry is NULL.
 Return -1 if by some reason, function can't lock entry.
@@ -93,7 +93,7 @@ void* CHC_find_entry(char* name, unsigned char type);
 /*
 Save and load entries from GCT.
 
-Return -1 if something goes wrong.
+Return -1 if something goes wrong. (Can't lock some entry)
 Return 1 if sync success.
 */
 int CHC_sync();
@@ -120,18 +120,5 @@ Return -1 if something goes wrong.
 Return 1 if cleanup success.
 */
 int CHC_flush_entry(void* entry, unsigned char type);
-
-/*
-Hard cleanup of GCT. Really not recomment for use!
-Note: It will just unload data from GCT to disk by provided index.
-Note 2: Empty space will be marked by NULL.
-
-Params:
-- index - index of entry for flushing.
-
-Return -1 if something goes wrong.
-Return 1 if cleanup success.
-*/
-int CHC_flush_index(int index);
 
 #endif

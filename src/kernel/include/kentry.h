@@ -52,12 +52,11 @@
 
 #pragma region [Commands]
 
-    #define HELP            "help"
     #define ROLLBACK        "rollback"
     #define SYNC            "sync"
 
     #define CREATE          "create"
-    #define LINK            "link"
+    #define MIGRATE         "migrate"
     #define DELETE          "delete"
     #define APPEND          "append"
     #define UPDATE          "update"
@@ -67,20 +66,20 @@
     #define DATABASE        "database"
     #define VERSION         "version"
 
+    #define NAV             "nav"
     #define COLUMNS         "columns"
     #define COLUMN          "column"
     #define VALUES          "values"
     #define VALUE           "value"
+    #define EXPRESSION      "exp"
     #define ROW             "row"
-
-    #define MASTER          "master"
-    #define TO_SLAVE        "to_slave"
+    #define LIMIT           "limit"
 
     #define BY_INDEX        "by_index"
-    #define BY_VALUE        "by_value"
+    #define BY_EXPRESSION   "by_exp"
 
-    #define OPEN_BRACKET    "("
-    #define CLOSE_BRACKET   ")"
+    #define OPEN_BRACKET    '('
+    #define CLOSE_BRACKET   ')'
 
     #pragma region [Types]
 
@@ -91,14 +90,23 @@
         #define TYPE_STRING "str"
         #define TYPE_ANY    "any"
 
-        #define CASCADE_DEL "cdel" // <DEPRECATED>
-        #define CASCADE_GET "cget" // <DEPRECATED>
-        #define CASCADE_APP "capp" // <DEPRECATED>
-        #define CASCADE_FND "cfnd" // <DEPRECATED>
-
         #define MODULE_PRELOAD   "mpre"
         #define MODULE_POSTLOAD  "mpost"
         #define MODULE_BOTH_LOAD "both"
+
+    #pragma endregion
+
+    #pragma region [Expressions]
+
+        #define OR  "or"
+        #define AND "and"
+
+        #define MORE_THAN   ">"
+        #define LESS_THAN   "<"
+        #define NEQUALS     "!="
+        #define EQUALS      "="
+        #define STR_NEQUALS "neq"
+        #define STR_EQUALS  "eq"
 
     #pragma endregion
 
@@ -109,11 +117,10 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.4"
+#define KERNEL_VERSION     "v2.7 (main)"
 
 
-typedef struct kernel_answer {
-    unsigned short commands_processed;
+typedef struct {
     signed char answer_code;
     unsigned short answer_size;
     unsigned char* answer_body;
@@ -130,7 +137,7 @@ Params:
 
 Return NULL or answer.
 */
-kernel_answer_t* kernel_process_command(int argc, char* argv[], int auto_sync, unsigned char access, int connection);
+kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection);
 
 /*
 Close connection by index.
@@ -151,13 +158,6 @@ Params:
 Return -1 or 1.
 */
 int kernel_free_answer(kernel_answer_t* answer);
-
-/*
-Flush GCT
-
-Return 1 if flush success.
-*/
-int flush_tables();
 
 /*
 Cleanup kernel will free all entries from GCT.

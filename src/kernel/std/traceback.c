@@ -2,6 +2,7 @@
 
 
 void traceback_handler(int sig) {
+    #ifndef NO_TRACE
     #ifndef _WIN32
         void* array[10] = { NULL };
         size_t size = 0;
@@ -11,6 +12,7 @@ void traceback_handler(int sig) {
         fprintf(stderr, "Error: signal %d:\n", sig);
         backtrace_symbols_fd(array, size, STDERR_FILENO);
         exit(1);
+    #endif
     #endif
 }
 

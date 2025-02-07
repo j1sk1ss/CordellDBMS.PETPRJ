@@ -17,15 +17,6 @@
  *  Cordell DBMS is a light weight data base manager studio. Main idea
  *  that we can work with big data by using very light weighten app.
  * 
- *  <DEPRECATED | USE MAKEFILE INSTEAD MANUAL COMMAND BUILD>
- *  Unix:
- *  building without OMP: ...
- *  building with OMP: ...
- * 
- *  Win10/Win11:
- *  building without OMP: ...
- *  building with OMP: ...
- * 
  *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
 
@@ -33,6 +24,7 @@
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
 #include "kernel/include/cache.h"
+#include "kernel/include/threading.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +38,6 @@
     #include <sys/socket.h>
     #include <netinet/in.h>
     #include <arpa/inet.h>
-    #include <pthread.h>
 #endif
 
 
@@ -76,11 +67,12 @@ void _cleanup() {
 
     int _send2destination(int destination, void* data, size_t data_size) {
         #ifdef _WIN32
-            send(destination, (const char*)data, data_size, 0);
+            int sent_size = send(destination, (const char*)data, data_size, 0);
         #else
-            write(destination, data, data_size);
+            int sent_size = (int)write(destination, data, data_size);
         #endif
 
+        if (sent_size != (int)data_size) print_warn("Data send size != data write");
         return 1;
     }
 
@@ -102,13 +94,7 @@ void* _handle_client(void* client_socket_fd) {
     print_info("Session [%i] closed", session);
     free(client_socket_fd);
 
-    #ifndef _WIN32
-    pthread_exit(NULL);
-    close(socket_fd);
-    #else
-    closesocket(client_socket_fd);
-    #endif
-
+    THR_kill_thread();
     return NULL;
 }
 
@@ -121,9 +107,9 @@ void* _handle_client(void* client_socket_fd) {
  * - destination - destination FD for kernel answer.
 */
 void _start_kernel_session(int source, int destination, int session) {
+    unsigned char buffer[MESSAGE_BUFFER] = { 0 };
     user_t* user = NULL;
     int count = 0;
-    unsigned char buffer[MESSAGE_BUFFER];
 
     #ifdef _WIN32
     while ((count = recv(source, (char*)buffer, MESSAGE_BUFFER, 0)) > 0)
@@ -141,7 +127,7 @@ void _start_kernel_session(int source, int destination, int session) {
 
             user = USR_auth(username, password);
             if (user == NULL) {
-                print_error("Wrong password [%s] for user [%s] at session [%i]", user->name, password, session);
+                print_error("Wrong password [%s] for user [%s] at session [%i]", password, username, session);
                 _send2destination_byte(destination, 0);
             }
             else {
@@ -179,10 +165,10 @@ void _start_kernel_session(int source, int destination, int session) {
         }
 
         if (current_arg) argv[argc++] = current_arg;
-        kernel_answer_t* result = kernel_process_command(argc, argv, 0, user->access, session);
+        kernel_answer_t* result = kernel_process_command(argc, argv, user->access, session);
         if (result->answer_body != NULL) {
             _send2destination(destination, result->answer_body, result->answer_size);
-            print_log("Answer body: [%.*s]", result->answer_size, result->answer_body);
+            print_log("Answer body: [%.*s], Size: %i", result->answer_size, result->answer_body, result->answer_size);
         }
         else {
             _send2destination_byte(destination, result->answer_code);
@@ -199,7 +185,7 @@ void _start_kernel_session(int source, int destination, int session) {
 /*
  * Server setup function
 */
-int main(int argc, char* argv[]) {
+int main() {
     /*
     Enable traceback for current session.
     */
@@ -232,13 +218,15 @@ int main(int argc, char* argv[]) {
         .sin_addr.s_addr = htonl(INADDR_ANY)
     };
 
-    if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) < 0) {
-        print_error("bind() call failed");
+    int bind_result = bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address));
+    if (bind_result < 0) {
+        print_error("bind() call failed. Code: %i", bind_result);
         return -2;
     }
 
-    if (listen(server_socket, 5) < 0) {
-        print_error("listen() call failed");
+    int listen_result = listen(server_socket, 5);
+    if (listen_result < 0) {
+        print_error("listen() call failed. Code: %i", listen_result);
         return -3;
     }
 
@@ -251,11 +239,13 @@ int main(int argc, char* argv[]) {
         client_address_len = sizeof(client_address);
         client_socket_fd   = accept(server_socket, (struct sockaddr*)&client_address, (socklen_t*)&client_address_len);
         if (client_socket_fd < 0) {
-            print_error("accept() call failed");
+            print_error("accept() call failed. Code: %i", client_socket_fd);
             continue;
         }
 
         int* client_socket_fd_ptr = (int*)malloc(sizeof(int) * 3);
+        if (!client_socket_fd_ptr) return -1;
+        
         client_socket_fd_ptr[0] = client_socket_fd;
 
         int session = 0;

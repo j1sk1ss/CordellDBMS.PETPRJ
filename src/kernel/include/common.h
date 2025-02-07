@@ -22,6 +22,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdio.h>
+
 #ifdef _WIN32
   #include <windows.h>
 #else
@@ -30,6 +31,9 @@
 
 #include "cache.h"
 
+#ifdef NO_ENV
+  #define getenv(key) NULL
+#endif
 
 #define ENV_GET(key, default) getenv(key) == NULL ? default : getenv(key)
 
@@ -37,6 +41,12 @@
 #define DEFAULT_PATH_SIZE   128
 #define DEFAULT_DELAY       999999999
 
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#define ARRAY_SOFT_FREE(ptr, size) do {               \
+    for (int i = 0; i < size; i++) SOFT_FREE(ptr[i]); \
+    SOFT_FREE(ptr);                                   \
+  } while(0) 
 #define MIN(a, b) (((a)<(b)) ? (a) : (b))
 #define MAX(a, b) (((a)>(b)) ? (a) : (b))
 #define SOFT_FREE(ptr) do {  \
@@ -56,6 +66,23 @@ Return char* of current time in format: "%Y-%m-%d %H:%M:%S".
 char* get_current_time();
 
 /*
+Check if provided string is integer.
+
+Params:
+- str - pointer to string.
+
+Return 1 is integer.
+Return 0 is not integer.
+*/
+int is_integer(const char* str);
+
+/*
+Get current time from time.h libraryю
+!! Note: Output should be freed after usage. !!
+
+Return char* of current time in format: "%Y-%m-%d %H:%M:%S".
+*/
+char* get_current_time();
 Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
 */
 unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
@@ -79,6 +106,12 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   /*
   Get load path by name or path.
 
+Params:
+- name - Name of file or NULL.
+- name_size - Name size.
+- buffer - Buffer, where will be stored load path.
+- base_path - Base path.
+- extension - File extension.
   Params:
   - name - Name of file or NULL.
   - name_size - Name size.
@@ -87,6 +120,10 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   - base_path - Base path.
   - extension - File extension.
 
+Return 1 if load path generated.
+Return -1 if something goes wrong.
+*/
+int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension);
   Return 1 if load path generated.
   Return -1 if something goes wrong.
   */
@@ -125,6 +162,21 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   Params:
   - path - Path to file with filename and extension.
 
+Return 1 if exist, 0 if not.
+*/
+int file_exists(const char* path, const char* filename);
+
+/*
+Delete file by provided filename, basepath and extension.
+
+Params:
+- filename - File name.
+- basepath - Path, where placed file.
+- extension - File extension.
+
+Return remove status code.
+*/
+int delete_file(const char* filename, const char* basepath, const char* extension);
   Return 1 if exist, 0 if not.
   */
   int file_exists(const char* path, const char* filename);
@@ -178,6 +230,12 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   */
   char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
+/*
+Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
+Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+Return checksum.
+*/
+unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
   size_t strlen_s(char* str);
   char* strncpy_s(char* dst, char* src, int n);
   int strncmp_s(char* str1, const char* str2, size_t n);

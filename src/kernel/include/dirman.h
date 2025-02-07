@@ -64,7 +64,7 @@
 // HEADER (MAGIC | NAME | PAGE_COUNT | COLUMN_COUNT) -> | COLUMNS (TYPE | NAME, ... ) | PAGE_NAMES -> 8 * 256 -> end |
 //====================================================================================================================
 
-    typedef struct directory_header {
+    typedef struct {
         // Magic namber for check
         unsigned char magic;
 
@@ -79,7 +79,7 @@
         unsigned int checksum;
     } directory_header_t;
 
-    typedef struct directory {
+    typedef struct {
         // Lock directory flag
         unsigned short lock;
         unsigned char is_cached;
@@ -106,20 +106,21 @@
 
     Return point to allocated copy of data from directory
     */
-    unsigned char* DRM_get_content(directory_t* directory, int offset, size_t size);
+    unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght);
 
     /*
     Rewrite all line by EMPTY symbols.
 
-    directory - pointer to directory.
-    offset - offset in directory.
-    length - length of data to mark as delete.
+    Params:
+    - directory - Pointer to directory.
+    - offset - Offset in directory.
+    - data_size - Length of data to mark as delete.
 
     Return 1 - if write was success.
     Return -1 - if index not found in page.
     Return size, that can't be deleted, if we reach directory end during work.
     */
-    int DRM_delete_content(directory_t* directory, int offset, size_t length);
+    int DRM_delete_content(directory_t* directory, int offset, size_t data_size);
 
     /*
     Cleanup empty pages in directory.
@@ -138,9 +139,10 @@
     Note 2: This function not guarantees that content will be append to last page.
             Content will be placed at first empty space with fit size.
 
-    directory - pointer to directory.
-    data - data for append.
-    data_lenght - lenght of data.
+    Params:
+    - directory - Pointer to directory.
+    - data - Data for append.
+    - data_lenght - Lenght of data.
 
     Return 2 if all success and content was append to new page.
     Return 1 if all success and content was append to existed page.
@@ -157,17 +159,18 @@
           To avoid this, use DRM_append_content function.
     Note 2: If directory don't have any pages - this function will fall and return -1.
 
-    directory - pointer to directory.
-    offset - offset in bytes.
-    data - data for append.
-    data_lenght - lenght of data.
+    Params:
+    - directory - Pointer to directory.
+    - offset - Offset in bytes.
+    - data - Data for append.
+    - data_lenght - Lenght of data.
 
     Return 1 if all success.
     Return 2 if write succes, but content was trunc.
     Return -1 if something goes wrong.
     Return data size, that can't be stored in existed pages if we reach directory end.
     */
-    int DRM_insert_content(directory_t* __restrict directory, unsigned char offset, unsigned char* __restrict data, size_t data_lenght);
+    int DRM_insert_content(directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_lenght);
 
     /*
     Find data function return global index in directory of provided data. (Will return first entry of data).
@@ -205,14 +208,14 @@
     Note: Be carefull with this function, it can rewrite existed content.
     Note 2: If you want update data on disk, just create same path with existed directory.
 
-    directory - pointer to directory.
-    path - path where save. If provided NULL, function try to save file by default path.
+    Params:
+    - directory - Pointer to directory.
 
     Return -2 - if something goes wrong.
     Return -1 - if we can`t create file.
     Return 1 if file create success.
     */
-    int DRM_save_directory(directory_t* __restrict directory, char* __restrict path);
+    int DRM_save_directory(directory_t* directory);
 
     /*
     Link current page to this directory.
@@ -221,8 +224,9 @@
           For avoiuding additional IO file operations, use create_page function with same name,
           then just link allocated struct to directory.
 
-    directory - home directory.
-    page - page for linking.
+    Params:
+    - directory - Home directory.
+    - page - Page for linking.
 
     Return -1 if we reach page limit per directory.
     If sighnature wrong, return 0.
@@ -247,7 +251,8 @@
     /*
     Allocate memory and create new directory.
 
-    name - directory name.
+    Params:
+    - Name - directory name.
 
     Return directory pointer.
     */
@@ -271,7 +276,6 @@
     Note 2: Don't forget about DRM_flush_directory after using this pointer.
 
     Params:
-    - path - path to directory.dr file. (Should be NULL, if provided name).
     - name - name of directory. This function will try to load dir by
              default path (Should be NULL, if provided path).
 
@@ -279,7 +283,7 @@
     Return -1 if file nfound. Check path.
     Return locked directory pointer.
     */
-    directory_t* DRM_load_directory(char* __restrict path, char* __restrict name);
+    directory_t* DRM_load_directory(char* name);
 
     /*
     Delete directory from disk.

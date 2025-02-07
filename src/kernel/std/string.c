@@ -2,7 +2,7 @@
 
 
 void strrand(char* dest, size_t length, int offset) {
-    char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     size_t charset_size = sizeof(charset) - 1;
     
     for (size_t i = 0; i < length - 1; i++) {

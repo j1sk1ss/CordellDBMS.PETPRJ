@@ -70,7 +70,7 @@
 // INDEX | CONTENT_SIZE | CONTENT -> size -> end |
 //================================================
 
-    typedef struct page_header {
+    typedef struct {
         // Magic namber for check
         // If number nq magic, we know that this file broken
         unsigned char magic;
@@ -83,7 +83,7 @@
         unsigned int checksum;
     } page_header_t;
 
-    typedef struct page {
+    typedef struct {
         // Lock page flags
         unsigned short lock;
         unsigned char is_cached;
@@ -97,19 +97,6 @@
 
 
 #pragma region [Content]
-
-    /*
-    Insert value to page.
-
-    Params:
-    - page - pointer to page.
-    - offset - offset in page.
-    - value - value for input.
-
-    Return 1 if insert success.
-    Return -1 if offset too large.
-    */
-    int PGM_insert_value(page_t* page, int offset, unsigned char value);
 
     /*
     Insert content to page. This function don't move page_end symbol to new location.
@@ -164,20 +151,6 @@
     int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size);
 
     /*
-    Find local index of line with input value
-
-    Params:
-    - page - pointer to page
-    - offset - offset index
-    - value - target value
-
-    Return -2 - if something goes wrong
-    Return -1 - if not found
-    Return index of value in content
-    */
-    int PGM_find_value(page_t* page, int offset, unsigned char value);
-
-    /*
     Function that set PE symbol in content in page. Main idea:
     1) We find last not PAGE_EMPTY symbol.
     2) Go to the end of page, and if we don`t get any not PAGE_EMPTY symbol, save start index.
@@ -188,7 +161,7 @@
 
     Return index of PAGE_END symbol in page.
     */
-    int PGM_set_pe_symbol(page_t* page, int offset);
+    int PGM_get_page_occupie_size(page_t* page, int offset);
 
     /*
     Return value in bytes of free page space
@@ -254,7 +227,6 @@
 
     Params:
     - page - pointer to page.
-    - path - path where save. If provided NULL, function try to save file by default path.
 
     Return -3 if content write corrupt.
     Return -2 if header write corrupt.
@@ -262,13 +234,12 @@
     Return 0 - if something goes wrong.
     Return 1 - if saving was success.
     */
-    int PGM_save_page(page_t* __restrict page, char* __restrict path);
+    int PGM_save_page(page_t* page);
 
     /*
     Open file, load page, close file
 
     Params:
-    - path - path to page.pg file. (Should be NULL, if provided name).
     - name - name of page. This function will try to load page by
              default path (Should be NULL, if provided path).
 
@@ -277,7 +248,7 @@
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* __restrict path, char* __restrict name);
+    page_t* PGM_load_page(char* name);
 
     /*
     In difference with PGM_free_page, PGM_flush_page will free page in case, when
