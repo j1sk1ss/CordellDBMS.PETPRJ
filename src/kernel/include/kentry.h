@@ -31,8 +31,6 @@
 #ifndef KENTRY_H_
 #define KENTRY_H_
 
-#include <stdio.h>
-
 #include "cache.h"
 #include "common.h"
 #include "dataman.h"

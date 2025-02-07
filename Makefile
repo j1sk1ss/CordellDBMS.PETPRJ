@@ -5,29 +5,29 @@ PROD ?= 0
 # Enable Pthreads (Without it will support only one session at server)
 PTHREADS ?= 0
 # Enable OpenMP flag
-OMP ?= 1
+OMP ?= 0
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
 MAX_OPT ?= 1
 # Include std libs with -static
-INCLUDE_LIBS ?= 0
+INCLUDE_LIBS ?= 1
 
 # Kernel commands setup.
 # Disable all commands with update functionality
 # Exmpl: insert / update by_index / update by_value
-DISABLE_UPDATE ?= 0
+DISABLE_UPDATE ?= 1
 # Disable get by_exp command
 DISABLE_GET_EXPRESSION ?= 0
 # Disable get by_value command
 DISABLE_GET_VALUE ?= 0
 # Desable all commands with delete functionality
 # Exmpl: delete table / delete row / delete database
-DISABLE_DELETE ?= 0
+DISABLE_DELETE ?= 1
 # Disable all commands with create functionality
 # Exmpl: create table / create database
-DISABLE_CREATE ?= 0
+DISABLE_CREATE ?= 1
 # Disable all commands with migration functionality
 # Exmpl: migrate table
-DISABLE_MIGRATION ?= 0
+DISABLE_MIGRATION ?= 1
 
 
 ifeq ($(PROD), 1)
@@ -59,7 +59,7 @@ ifeq ($(DISABLE_CREATE), 1)
 endif
 
 ifeq ($(DISABLE_MIGRATION), 1)
-	CFLAGS += -NO_MIGRATE_COMMAND
+	CFLAGS += -DNO_MIGRATE_COMMAND
 endif
 
 ifeq ($(PTHREADS), 0)
