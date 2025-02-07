@@ -2,18 +2,16 @@
 
 
 user_t* USR_auth(char* name, char* password) {
-    user_t* user = USR_load(NULL, name);
+    user_t* user = USR_load(name);
     if (user == NULL) return NULL;
-    if (HASH_str2hash(password) != user->pass_hash) return NULL;
+    if (str2hash(password) != user->pass_hash) return NULL;
     return user;
 }
 
-user_t* USR_load(char* path, char* name) {
+user_t* USR_load(char* name) {
     char load_path[128] = { 0 };
-    if (path == NULL && name != NULL) sprintf(load_path, "%s%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, name, USER_EXTENSION);
-    else if (path != NULL) strcpy(load_path, path);
-    else return NULL;
-
+    sprintf(load_path, "%s%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, name, USER_EXTENSION);
+    
     FILE* file = fopen(load_path, "rb");
     if (file == NULL) return NULL;
     else {

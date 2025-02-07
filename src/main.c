@@ -20,7 +20,7 @@
  *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
 */
 
-#include "userland/include/user.h"
+#include "kernel/include/user.h"
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
 #include "kernel/include/cache.h"

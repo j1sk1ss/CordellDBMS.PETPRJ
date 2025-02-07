@@ -42,6 +42,9 @@
 #define DEFAULT_PATH_SIZE   128
 #define DEFAULT_DELAY       999999999
 
+#define SALT    "CordellDBMS_SHA"
+#define MAGIC   8
+
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define ARRAY_SOFT_FREE(ptr, size) do {               \
@@ -158,6 +161,16 @@ Params:
 Return new string with replaced sub-memory.
 */
 char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
+
+/*
+Simple hash generator.
+
+Params:
+- str - input string for hash.
+
+Return hash (unsigned int)
+*/
+unsigned int str2hash(const char* str);
 
 /*
 Checksum generator. For avoiding of usage big sha lib, we use one little func instead.

@@ -5,9 +5,9 @@ PROD ?= 0
 # Enable Pthreads (Without it will support only one session at server)
 PTHREADS ?= 0
 # Enable OpenMP flag
-OMP ?= 1
+OMP ?= 0
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
-MAX_OPT ?= 1
+MAX_OPT ?= 0
 # Include std libs with -static
 INCLUDE_LIBS ?= 0
 
@@ -82,13 +82,11 @@ endif
 CFLAGS += -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body -Wno-unused-parameter
 
 
-USERLAND_DIR = src/userland
 KERNEL_DIR = src/kernel
-USTD_DIR = $(USERLAND_DIR)/std
 KSTD_DIR = $(KERNEL_DIR)/std
 ARCH_DIR = $(KERNEL_DIR)/arch
 
-SOURCES = src/main.c $(KERNEL_DIR)/kentry.c $(ARCH_DIR)/*/*.c $(KSTD_DIR)/*.c $(USTD_DIR)/*.c
+SOURCES = src/main.c $(KERNEL_DIR)/kentry.c $(ARCH_DIR)/*/*.c $(KSTD_DIR)/*.c
 OUTPUT = builds/cdbms_x86-64
 
 
