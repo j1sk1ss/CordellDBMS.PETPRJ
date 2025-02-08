@@ -15,6 +15,9 @@ INCLUDE_LIBS ?= 0
 # User check at start. Will give max access to any session.
 # 1 - User (username and pass required) enabled.
 USERS ?= 1
+# Server type of compilation
+# Disable server side code. Instead server, kernel take char* command.
+SERVER ?= 1 # NO_SERVER
 
 # Kernel commands setup.
 # Disable all commands with update functionality
@@ -69,6 +72,10 @@ endif
 
 ifeq ($(USERS), 0)
 	CFLAGS += -DNO_USER
+endif
+
+ifeq ($(SERVER), 0)
+	CFLAGS += -DNO_SERVER
 endif
 
 ifeq ($(PTHREADS), 0)
