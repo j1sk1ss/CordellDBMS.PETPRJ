@@ -36,6 +36,7 @@ int TBM_get_column_info(table_t* table, char* column_name, table_columns_info_t*
 }
 
 int TBM_check_signature(table_t* __restrict table, unsigned char* __restrict data) {
+#ifndef DISABLE_CHECK_SIGNATURE
     unsigned char* data_pointer = data;
     for (int i = 0; i < table->header->column_count; i++) {
         unsigned char data_type = GET_COLUMN_DATA_TYPE(table->columns[i]->type);
@@ -54,6 +55,6 @@ int TBM_check_signature(table_t* __restrict table, unsigned char* __restrict dat
             default: return -4;
         }
     }
-
+#endif
     return 1;
 }

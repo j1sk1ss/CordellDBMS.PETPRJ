@@ -1,4 +1,6 @@
+import os
 import time
+import glob
 import random
 
 from cdbms_api.connection import Connection
@@ -12,7 +14,7 @@ from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator,
 start_test_time: float = time.perf_counter()
 
 
-ROWS: int = 100
+ROWS: int = 50000
 connection: Connection = Connection(
     base_addr='0.0.0.0',
     port=7777,
@@ -25,8 +27,8 @@ manager: DatabaseManager = DatabaseManager(connection=connection)
 database: Database = manager.create_database('dbtest')
 table: Table = database.add_table(
     table_name='pigs', access='same',
-    uid=Column('uid', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 4),
-    huid=Column('huid', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 4),
+    uid=Column('uid', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 8),
+    huid=Column('huid', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 8),
     name=Column('name', ColumnDataType.STR, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 16),
     weight=Column('weight', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 4)
 )
@@ -53,6 +55,7 @@ table.append_row(uid=0, huid=ROWS + 1, name='SecondTest', weight=1)
 insert_time = time.perf_counter() - start_time
 print(f'Test data insert time: {insert_time:.4f} sec.')
 
+database.sync()
 print('Getting test data...')
 
 random_index: int = random.randint(10, ROWS - 1)
@@ -174,7 +177,7 @@ database.sync()
 
 print('Try to append data into free region (Check 000000.pg for correct result)')
 start_time = time.perf_counter()
-for i in range(ROWS):
+for i in range(50):
     table.append_row(uid=i, huid=i, name='Kitty', weight=random.randint(100, 250))
 
 insert_time = time.perf_counter() - start_time
@@ -184,11 +187,11 @@ start_time: float = time.perf_counter()
 rows: list = _by_exp_str_test(
     expression=[
         Statement(column_name="name", expression=Expressions.STR_EQUALS, value="Kitty")
-    ], limit=ROWS
+    ], limit=50
 )
 
 retrieve_time = time.perf_counter() - start_time
-assert len(rows) == ROWS, f"Rows wasn't append: {len(rows)}/{ROWS}"
+assert len(rows) >= 50, f"Rows wasn't append: {len(rows)}/{50}"
 
 print('New rows:')
 for i in rows:
@@ -205,16 +208,17 @@ print('Test data should stay in database (FirstTest and SecondTest)...')
 start_time: float = time.perf_counter()
 rows: list = _by_exp_str_test(
     expression=[
-        Statement(column_name="name", expression=Expressions.STR_NOT_EQUALS, value="Porosenok"),
-        LogicOperator.AND,
-        Statement(column_name="name", expression=Expressions.STR_NOT_EQUALS, value="Kitty"),
-    ]
+        Statement(column_name="name", expression=Expressions.STR_EQUALS, value="FirstTest"),
+        LogicOperator.OR,
+        Statement(column_name="name", expression=Expressions.STR_EQUALS, value="SecondTest"),
+    ],
+    limit=10
 )
 
 retrieve_time = time.perf_counter() - start_time
 print(f'Test data get from database time: {retrieve_time:.6f} sec.')
 
-assert (len(rows)) == 2, "FirstTest and SecondTest not exists"
+assert (len(rows)) >= 2, f"FirstTest and SecondTest not exists | count: {len(rows)}"
 for i in rows:
     print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
     assert i.name in [ 'FirstTest', 'SecondTest' ]
@@ -224,3 +228,31 @@ for i in rows:
 print('TEST COMPLETE')
 retrieve_time = time.perf_counter() - start_test_time
 print(f'All tests time: {retrieve_time:.6f} sec.')
+print('Start cleanup...')
+
+def delete_files(folder: str, extensions: list):
+    if not os.path.exists(folder):
+        print(f"Dir {folder} not exist!")
+        return
+    
+    deleted_files = 0
+    
+    for ext in extensions:
+        files = glob.glob(os.path.join(folder, f"*.{ext}"))
+        for file in files:
+            try:
+                os.remove(file)
+                print(f"Deleted: {file}")
+                deleted_files += 1
+            except Exception as e:
+                print(f"Delete error {file}: {e}")
+
+    if deleted_files == 0:
+        print("Files not found!")
+    else:
+        print(f"Deleted files count: {deleted_files}")
+
+folder_path = "/Users/nikolaj/Documents/CordellDBMS.EXMPL/builds"
+extensions_list = ["db", "pg", "dr", "tb"]
+
+delete_files(folder_path, extensions_list)

@@ -56,6 +56,7 @@
 
     #define PAGE_EMPTY          0xEE
     #define PAGE_END            0xED
+    // 4096 is default. Lower - less RAM. Higher - faster.
     #define PAGE_CONTENT_SIZE   4096
     #define PAGE_START          0x00
 

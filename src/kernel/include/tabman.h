@@ -555,7 +555,7 @@
     Return -1 if was lock error.
     Return 1 if migration success.
     */
-    int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __restrict querry, size_t querry_size);
+    int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __restrict querry[], size_t querry_size);
 
     /*
     Invoke modules in table and change input data.

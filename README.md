@@ -111,12 +111,9 @@ Migrate function template:
 ```
 Migrate function example:
 ```
-db migrate table_1 table_2 nav ( 0 1 1 3 4 2 )
+db migrate table_1 table_2 nav ( col2_s col1_d col8_s col2_d col3_s col3_d )
 ```
-P.S. In breckets placed navigation of columns. This means next:
-- 0-index columns will transfer data to 1-index column from destination table.
-- 1-index columns will transfer data to 3-index column from destination table.
-- 4-index columns will transfer data to 2-index column from destination table.
+P.S. In breckets placed navigation of columns. 
 
 ----------------
 *SYNC* </br>

@@ -18,6 +18,9 @@
  *  that we can work with big data by using very light weighten app.
  * 
  *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
+ * TODO:
+ * - spedup update
+ *      - split to directories (by names)
 */
 
 #include "kernel/include/user.h"
@@ -192,7 +195,7 @@ kernel_answer_t* entry(char* command) {
     int argc = _process_quotes(buffer, argv);
     return kernel_process_command(argc, argv, user->access, session);
 #endif
-    return 1;
+    return NULL;
 }
 
 /*

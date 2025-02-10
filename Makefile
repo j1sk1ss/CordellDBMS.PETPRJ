@@ -36,6 +36,8 @@ DISABLE_CREATE ?= 0
 # Disable all commands with migration functionality
 # Exmpl: migrate table
 DISABLE_MIGRATION ?= 0
+# Disable check signature in append and insert data
+DISABLE_CHECK_SIGNATURE ?= 0
 
 
 ifeq ($(PROD), 1)
@@ -48,6 +50,10 @@ endif
 
 ifeq ($(DISABLE_UPDATE), 1)
 	CFLAGS += -DNO_UPDATE_COMMAND
+endif
+
+ifeq ($(DISABLE_CHECK_SIGNATURE), 1)
+	CFLAGS += -DDISABLE_CHECK_SIGNATURE
 endif
 
 ifeq ($(DISABLE_GET_EXPRESSION), 1)

@@ -121,7 +121,7 @@ table_t* TBM_load_table(char* name) {
                     table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
                     if (!table || !columns) {
                         SOFT_FREE(table);
-                        SOFT_FREE(columns);
+                        ARRAY_SOFT_FREE(columns, header->column_count);
                     } else {
                         memset(table, 0, sizeof(table_t));
                         memset(columns, 0, header->column_count * sizeof(table_column_t*));
