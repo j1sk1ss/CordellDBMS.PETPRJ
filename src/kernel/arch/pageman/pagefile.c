@@ -114,7 +114,6 @@ page_t* PGM_load_page(char* base_path, char* name) {
                     else {
                         memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
                         pread(file, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t));
-
                         close(file);
 
                         page->lock   = THR_create_lock();

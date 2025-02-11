@@ -182,6 +182,7 @@ for i in range(50):
 
 insert_time = time.perf_counter() - start_time
 print(f'Append data time: {insert_time:.4f} sec.')
+database.sync()
 
 start_time: float = time.perf_counter()
 rows: list = _by_exp_str_test(

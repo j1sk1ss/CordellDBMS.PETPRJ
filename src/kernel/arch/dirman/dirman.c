@@ -2,26 +2,27 @@
 
 
 unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght) {
+    print_spec("DRM_GET: off %i, max count: %i", offset, directory->header->page_count);
     unsigned char* content = (unsigned char*)malloc(data_lenght);
     if (!content) return NULL;
     unsigned char* content_pointer = content;
     memset(content_pointer, 0, data_lenght);
 
-    int page_offset   = offset / PAGE_CONTENT_SIZE;
-    int current_index = offset % PAGE_CONTENT_SIZE;
+    int start_page = offset / PAGE_CONTENT_SIZE;
+    int page_offset = offset % PAGE_CONTENT_SIZE;
 
-    for (int i = page_offset; i < directory->header->page_count && data_lenght > 0; i++) {
+    for (int i = start_page; i < directory->header->page_count && data_lenght > 0; i++) {
         // We load current page
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
         if (page == NULL) continue;
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We work with page
-            int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)data_lenght);
-            memcpy(content_pointer, (unsigned char*)page->content + current_index, current_size);
+            int current_size = MIN(PAGE_CONTENT_SIZE - page_offset, (int)data_lenght);
+            memcpy(content_pointer, (unsigned char*)page->content + page_offset, current_size);
 
             // We reload local index and update size2get
             // Also we move content pointer to next location
-            current_index = 0;
+            page_offset = 0;
             data_lenght -= current_size;
             content_pointer += current_size;
 
@@ -142,11 +143,18 @@ int DRM_delete_content(directory_t* directory, int offset, size_t data_size) {
 
 int DRM_cleanup_pages(directory_t* directory) {
 #ifndef NO_DELETE_COMMAND
+    int temp_count = directory->header->page_count;
+    char** temp_names = (char**)malloc(sizeof(char*) * temp_count);
+    for (int i = 0; i < temp_count; i++) {
+        temp_names[i] = (char*)malloc(PAGE_NAME_SIZE);
+        strncpy(temp_names[i], directory->page_names[i], PAGE_NAME_SIZE);
+    }
+
     #pragma omp parallel for schedule(dynamic, 1)
-    for (int i = 0; i < directory->header->page_count; i++) {
+    for (int i = 0; i < temp_count; i++) {
         char page_path[DEFAULT_PATH_SIZE] = { 0 };
-        sprintf(page_path, "%s/%.*s.%s", directory->header->name, PAGE_NAME_SIZE, directory->page_names[i], PAGE_EXTENSION);
-        page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
+        sprintf(page_path, "%s/%.*s.%s", directory->header->name, PAGE_NAME_SIZE, temp_names[i], PAGE_EXTENSION);
+        page_t* page = PGM_load_page(directory->header->name, temp_names[i]);
         if (page != NULL) {
             if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
                 // If page, after delete operation, full empty, we delete page.
@@ -165,6 +173,7 @@ int DRM_cleanup_pages(directory_t* directory) {
         }
     }
 
+    ARRAY_SOFT_FREE(temp_names, temp_count);
 #endif
     return 1;
 }
