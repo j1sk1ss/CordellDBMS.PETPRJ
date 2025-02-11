@@ -93,7 +93,7 @@ table_t* TBM_load_table(char* name) {
     }
 
     // If path is not NULL, we use function for getting file name
-    table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_CACHE);
+    table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_BASE_PATH, TABLE_CACHE);
     if (loaded_table != NULL) {
         print_debug("Loading table [%s] from GCT", load_path);
         return loaded_table;
@@ -146,7 +146,7 @@ table_t* TBM_load_table(char* name) {
                         table->lock = THR_create_lock();
 
                         table->header = header;
-                        CHC_add_entry(table, table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
+                        CHC_add_entry(table, table->header->name, TABLE_BASE_PATH, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
                         loaded_table = table;
                     }
                 }

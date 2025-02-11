@@ -8,7 +8,7 @@ int MDL_launch_module(char* module_name, char* args, unsigned char* buffer, size
     char result[128] = { 0 };
 
     sprintf(module_path, "%s%s.%s", MODULE_BASE_PATH, module_name, MODULE_EXTENSION);
-    if (!file_exists(module_path, NULL)) {
+    if (!file_exists(module_path, NULL, NULL)) {
         print_warn("Module not found");
         return -1;
     }

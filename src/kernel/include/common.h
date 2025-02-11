@@ -128,10 +128,12 @@ Check if file exists.
 
 Params:
 - path - Path to file with filename and extension.
+- base_path - Base path of file. Can be NULL.
+- filename - Filename.
 
 Return 1 if exist, 0 if not.
 */
-int file_exists(const char* path, const char* filename);
+int file_exists(const char* path, char* base_path, const char* filename);
 
 /*
 Delete file by provided filename, basepath and extension.

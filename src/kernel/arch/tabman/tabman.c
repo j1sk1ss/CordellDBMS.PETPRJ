@@ -96,7 +96,7 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
 
     // Save directory to DDT
     CHC_add_entry(
-        new_directory, new_directory->header->name, 
+        new_directory, new_directory->header->name, DIRECTORY_BASE_PATH,
         DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
     );
     

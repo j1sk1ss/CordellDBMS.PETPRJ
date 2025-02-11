@@ -23,9 +23,13 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
     return page;
 }
 
-page_t* PGM_create_empty_page() {
-    char* unique_name = generate_unique_filename(PAGE_BASE_PATH, PAGE_NAME_SIZE, PAGE_EXTENSION);
+page_t* PGM_create_empty_page(char* base_path) {
+    char* unique_name = generate_unique_filename(base_path, PAGE_NAME_SIZE, PAGE_EXTENSION);
     page_t* page = PGM_create_page(unique_name, NULL, 0);
+
+    page->base_path = (char*)malloc(strlen(base_path) + 1);
+    strcpy(page->base_path, base_path);
+    
     free(unique_name);
     return page;
 }
@@ -41,28 +45,29 @@ int PGM_save_page(page_t* page) {
         {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
-            get_load_path(page->header->name, PAGE_NAME_SIZE, save_path, PAGE_BASE_PATH, PAGE_EXTENSION);
+            get_load_path(page->header->name, PAGE_NAME_SIZE, save_path, page->base_path, PAGE_EXTENSION);
+            mkdir(page->base_path, 0777);
 
             // Open or create file
-            FILE* file = fopen(save_path, "wb");
-            if (file == NULL) print_error("Can't save or create [%s] file", save_path);
+            int file = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (file == -1) print_error("Can't save or create [%s] file", save_path);
             else {
                 // Write data to disk
                 status = 1;
                 int eof = PGM_get_page_occupie_size(page, PAGE_START);
 
                 page->header->checksum = page_cheksum;
-                if (fwrite(page->header, sizeof(page_header_t), 1, file) != 1) status = -2;
-                if (fwrite(page->content, sizeof(unsigned char), eof, file) != (size_t)eof) status = -3;
+                if (pwrite(file, page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
+                if (pwrite(file, page->content, eof, sizeof(page_header_t)) != (ssize_t)eof) status = -3;
 
                 // Close file
                 #ifndef _WIN32
-                fsync(fileno(file));
+                fsync(file);
                 #else
                 fflush(file);
                 #endif
 
-                fclose(file);
+                close(file);
                 page->content[eof] = PAGE_EMPTY;
             }
         }
@@ -71,14 +76,14 @@ int PGM_save_page(page_t* page) {
     return status;
 }
 
-page_t* PGM_load_page(char* name) {
+page_t* PGM_load_page(char* base_path, char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, PAGE_NAME_SIZE, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
+    if (get_load_path(name, PAGE_NAME_SIZE, load_path, base_path, PAGE_EXTENSION) == -1) {
         print_error("Name should be provided!");
         return NULL;
     }
 
-    page_t* loaded_page = (page_t*)CHC_find_entry(name, PAGE_CACHE);
+    page_t* loaded_page = (page_t*)CHC_find_entry(name, base_path, PAGE_CACHE);
     if (loaded_page != NULL) {
         print_debug("Loading page [%s] from GCT", load_path);
         return loaded_page;
@@ -87,37 +92,37 @@ page_t* PGM_load_page(char* name) {
     #pragma omp critical (page_load)
     {
         // Open file page
-        FILE* file = fopen(load_path, "rb");
+        int file = open(load_path, O_RDONLY);
         print_debug("Loading page [%s]", load_path);
-        if (file == NULL) print_error("Page not found! Path: [%s]", load_path);
+        if (file == -1) print_error("Page not found! Path: [%s]", load_path);
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
             if (header) {
                 memset(header, 0, sizeof(page_header_t));
-                fread(header, sizeof(page_header_t), 1, file);
+                pread(file, header, sizeof(page_header_t), 0);
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
                     print_error("Page file wrong magic for [%s]", load_path);
                     free(header);
-                    fclose(file);
+                    close(file);
                 } else {
                     // Allocate memory for page structure
                     page_t* page = (page_t*)malloc(sizeof(page_t));
                     if (!page) free(header);
                     else {
                         memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
-                        fread(page->content, sizeof(unsigned char), PAGE_CONTENT_SIZE, file);
+                        pread(file, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t));
 
-                        fclose(file);
+                        close(file);
 
-                        page->lock      = THR_create_lock();
-                        page->header    = header;
-                        loaded_page     = page;
+                        page->lock   = THR_create_lock();
+                        page->header = header;
+                        loaded_page  = page;
 
                         CHC_add_entry(
-                            loaded_page, loaded_page->header->name, 
+                            loaded_page, loaded_page->header->name, base_path,
                             PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
                         );
                     }
@@ -126,6 +131,8 @@ page_t* PGM_load_page(char* name) {
         }
     }
 
+    loaded_page->base_path = (char*)malloc(strlen(base_path) + 1);
+    strcpy(loaded_page->base_path, base_path);
     return loaded_page;
 }
 

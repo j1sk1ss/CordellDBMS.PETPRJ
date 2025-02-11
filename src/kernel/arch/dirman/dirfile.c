@@ -76,7 +76,7 @@ directory_t* DRM_load_directory(char* name) {
         return NULL;
     }
 
-    directory_t* loaded_directory = (directory_t*)CHC_find_entry(name, DIRECTORY_CACHE);
+    directory_t* loaded_directory = (directory_t*)CHC_find_entry(name, DIRECTORY_BASE_PATH, DIRECTORY_CACHE);
     if (loaded_directory != NULL) {
         print_debug("Loading directory [%s] from GCT", load_path);
         return loaded_directory;
@@ -118,7 +118,7 @@ directory_t* DRM_load_directory(char* name) {
                         loaded_directory  = directory;
 
                         CHC_add_entry(
-                            loaded_directory, loaded_directory->header->name, 
+                            loaded_directory, loaded_directory->header->name, DIRECTORY_BASE_PATH,
                             DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
                         );
                     }
@@ -139,7 +139,9 @@ int DRM_delete_directory(directory_t* directory, int full) {
             for (int i = 0; i < directory->header->page_count; i++) {
                 print_debug(
                     "Page [%s] was deleted and flushed with results [%i | %i]",
-                    directory->page_names[i], CHC_flush_entry(PGM_load_page(directory->page_names[i]), PAGE_CACHE), delete_file(directory->page_names[i], PAGE_BASE_PATH, PAGE_EXTENSION)
+                    directory->page_names[i], CHC_flush_entry(
+                        PGM_load_page(directory->header->name, directory->page_names[i]), PAGE_CACHE
+                    ), delete_file(directory->page_names[i], directory->header->name, PAGE_EXTENSION)
                 );
             }
         }

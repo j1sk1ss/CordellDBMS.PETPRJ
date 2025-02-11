@@ -310,7 +310,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 }
 
                 DB_link_table2database(database, new_table);
-                CHC_add_entry(new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
+                CHC_add_entry(new_table, new_table->header->name, TABLE_BASE_PATH, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
                 print_log("Table [%s] create success!", new_table->header->name);
 
                 answer->answer_size = -1;
