@@ -1,8 +1,59 @@
 #include "../../include/tabman.h"
 
 
+#pragma region [CRUD]
+
+int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data, size_t data_size) {
+    unsigned char* data_pointer = data;
+    int size4append = (int)data_size;
+
+    // Iterate existed directories. Maybe we can store data here?
+    for (int i = table->append_offset; i < table->header->dir_count; i++) { // O(n)
+        // Load directory to memory
+        directory_t* directory = DRM_load_directory(table->dir_names[i]);
+        if (directory != NULL) {
+            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+                int result = DRM_append_content(directory, data_pointer, size4append);
+                THR_release_lock(&directory->lock, omp_get_thread_num());
+                DRM_flush_directory(directory);
+                if (result < 0) return result - 10;
+                else if (result == 0 || result == 1 || result == 2) {
+                    return 1;
+                }
+            }
+        }
+
+        DRM_flush_directory(directory);
+    }
+
+    if (table->header->dir_count + 1 > DIRECTORIES_PER_TABLE) return -1;
+
+    // Create new empty directory and append data.
+    // If we overfill directory by data, save size of data,
+    // that we should save.
+    directory_t* new_directory = DRM_create_empty_directory();
+    if (new_directory == NULL) return -1;
+
+    table->append_offset = table->header->dir_count;
+    int append_result = DRM_append_content(new_directory, data_pointer, size4append);
+    if (append_result < 0) {
+        DRM_free_directory(new_directory);
+        return append_result - 10;
+    }
+
+    TBM_link_dir2table(table, new_directory);
+
+    // Save directory to DDT
+    CHC_add_entry(
+        new_directory, new_directory->header->name, DIRECTORY_BASE_PATH,
+        DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
+    );
+    
+    DRM_flush_directory(new_directory);
+    return 1;
+}
+
 unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
-    print_spec("TBM_GET: off %i, max count: %i", offset, table->header->dir_count);
     // Data for DRM
     directory_t* directory = NULL;
     int content2get_size = (int)size;
@@ -51,56 +102,6 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     }
 
     return output_content;
-}
-
-int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data, size_t data_size) {
-    unsigned char* data_pointer = data;
-    int size4append = (int)data_size;
-
-    // Iterate existed directories. Maybe we can store data here?
-    for (int i = table->append_offset; i < table->header->dir_count; i++) {
-        // Load directory to memory
-        directory_t* directory = DRM_load_directory(table->dir_names[i]);
-        if (directory != NULL) {
-            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-                int result = DRM_append_content(directory, data_pointer, size4append);
-                THR_release_lock(&directory->lock, omp_get_thread_num());
-                DRM_flush_directory(directory);
-                if (result < 0) return result - 10;
-                else if (result == 0 || result == 1 || result == 2) {
-                    return 1;
-                }
-            }
-        }
-
-        DRM_flush_directory(directory);
-    }
-
-    if (table->header->dir_count + 1 > DIRECTORIES_PER_TABLE) return -1;
-
-    // Create new empty directory and append data.
-    // If we overfill directory by data, save size of data,
-    // that we should save.
-    directory_t* new_directory = DRM_create_empty_directory();
-    if (new_directory == NULL) return -1;
-
-    table->append_offset = table->header->dir_count;
-    int append_result = DRM_append_content(new_directory, data_pointer, size4append);
-    if (append_result < 0) {
-        DRM_free_directory(new_directory);
-        return append_result - 10;
-    }
-
-    TBM_link_dir2table(table, new_directory);
-
-    // Save directory to DDT
-    CHC_add_entry(
-        new_directory, new_directory->header->name, DIRECTORY_BASE_PATH,
-        DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
-    );
-    
-    DRM_flush_directory(new_directory);
-    return 1;
 }
 
 int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
@@ -173,6 +174,8 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 #endif
     return -2;
 }
+
+#pragma endregion
 
 int TBM_cleanup_dirs(table_t* table) {
 #ifndef NO_DELETE_COMMAND

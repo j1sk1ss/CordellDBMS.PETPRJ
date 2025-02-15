@@ -1,6 +1,8 @@
 #include "../../include/pageman.h"
 
 
+#pragma region [CRUD]
+
 int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
     for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) page->content[i] = data[j];
@@ -15,6 +17,8 @@ int PGM_delete_content(page_t* page, int offset, size_t length) {
 #endif
     return 1;
 }
+
+#pragma endregion
 
 int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size) {
     if (offset >= PAGE_CONTENT_SIZE) return -2;

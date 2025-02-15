@@ -62,7 +62,7 @@ int PGM_save_page(page_t* page) {
 
                 // Close file
                 #ifndef _WIN32
-                fsync(file);
+                fsync(fd);
                 #else
                 fflush(fd);
                 #endif

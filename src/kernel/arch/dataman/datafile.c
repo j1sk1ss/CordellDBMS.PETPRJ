@@ -101,7 +101,7 @@ database_t* DB_load_database(char* name) {
                 close(fd);
             } else {
                 for (int i = 0; i < loaded_database->header->table_count; i++)
-                    fread(fd, loaded_database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i);
+                    pread(fd, loaded_database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i);
 
                 close(fd);
             }

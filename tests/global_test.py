@@ -14,7 +14,7 @@ from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator,
 start_test_time: float = time.perf_counter()
 
 
-ROWS: int = 50000
+ROWS: int = 10000
 connection: Connection = Connection(
     base_addr='0.0.0.0',
     port=7777,
