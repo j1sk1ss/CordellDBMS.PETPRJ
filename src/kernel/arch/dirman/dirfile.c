@@ -41,27 +41,25 @@ int DRM_save_directory(directory_t* directory) {
             char save_path[DEFAULT_PATH_SIZE];
             get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, save_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
 
-            FILE* file = fopen(save_path, "wb");
-            if (file == NULL) print_error("Can`t create file: [%s]", save_path);
+            int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0) print_error("Can`t create file: [%s]", save_path);
             else {
                 status = 1;
                 directory->header->checksum = DRM_get_checksum(directory);
-                if (fwrite(directory->header, sizeof(directory_header_t), 1, file) != 1)
-                    status = -1;
-
+                if (pwrite(fd, directory->header, sizeof(directory_header_t), 0) != sizeof(directory_header_t)) status = -1;
                 for (int i = 0; i < directory->header->page_count; i++) {
-                    if (fwrite(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file) != 1) {
+                    if (pwrite(fd, directory->page_names[i], PAGE_NAME_SIZE, sizeof(directory_header_t) + PAGE_NAME_SIZE * i) != PAGE_NAME_SIZE) {
                         status = -1;
                     }
                 }
 
                 #ifndef _WIN32
-                fsync(fileno(file));
+                fsync(fd);
                 #else
-                fflush(file);
+                fflush(fd);
                 #endif
 
-                fclose(file);
+                close(fd);
             }
         }
     }
@@ -85,21 +83,21 @@ directory_t* DRM_load_directory(char* name) {
     #pragma omp critical (directory_load)
     {
         // Open file directory
-        FILE* file = fopen(load_path, "rb");
+        int fd = open(load_path, O_RDONLY);
         print_debug("Loading directory [%s]", load_path);
-        if (file == NULL) print_error("Directory not found! Path: [%s]", load_path);
+        if (fd < 0) print_error("Directory not found! Path: [%s]", load_path);
         else {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
             if (header) {
                 memset(header, 0, sizeof(directory_header_t));
-                fread(header, sizeof(directory_header_t), 1, file);
+                pread(fd, header, sizeof(directory_header_t), 0);
 
                 // Check directory magic
                 if (header->magic != DIRECTORY_MAGIC) {
                     print_error("Directory file wrong magic for [%s]", load_path);
                     free(header);
-                    fclose(file);
+                    close(fd);
                 } else {
                     // First we allocate memory for directory struct
                     // Then we read page names
@@ -108,10 +106,10 @@ directory_t* DRM_load_directory(char* name) {
                     else {
                         memset(directory, 0, sizeof(directory_t));
                         for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
-                            fread(directory->page_names[i], sizeof(unsigned char), PAGE_NAME_SIZE, file);
+                            pread(fd, directory->page_names[i], PAGE_NAME_SIZE, sizeof(directory_header_t) + PAGE_NAME_SIZE * i);
 
                         // Close file directory
-                        fclose(file);
+                        close(fd);
 
                         directory->lock   = THR_create_lock();
                         directory->header = header;

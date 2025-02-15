@@ -49,25 +49,25 @@ int PGM_save_page(page_t* page) {
             mkdir(page->base_path, 0777);
 
             // Open or create file
-            int file = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (file == -1) print_error("Can't save or create [%s] file", save_path);
+            int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0) print_error("Can't save or create [%s] file", save_path);
             else {
                 // Write data to disk
                 status = 1;
                 int eof = PGM_get_page_occupie_size(page, PAGE_START);
 
                 page->header->checksum = page_cheksum;
-                if (pwrite(file, page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
-                if (pwrite(file, page->content, eof, sizeof(page_header_t)) != (ssize_t)eof) status = -3;
+                if (pwrite(fd, page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
+                if (pwrite(fd, page->content, eof, sizeof(page_header_t)) != (ssize_t)eof) status = -3;
 
                 // Close file
                 #ifndef _WIN32
                 fsync(file);
                 #else
-                fflush(file);
+                fflush(fd);
                 #endif
 
-                close(file);
+                close(fd);
                 page->content[eof] = PAGE_EMPTY;
             }
         }
@@ -92,29 +92,29 @@ page_t* PGM_load_page(char* base_path, char* name) {
     #pragma omp critical (page_load)
     {
         // Open file page
-        int file = open(load_path, O_RDONLY);
+        int fd = open(load_path, O_RDONLY);
         print_debug("Loading page [%s]", load_path);
-        if (file == -1) print_error("Page not found! Path: [%s]", load_path);
+        if (fd < 0) print_error("Page not found! Path: [%s]", load_path);
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
             if (header) {
                 memset(header, 0, sizeof(page_header_t));
-                pread(file, header, sizeof(page_header_t), 0);
+                pread(fd, header, sizeof(page_header_t), 0);
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
                     print_error("Page file wrong magic for [%s]", load_path);
                     free(header);
-                    close(file);
+                    close(fd);
                 } else {
                     // Allocate memory for page structure
                     page_t* page = (page_t*)malloc(sizeof(page_t));
                     if (!page) free(header);
                     else {
                         memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
-                        pread(file, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t));
-                        close(file);
+                        pread(fd, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t));
+                        close(fd);
 
                         page->lock   = THR_create_lock();
                         page->header = header;

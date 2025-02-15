@@ -53,3 +53,35 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
     get_load_path((char*)filename, strlen(filename), (char*)delete_path, (char*)basepath, (char*)extension);
     return remove(delete_path);
 }
+
+#ifdef _WIN32
+
+    intptr_t pwrite(int fd, const void *buf, size_t count, long long int offset) {
+        HANDLE hFile = (HANDLE)_get_osfhandle(fd);
+        if (hFile == INVALID_HANDLE_VALUE) return -1;
+
+        OVERLAPPED ol = {0};
+        ol.Offset = offset & 0xFFFFFFFF;
+        ol.OffsetHigh = (offset >> 32) & 0xFFFFFFFF;
+
+        DWORD written;
+        BOOL success = WriteFile(hFile, buf, (DWORD)count, &written, &ol);
+
+        return success ? written : -1;
+    }
+
+    intptr_t pread(int fd, void *buf, size_t count, long long int offset) {
+        HANDLE hFile = (HANDLE)_get_osfhandle(fd);
+        if (hFile == INVALID_HANDLE_VALUE) return -1;
+
+        OVERLAPPED ol = {0};
+        ol.Offset = offset & 0xFFFFFFFF;
+        ol.OffsetHigh = (offset >> 32) & 0xFFFFFFFF;
+
+        DWORD bytesRead;
+        BOOL success = ReadFile(hFile, buf, (DWORD)count, &bytesRead, &ol);
+
+        return success ? bytesRead : -1;
+    }
+
+#endif

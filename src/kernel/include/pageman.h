@@ -34,11 +34,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 
 #ifndef _WIN32
     #include <unistd.h>
     #include <libgen.h>
-    #include <fcntl.h>
 #else
     #include <io.h>
 #endif
