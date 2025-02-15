@@ -51,33 +51,33 @@ int TBM_save_table(table_t* table) {
             get_load_path(table->header->name, TABLE_NAME_SIZE, save_path, TABLE_BASE_PATH, TABLE_EXTENSION);
 
             // Open or create file
-            FILE* file = fopen(save_path, "wb");
-            if (file == NULL) print_error("Can't save or create table [%s] file", save_path);
+            int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0) print_error("Can't save or create table [%s] file", save_path);
             else {
                 // Write header
                 status = 1;
                 table->header->checksum = TBM_get_checksum(table);
-                if (fwrite(table->header, sizeof(table_header_t), 1, file) != 1) status = -2;
-
-                // Write table data to open file
+                if (pwrite(fd, table->header, sizeof(table_header_t), 0) != sizeof(table_header_t)) status = -2;
                 for (int i = 0; i < table->header->column_count; i++)
-                    if (fwrite(table->columns[i], sizeof(table_column_t), 1, file) != 1) {
+                    if (pwrite(fd, table->columns[i], sizeof(table_column_t), sizeof(table_header_t) + sizeof(table_column_t) * i) != sizeof(table_column_t)) {
                         status = -3;
                     }
 
                 for (int i = 0; i < table->header->dir_count; i++)
-                    if (fwrite(table->dir_names[i], DIRECTORY_NAME_SIZE, 1, file) != 1) {
+                    if (pwrite(
+                        fd, table->dir_names[i], DIRECTORY_NAME_SIZE, sizeof(table_header_t) + sizeof(table_column_t) * table->header->column_count + DIRECTORY_NAME_SIZE * i
+                    ) != DIRECTORY_NAME_SIZE) {
                         status = -5;
                     }
 
                 // Close file and clear buffers
                 #ifndef _WIN32
-                fsync(fileno(file));
+                fsync(fd);
                 #else
-                fflush(file);
+                fflush(fd);
                 #endif
 
-                fclose(file);
+                close(fd);
             }
         }
     }
@@ -93,7 +93,7 @@ table_t* TBM_load_table(char* name) {
     }
 
     // If path is not NULL, we use function for getting file name
-    table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_CACHE);
+    table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_BASE_PATH, TABLE_CACHE);
     if (loaded_table != NULL) {
         print_debug("Loading table [%s] from GCT", load_path);
         return loaded_table;
@@ -101,20 +101,20 @@ table_t* TBM_load_table(char* name) {
 
     #pragma omp critical (table_load)
     {
-        FILE* file = fopen(load_path, "rb");
+        int fd = open(load_path, O_RDONLY);
         print_debug("Loading table [%s] from disk", load_path);
-        if (file == NULL) print_error("Can't open table [%s]", load_path);
+        if (fd < 0) print_error("Can't open table [%s]", load_path);
         else {
             // Read header of table from file.
             // Note: If magic is wrong, we can say, that this file isn`t table.
             //       We just return error code.
             table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
             if (header) {
-                fread(header, sizeof(table_header_t), 1, file);
+                pread(fd, header, sizeof(table_header_t), 0);
                 if (header->magic != TABLE_MAGIC) {
                     print_error("Table file wrong magic for [%s]", load_path);
                     free(header);
-                    fclose(file);
+                    close(fd);
                 } else {
                     // Read columns from file.
                     table_t* table = (table_t*)malloc(sizeof(table_t));
@@ -130,23 +130,26 @@ table_t* TBM_load_table(char* name) {
                             columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
                             if (!columns[i]) continue;
                             memset(columns[i], 0, sizeof(table_column_t));
-                            fread(columns[i], sizeof(table_column_t), 1, file);
+                            pread(fd, columns[i], sizeof(table_column_t), sizeof(table_header_t) + sizeof(table_column_t) * i);
                         }
 
                         for (int i = 0; i < header->column_count; i++)
                             table->row_size += columns[i]->size;
 
                         // Read directory names from file, that linked to this directory.
-                        for (int i = 0; i < header->dir_count; i++)
-                            fread(table->dir_names[i], sizeof(unsigned char), DIRECTORY_NAME_SIZE, file);
+                        for (int i = 0; i < header->dir_count; i++) {
+                            pread(
+                                fd, table->dir_names[i], DIRECTORY_NAME_SIZE, sizeof(table_header_t) + sizeof(table_column_t) * header->column_count + DIRECTORY_NAME_SIZE * i
+                            );
+                        }
 
-                        fclose(file);
+                        close(fd);
 
                         table->columns = columns;
                         table->lock = THR_create_lock();
 
                         table->header = header;
-                        CHC_add_entry(table, table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
+                        CHC_add_entry(table, table->header->name, TABLE_BASE_PATH, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
                         loaded_table = table;
                     }
                 }

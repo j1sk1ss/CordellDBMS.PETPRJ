@@ -34,22 +34,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 
 #ifndef _WIN32
     #include <unistd.h>
     #include <libgen.h>
+#else
+    #include <io.h>
 #endif
 
+#include "threading.h"
 #include "logging.h"
 #include "common.h"
-#include "threading.h"
 #include "cache.h"
 
 
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL pages
-#define PAGE_BASE_PATH  ENV_GET("PAGE_BASE_PATH", "")
+// #define PAGE_BASE_PATH  ENV_GET("PAGE_BASE_PATH", "")
 
 
 #pragma region [Page memory]
@@ -65,7 +68,7 @@
 #define PAGE_MAGIC 0xCA
 // 64^6 = 56.800.235.584 - unique page names.
 // 64^6 * PAGE_CONTENT_SIZE = 211 TB
-#define PAGE_NAME_SIZE 7
+#define PAGE_NAME_SIZE 4
 
 // We have *.pg bin file, where at start placed header
 //================================================
@@ -95,6 +98,7 @@
 
         // Page content
         unsigned char content[PAGE_CONTENT_SIZE];
+        char* base_path;
     } page_t;
 
 
@@ -219,10 +223,13 @@
     Note 3: In future prefere avoid random generation by using something like hash generator
     Took from: https://stackoverflow.com/questions/230062/whats-the-best-way-to-check-if-a-file-exists-in-c
 
+    Params:
+    - base_path - Base path of pages. 
+
     Return pointer to allocated page.
     Return NULL if we can`t create random name.
     */
-    page_t* PGM_create_empty_page();
+    page_t* PGM_create_empty_page(char* base_path);
 
     /*
     Save page on disk.
@@ -242,6 +249,7 @@
     Open file, load page, close file
 
     Params:
+    - base_path - Base path of page.
     - name - name of page. This function will try to load page by
              default path (Should be NULL, if provided path).
 
@@ -250,7 +258,7 @@
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* name);
+    page_t* PGM_load_page(char* base_path, char* name);
 
     /*
     In difference with PGM_free_page, PGM_flush_page will free page in case, when

@@ -18,6 +18,8 @@ USERS ?= 1
 # Server type of compilation
 # Disable server side code. Instead server, kernel take char* command.
 SERVER ?= 1 # NO_SERVER
+# Enable profiler
+DEBUG_PROFILER ?= 0
 
 # Kernel commands setup.
 # Disable all commands with update functionality
@@ -46,6 +48,10 @@ ifeq ($(PROD), 1)
 else
 	CC = gcc-14
 	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DSPECIAL
+endif
+
+ifeq ($(DEBUG_PROFILER), 1)
+	CFLAGS += -pg
 endif
 
 ifeq ($(DISABLE_UPDATE), 1)

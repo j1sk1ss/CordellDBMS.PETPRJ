@@ -54,7 +54,7 @@
 #define TABLE_EXTENSION         ENV_GET("TABLE_EXTENSION", "tb")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL tables
-#define TABLE_BASE_PATH         ENV_GET("TABLE_BASE_PATH", "")
+#define TABLE_BASE_PATH         ENV_GET("TABLE_BASE_PATH", ".")
 
 #pragma region [Access]
 

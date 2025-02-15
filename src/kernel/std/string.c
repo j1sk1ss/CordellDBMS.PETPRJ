@@ -2,25 +2,18 @@
 
 
 void strrand(char* dest, size_t length, int offset) {
-    static char charset[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     size_t charset_size = sizeof(charset) - 1;
-    
-    for (size_t i = 0; i < length - 1; i++) {
-        int index = offset % charset_size;
-        if (index > (int)strlen(charset)) {
-            dest[0] = 0;
-            return;
-        }
 
-        dest[i] = charset[index];
-        offset /= charset_size;
+    if (length < 2) {
+        if (length == 1) dest[0] = '\0';
+        return;
     }
 
     dest[length - 1] = '\0';
-    for (size_t i = 0, j = length - 2; i < j; i++, j--) {
-        char temp = dest[i];
-        dest[i] = dest[j];
-        dest[j] = temp;
+    for (size_t i = length - 2; i < length; i--) {
+        dest[i] = charset[offset % charset_size];
+        offset /= charset_size;
     }
 }
 

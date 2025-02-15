@@ -1,8 +1,8 @@
 #include "../include/common.h"
 
 
-int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension) {
-    sprintf(buffer, "%s%.*s.%s", base_path, name_size, name, extension);
+inline int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension) {
+    sprintf(buffer, "%s/%.*s.%s", base_path, name_size, name, extension);
     return 1;
 }
 
@@ -15,9 +15,9 @@ char* generate_unique_filename(char* base_path, int name_size, char* extension) 
     while (1) {
         strrand(name, name_size, offset++);
         char save_path[DEFAULT_PATH_SIZE] = { 0 };
-        sprintf(save_path, "%s%.*s.%s", base_path, name_size, name, extension);
+        get_load_path(name, name_size, save_path, base_path, extension);
 
-        if (file_exists(save_path, name)) {
+        if (file_exists(save_path, base_path, name)) {
             if (name[0] == 0) {
                 free(name);
                 return NULL;
@@ -33,7 +33,7 @@ char* generate_unique_filename(char* base_path, int name_size, char* extension) 
     return name;
 }
 
-int file_exists(const char* path, const char* filename) {
+int file_exists(const char* path, char* base_path, const char* filename) {
     int status = 0;
     #ifdef _WIN32
         DWORD fileAttr = GetFileAttributes(path);
@@ -44,7 +44,7 @@ int file_exists(const char* path, const char* filename) {
     #endif
 
     if (filename == NULL) return status;
-    if (CHC_find_entry((char*)filename, ANY_CACHE) == NULL) return status;
+    if (CHC_find_entry((char*)filename, base_path, ANY_CACHE) == NULL) return status;
     else return 1;
 }
 
@@ -53,3 +53,35 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
     get_load_path((char*)filename, strlen(filename), (char*)delete_path, (char*)basepath, (char*)extension);
     return remove(delete_path);
 }
+
+#ifdef _WIN32
+
+    intptr_t pwrite(int fd, const void *buf, size_t count, long long int offset) {
+        HANDLE hFile = (HANDLE)_get_osfhandle(fd);
+        if (hFile == INVALID_HANDLE_VALUE) return -1;
+
+        OVERLAPPED ol = {0};
+        ol.Offset = offset & 0xFFFFFFFF;
+        ol.OffsetHigh = (offset >> 32) & 0xFFFFFFFF;
+
+        DWORD written;
+        BOOL success = WriteFile(hFile, buf, (DWORD)count, &written, &ol);
+
+        return success ? written : -1;
+    }
+
+    intptr_t pread(int fd, void *buf, size_t count, long long int offset) {
+        HANDLE hFile = (HANDLE)_get_osfhandle(fd);
+        if (hFile == INVALID_HANDLE_VALUE) return -1;
+
+        OVERLAPPED ol = {0};
+        ol.Offset = offset & 0xFFFFFFFF;
+        ol.OffsetHigh = (offset >> 32) & 0xFFFFFFFF;
+
+        DWORD bytesRead;
+        BOOL success = ReadFile(hFile, buf, (DWORD)count, &bytesRead, &ol);
+
+        return success ? bytesRead : -1;
+    }
+
+#endif

@@ -42,7 +42,7 @@
 #define DATABASE_EXTENSION      ENV_GET("DATABASE_EXTENSION", "db")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL databases
-#define DATABASE_BASE_PATH      ENV_GET("DATABASE_BASE_PATH", "")
+#define DATABASE_BASE_PATH      ENV_GET("DATABASE_BASE_PATH", ".")
 
 // Database magic for file load_database function check
 #define DATABASE_MAGIC      0xFC

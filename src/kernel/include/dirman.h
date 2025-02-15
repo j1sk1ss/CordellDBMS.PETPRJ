@@ -49,14 +49,14 @@
 #define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL directories.
-#define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", "")
+#define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", ".")
 
 // 62^5 * PAGES_PER_DIRECTORY = 233.613.872.160 maximum pages in database.
 // 62^5 * 4096 = 233.6 * 10^9 KB = MIN(255TB, 211TB) - Maximum size of database.
 #define DIRECTORY_NAME_SIZE 6
 #define DIRECTORY_MAGIC     0xCC
 
-#define PAGES_PER_DIRECTORY 0xFF
+#define PAGES_PER_DIRECTORY 50
 #define DIRECTORY_OFFSET    PAGES_PER_DIRECTORY * PAGE_CONTENT_SIZE
 
 

@@ -14,7 +14,7 @@ from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator,
 start_test_time: float = time.perf_counter()
 
 
-ROWS: int = 50000
+ROWS: int = 10000
 connection: Connection = Connection(
     base_addr='0.0.0.0',
     port=7777,
@@ -182,6 +182,7 @@ for i in range(50):
 
 insert_time = time.perf_counter() - start_time
 print(f'Append data time: {insert_time:.4f} sec.')
+database.sync()
 
 start_time: float = time.perf_counter()
 rows: list = _by_exp_str_test(

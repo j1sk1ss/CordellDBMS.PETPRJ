@@ -25,6 +25,7 @@
 #include <stdio.h>
 
 #ifdef _WIN32
+  typedef intptr_t ssize_t;
   #include <windows.h>
 #else
   #include <sys/stat.h>
@@ -128,10 +129,12 @@ Check if file exists.
 
 Params:
 - path - Path to file with filename and extension.
+- base_path - Base path of file. Can be NULL.
+- filename - Filename.
 
 Return 1 if exist, 0 if not.
 */
-int file_exists(const char* path, const char* filename);
+int file_exists(const char* path, char* base_path, const char* filename);
 
 /*
 Delete file by provided filename, basepath and extension.
@@ -144,6 +147,20 @@ Params:
 Return remove status code.
 */
 int delete_file(const char* filename, const char* basepath, const char* extension);
+
+#ifdef _WIN32
+
+  /*
+  Windows wrapper for pwrite.
+  */
+  intptr_t pwrite(int fd, const void *buf, size_t count, long long int offset);
+
+  /*
+  Windows wrapper for pread
+  */
+  intptr_t pread(int fd, void *buf, size_t count, long long int offset);
+
+#endif
 
 // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
 // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);

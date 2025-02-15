@@ -23,18 +23,7 @@ static table_t* _get_table_access(
     return table;
 }
 
-unsigned char* DB_get_row(
-    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access
-) {
-    table_t* table = _get_table_access(database, table_name, access, check_write_access);
-    if (table == NULL) return NULL;
-
-    unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
-    TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
-    TBM_flush_table(table);
-
-    return data;
-}
+#pragma region [CRUD]
 
 int DB_append_row(
     database_t* __restrict database, char* __restrict table_name, 
@@ -47,7 +36,7 @@ int DB_append_row(
         return -5;
     }
 
-    int result = TBM_check_signature(table, data);
+    int result = TBM_check_signature(table, data); // O(n)
     if (result != 1) {
         TBM_flush_table(table);
         return result - 10;
@@ -56,7 +45,7 @@ int DB_append_row(
     // Get primary column and column offset
     int column_offset = 0;
     table_column_t* primary_column = NULL;
-    for (int i = 0; i < table->header->column_count; i++) {
+    for (int i = 0; i < table->header->column_count; i++) { // O(n)
         if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) {
             primary_column = table->columns[i];
         }
@@ -101,12 +90,25 @@ int DB_append_row(
         }
     }
 
-    TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
+    TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD); // O(n)
     result = TBM_append_content(table, data, data_size);
 
     table->header->row_count++;
     TBM_flush_table(table);
     return result;
+}
+
+unsigned char* DB_get_row(
+    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access
+) {
+    table_t* table = _get_table_access(database, table_name, access, check_write_access);
+    if (table == NULL) return NULL;
+
+    unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
+    TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
+    TBM_flush_table(table);
+
+    return data;
 }
 
 int DB_insert_row(
@@ -156,6 +158,8 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
 #endif
     return 1;
 }
+
+#pragma endregion
 
 int DB_cleanup_tables(database_t* database) {
 #ifndef NO_DELETE_COMMAND

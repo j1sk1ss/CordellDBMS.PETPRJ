@@ -76,7 +76,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
             } else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
                 operators[operator_count++] = operator;
             } else if (strcmp(operator, LIMIT) == 0) {
-                *out_limit = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, current_command));
+                *out_limit = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
             }
             else break;
         }
@@ -310,7 +310,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 }
 
                 DB_link_table2database(database, new_table);
-                CHC_add_entry(new_table, new_table->header->name, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
+                CHC_add_entry(new_table, new_table->header->name, TABLE_BASE_PATH, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
                 print_log("Table [%s] create success!", new_table->header->name);
 
                 answer->answer_size = -1;
