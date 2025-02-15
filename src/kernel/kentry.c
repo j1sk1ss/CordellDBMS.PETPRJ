@@ -76,7 +76,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
             } else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
                 operators[operator_count++] = operator;
             } else if (strcmp(operator, LIMIT) == 0) {
-                *out_limit = atoi(SAFE_GET_VALUE_PRE_INC(commands, argc, current_command));
+                *out_limit = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
             }
             else break;
         }

@@ -5,45 +5,40 @@
 
 int DRM_append_content(directory_t* __restrict directory, unsigned char* __restrict data, size_t data_lenght) {
     // First we try to find fit empty place somewhere in linked pages
-    // We skip this part if data_lenght larger then PAGE_CONTENT_SIZE
-    if (data_lenght < PAGE_CONTENT_SIZE) {
-        for (int i = directory->append_offset; i < directory->header->page_count; i++) {
-            page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
-            if (page != NULL) {
-                int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
-                if (index >= 0) {
-                    if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-                        PGM_insert_content(page, index, data, data_lenght);
-                        THR_release_lock(&page->lock, omp_get_thread_num());
+    for (int i = directory->append_offset; i < directory->header->page_count; i++) {
+        page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
+        if (page != NULL) {
+            int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
+            if (index >= 0) {
+                if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+                    PGM_insert_content(page, index, data, data_lenght);
+                    THR_release_lock(&page->lock, omp_get_thread_num());
 
-                        PGM_flush_page(page);
-                        return 1;
-                    }
+                    PGM_flush_page(page);
+                    return 1;
                 }
             }
-
-            PGM_flush_page(page);
         }
 
-        if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) return (int)data_lenght;
-
-        // We allocate memory for page structure with all needed data
-        page_t* new_page = PGM_create_empty_page(directory->header->name);
-        if (new_page == NULL) return -2;
-
-        // Insert new content to page and mark end
-        directory->append_offset = directory->header->page_count;
-        PGM_insert_content(new_page, 0, data, data_lenght);
-
-        // We link page to directory
-        DRM_link_page2dir(directory, new_page);
-        CHC_add_entry(new_page, new_page->header->name, directory->header->name, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page);
-        PGM_flush_page(new_page);
-
-        return 2;
+        PGM_flush_page(page);
     }
-    
-    return -3;
+
+    if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) return (int)data_lenght;
+
+    // We allocate memory for page structure with all needed data
+    page_t* new_page = PGM_create_empty_page(directory->header->name);
+    if (new_page == NULL) return -2;
+
+    // Insert new content to page and mark end
+    directory->append_offset = directory->header->page_count;
+    PGM_insert_content(new_page, 0, data, data_lenght);
+
+    // We link page to directory
+    DRM_link_page2dir(directory, new_page);
+    CHC_add_entry(new_page, new_page->header->name, directory->header->name, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page);
+    PGM_flush_page(new_page);
+
+    return 2;
 }
 
 unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght) {

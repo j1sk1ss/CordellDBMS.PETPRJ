@@ -1,7 +1,7 @@
 #include "../include/common.h"
 
 
-int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension) {
+inline int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension) {
     sprintf(buffer, "%s/%.*s.%s", base_path, name_size, name, extension);
     return 1;
 }

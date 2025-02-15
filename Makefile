@@ -19,7 +19,7 @@ USERS ?= 1
 # Disable server side code. Instead server, kernel take char* command.
 SERVER ?= 1 # NO_SERVER
 # Enable profiler
-DEBUG_PROFILER ?= 1
+DEBUG_PROFILER ?= 0
 
 # Kernel commands setup.
 # Disable all commands with update functionality
