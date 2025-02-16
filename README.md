@@ -113,7 +113,7 @@ Migrate function example:
 ```
 db migrate table_1 table_2 nav ( col2_s col1_d col8_s col2_d col3_s col3_d )
 ```
-P.S. In breckets placed navigation of columns. 
+P.S. In brackets placed navigation of columns. 
 
 ----------------
 *SYNC* </br>
