@@ -1,6 +1,26 @@
 #include "../../include/dataman.h"
 
 
+static int _unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
+    int status = 0;
+    #pragma omp critical (unlink_table_from_database)
+    {
+        for (int i = 0; i < database->header->table_count; i++) {
+            if (strncmp(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
+                for (int j = i; j < database->header->table_count - 1; j++) {
+                    strncpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
+                }
+
+                database->header->table_count--;
+                status = 1;
+                break;
+            }
+        }
+    }
+
+    return status;
+}
+
 static int _get_global_offset(int row_size, int row) {
     int rows_per_page = PAGE_CONTENT_SIZE / row_size;
     int pages_offset  = row / rows_per_page;
@@ -220,7 +240,8 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     table_t* table = NULL;
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
-        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
+        if (table) continue;
+        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
             table = TBM_load_table(table_name);
         }
     }
@@ -235,7 +256,7 @@ int DB_delete_table(database_t* __restrict database, char* __restrict table_name
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
 
-    DB_unlink_table_from_database(database, table_name);
+    _unlink_table_from_database(database, table_name);
     return TBM_delete_table(table, full);
 #endif
     return 1;
@@ -247,24 +268,4 @@ int DB_link_table2database(database_t* __restrict database, table_t* __restrict 
     #pragma omp critical (link_table2database)
     strncpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
     return 1;
-}
-
-int DB_unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
-    int status = 0;
-    #pragma omp critical (unlink_table_from_database)
-    {
-        for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
-                for (int j = i; j < database->header->table_count - 1; j++) {
-                    strncpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
-                }
-
-                database->header->table_count--;
-                status = 1;
-                break;
-            }
-        }
-    }
-
-    return status;
 }

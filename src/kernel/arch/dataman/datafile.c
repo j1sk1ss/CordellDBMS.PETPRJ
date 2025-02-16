@@ -35,7 +35,7 @@ int DB_delete_database(database_t* database, int full) {
     }
 
     if (result != 1) return result;
-    delete_file(database->header->name, TABLE_BASE_PATH, TABLE_EXTENSION);
+    delete_file(database->header->name, DATABASE_BASE_PATH, DATABASE_EXTENSION);
     DB_free_database(database);
 #endif
     return 1;

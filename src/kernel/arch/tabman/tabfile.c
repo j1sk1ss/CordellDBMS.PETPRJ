@@ -169,8 +169,6 @@ int TBM_delete_table(table_t* table, int full) {
             for (int i = 0; i < table->header->dir_count; i++) {
                 directory_t* directory = DRM_load_directory(table->dir_names[i]);
                 if (directory == NULL) continue;
-
-                TBM_unlink_dir_from_table(table, table->dir_names[i]);
                 DRM_delete_directory(directory, full);
             }
         }

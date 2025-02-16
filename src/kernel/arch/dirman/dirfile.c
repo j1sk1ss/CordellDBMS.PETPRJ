@@ -144,7 +144,8 @@ int DRM_delete_directory(directory_t* directory, int full) {
             }
         }
 
-        print_debug("Directory [%s] was deleted with result [%i]", directory->header->name, delete_file(directory->header->name, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION));
+        delete_file(directory->header->name, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
+        CHC_flush_entry(directory, DIRECTORY_CACHE);
         return 1;
     }
     else {

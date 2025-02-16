@@ -46,7 +46,7 @@ ifeq ($(PROD), 1)
 	CC = musl-gcc
 	CFLAGS = -Wall -Wextra -flto -fno-stack-protector -D_FORTUFY_SOURCE=0 -Ikernel/include -Wcomment -Os -s -DWARNINGS -DERRORS -DINFORMING
 else
-	CC = gcc-14
+	CC = gcc
 	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DSPECIAL
 endif
 
