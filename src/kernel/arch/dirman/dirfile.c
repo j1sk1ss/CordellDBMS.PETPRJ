@@ -53,12 +53,7 @@ int DRM_save_directory(directory_t* directory) {
                     }
                 }
 
-                #ifndef _WIN32
                 fsync(fd);
-                #else
-                fflush(fd);
-                #endif
-
                 close(fd);
             }
         }

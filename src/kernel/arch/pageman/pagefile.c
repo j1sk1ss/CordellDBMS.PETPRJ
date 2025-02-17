@@ -60,14 +60,9 @@ int PGM_save_page(page_t* page) {
                 if (pwrite(fd, page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
                 if (pwrite(fd, page->content, eof, sizeof(page_header_t)) != (ssize_t)eof) status = -3;
 
-                // Close file
-                #ifndef _WIN32
                 fsync(fd);
-                #else
-                fflush(fd);
-                #endif
-
                 close(fd);
+                
                 page->content[eof] = PAGE_EMPTY;
             }
         }

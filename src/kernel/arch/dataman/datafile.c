@@ -66,12 +66,7 @@ int DB_save_database(database_t* database) {
                     status = -3;
                 }
 
-            #ifndef _WIN32
             fsync(fd);
-            #else
-            fflush(fd);
-            #endif
-
             close(fd);
         }
     }

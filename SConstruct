@@ -1,11 +1,10 @@
 import os
-import SCons
 from SCons.Script import Environment, ARGUMENTS
 
 
 PROD = int(ARGUMENTS.get('PROD', 0))
 PTHREADS = int(ARGUMENTS.get('PTHREADS', 0))
-OMP = int(ARGUMENTS.get('OMP', 1))
+OMP = int(ARGUMENTS.get('OMP', 0))
 MAX_OPT = int(ARGUMENTS.get('MAX_OPT', 1))
 INCLUDE_LIBS = int(ARGUMENTS.get('INCLUDE_LIBS', 0))
 
@@ -21,8 +20,8 @@ if PROD:
     CC = "musl-gcc"
     CFLAGS = ["-Wall", "-Wextra", "-flto", "-fno-stack-protector", "-D_FORTUFY_SOURCE=0", "-Ikernel/include", "-Wcomment", "-Os", "-s", "-DWARNINGS", "-DERRORS", "-DINFORMING"]
 else:
-    CC = "gcc-14"
-    CFLAGS = ["-Wall", "-Wextra", "-Ikernel/include", "-Wcomment", "-DDEBUG", "-DLOGGING", "-DWARNINGS", "-DERRORS", "-DINFORMING", "-DSPECIAL"]
+    CC = "C:\\msys64\\ucrt64\\bin\\gcc.exe"
+    CFLAGS = ["-v", "-Wall", "-Wextra", "-Ikernel/include", "-Wcomment", "-DDEBUG", "-DLOGGING", "-DWARNINGS", "-DERRORS", "-DINFORMING", "-DSPECIAL"]
 
 
 if DISABLE_UPDATE:

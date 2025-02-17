@@ -70,13 +70,7 @@ int TBM_save_table(table_t* table) {
                         status = -5;
                     }
 
-                // Close file and clear buffers
-                #ifndef _WIN32
                 fsync(fd);
-                #else
-                fflush(fd);
-                #endif
-
                 close(fd);
             }
         }
