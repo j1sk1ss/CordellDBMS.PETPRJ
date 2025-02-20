@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import glob
 import random
@@ -231,19 +232,19 @@ retrieve_time = time.perf_counter() - start_test_time
 print(f'All tests time: {retrieve_time:.6f} sec.')
 print('Start cleanup...')
 
-def delete_files(folder: str, extensions: list):
+
+def _delete_files(folder: str, extensions: list):
     if not os.path.exists(folder):
-        print(f"Dir {folder} not exist!")
+        print(f"Dir {folder} does not exist!")
         return
     
     deleted_files = 0
-    
     for ext in extensions:
         files = glob.glob(os.path.join(folder, f"*.{ext}"))
         for file in files:
             try:
                 os.remove(file)
-                print(f"Deleted: {file}")
+                print(f"Deleted file: {file}")
                 deleted_files += 1
             except Exception as e:
                 print(f"Delete error {file}: {e}")
@@ -253,7 +254,23 @@ def delete_files(folder: str, extensions: list):
     else:
         print(f"Deleted files count: {deleted_files}")
 
+    deleted_folders = 0
+    for root, dirs, _ in os.walk(folder, topdown=False):
+        for dir_name in dirs:
+            dir_path = os.path.join(root, dir_name)
+            try:
+                shutil.rmtree(dir_path)
+                print(f"Deleted empty folder: {dir_path}")
+                deleted_folders += 1
+            except Exception as e:
+                print(f"Delete error {dir_path}: {e}")
+
+    if deleted_folders == 0:
+        print("No empty folders found!")
+    else:
+        print(f"Deleted empty folders count: {deleted_folders}")
+
 folder_path = "/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds"
 extensions_list = ["db", "pg", "dr", "tb"]
 
-delete_files(folder_path, extensions_list)
+_delete_files(folder_path, extensions_list)

@@ -1,7 +1,8 @@
 # docker build -t simulator .
-# docker run -d -p 7777:7777 -v /Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds:/app --name sim_container simulator
+# docker run --rm -d -p 7777:7777 -v /home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds:/app --name sim_container simulator
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
+
 
 RUN apt-get update && apt-get install -y \
     libpthread-stubs0-dev \
