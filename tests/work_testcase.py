@@ -44,7 +44,7 @@ def _by_exp_str_test(expression: list[Statement, LogicOperator], limit: int = 5)
 
 # region [CREATE]
 
-print('Creating database, table and test data...')
+print('\n[Test] Creating database, table and test data...')
 start_time = time.perf_counter()
 table.append_row(uid=0, huid=0, name='FirstTest', weight=1)
 
@@ -54,17 +54,16 @@ for i in range(ROWS):
 table.append_row(uid=0, huid=ROWS + 1, name='SecondTest', weight=1)
 
 insert_time = time.perf_counter() - start_time
-print(f'Test data insert time: {insert_time:.4f} sec.')
+print(f'[Time] Test data insert time: {insert_time:.4f} sec.')
 
 database.sync()
-print('Getting test data...')
 
-random_index: int = random.randint(10, ROWS - 1)
+random_index: int = random.randint(1, ROWS - 2)
 start_time = time.perf_counter()
 row = table.get_row_by_index(random_index)
 retrieve_time = time.perf_counter() - start_time
-print(f'Get time [by_index {random_index}]: {retrieve_time:.6f} sec.')
-print(f'Name: {row.name}, huid: {row.huid}, uid: {row.uid}, weight: {row.weight}')
+print(f'[Time] Get time [by_index {random_index}]: {retrieve_time:.6f} sec.')
+assert row.name == "Porosenok", "Data incorrect"
 
 start_time: float = time.perf_counter()
 rows: list = _by_exp_str_test(
@@ -76,9 +75,8 @@ rows: list = _by_exp_str_test(
 )
 
 retrieve_time = time.perf_counter() - start_time
-print(f'Get time [by_exp name != Porosenok and huid > ROWS - 1]: {retrieve_time:.6f} sec. | Count: {len(rows)}')
+print(f'[Time] Get time [by_exp name != Porosenok and huid > ROWS - 1]: {retrieve_time:.6f} sec. | Count: {len(rows)}')
 for i in rows:
-    print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
     assert i.name != "Porosenok" and i.huid > ROWS - 1, "Test failed. Data incorrect"
 
 database.sync()
@@ -87,7 +85,7 @@ database.sync()
 
 # region [READ (GET)]
 
-print('Getting data by expressions test...')
+print('\n[Test] Getting data by expressions test...')
 start_time: float = time.perf_counter()
 rows: list = _by_exp_str_test(
     expression=[
@@ -98,9 +96,8 @@ rows: list = _by_exp_str_test(
 )
 
 retrieve_time = time.perf_counter() - start_time
-print(f'Get time [by_exp name != Porosenok and huid > 30]: {retrieve_time:.6f} sec. | Count: {len(rows)}')
+print(f'[Time] Get time [by_exp name != Porosenok and huid > 30]: {retrieve_time:.6f} sec. | Count: {len(rows)}')
 for i in rows:
-    print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
     assert i.name != "Porosenok" and i.huid > 30, "Test failed. Data incorrect"
 
 start_time = time.perf_counter()
@@ -113,16 +110,15 @@ rows: list = _by_exp_str_test(
 )
 
 retrieve_time = time.perf_counter() - start_time
-print(f'Get time [by_exp weight > 249 or name != Porosenok]: {retrieve_time:.6f} sec. | Count: {len(rows)}')
+print(f'[Time] Get time [by_exp weight > 249 or name != Porosenok]: {retrieve_time:.6f} sec. | Count: {len(rows)}')
 for i in rows:
-    print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
     assert i.weight > 249 or i.name != "Porosenok", "Test failed. Data incorrect"
 
 # endregion
 
 # region [UPDATE]
 
-print('Update row by expression test...')
+print('\n[Test] Update row by expression test...')
 start_time: float = time.perf_counter()
 table.insert_row_by_expression(
     expression=[
@@ -132,17 +128,16 @@ table.insert_row_by_expression(
 )
 
 retrieve_time = time.perf_counter() - start_time
-print(f'Update time [by_exp name == Porosenok >> Svinya]: {retrieve_time:.6f} sec.')
+print(f'[Time] Update time [by_exp name == Porosenok >> Svinya]: {retrieve_time:.6f} sec.')
 
 rows: list = _by_exp_str_test(
     expression=[
         Statement(column_name="name", expression=Expressions.STR_EQUALS, value="Svinya")
-    ]
+    ],
+    limit=50
 )
 
-print('Check update values:')
 for i in rows:
-    print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
     assert i.weight == 500, "Test failed. Data incorrect"
 
 
@@ -152,7 +147,7 @@ database.sync()
 
 # region [DELETE]
 
-print('Row delete by expression test...')
+print('\n[Test] Row delete by expression test...')
 start_time: float = time.perf_counter()
 table.delete_row_by_expression(
     expression=[
@@ -161,7 +156,7 @@ table.delete_row_by_expression(
 )
 
 retrieve_time = time.perf_counter() - start_time
-print(f'Delete time [by_exp name == Svinya]: {retrieve_time:.6f} sec.')
+print(f'[Time] Delete time [by_exp name == Svinya]: {retrieve_time:.6f} sec.')
     
 rows: list = _by_exp_str_test(
     expression=[
@@ -176,13 +171,13 @@ database.sync()
 
 # region [APPEND TO FREE REGIONS]
 
-print('Try to append data into free region (Check 000000.pg for correct result)')
+print('\n[Test] Try to append data into free region (Check 000000.pg for correct result)')
 start_time = time.perf_counter()
 for i in range(50):
     table.append_row(uid=i, huid=i, name='Kitty', weight=random.randint(100, 250))
 
 insert_time = time.perf_counter() - start_time
-print(f'Append data time: {insert_time:.4f} sec.')
+print(f'[Time] Append data time: {insert_time:.4f} sec.')
 database.sync()
 
 start_time: float = time.perf_counter()
@@ -193,11 +188,8 @@ rows: list = _by_exp_str_test(
 )
 
 retrieve_time = time.perf_counter() - start_time
-assert len(rows) >= 50, f"Rows wasn't append: {len(rows)}/{50}"
-
-print('New rows:')
+assert len(rows) == 50, f"Rows wasn't append: {len(rows)}/{50}"
 for i in rows:
-    print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
     assert i.name == "Kitty", "Wrong name for new data"
 
 database.sync()
@@ -206,7 +198,7 @@ database.sync()
 
 # region [CHECK TEST DATA]
 
-print('Test data should stay in database (FirstTest and SecondTest)...')
+print('\n[Test] Test data should stay in database (FirstTest and SecondTest)...')
 start_time: float = time.perf_counter()
 rows: list = _by_exp_str_test(
     expression=[
@@ -218,20 +210,19 @@ rows: list = _by_exp_str_test(
 )
 
 retrieve_time = time.perf_counter() - start_time
-print(f'Test data get from database time: {retrieve_time:.6f} sec.')
+print(f'[Time] Test data get from database time: {retrieve_time:.6f} sec.')
 
 assert (len(rows)) >= 2, f"FirstTest and SecondTest not exists | count: {len(rows)}"
 for i in rows:
-    print(f'Name: {i.name}, huid: {i.huid}, uid: {i.uid}, weight: {i.weight}')
     assert i.name in [ 'FirstTest', 'SecondTest' ]
 
 # endregion
 
-print('TEST COMPLETE')
+print('\nTest Complete\nIf you see this message, be sure, all functions in CDBMS works correct!\n')
 retrieve_time = time.perf_counter() - start_test_time
-print(f'All tests time: {retrieve_time:.6f} sec.')
-print('Start cleanup...')
+print(f'[Time] All tests time: {retrieve_time:.6f} sec.')
 
+print('\n')
 
 def _delete_files(folder: str, extensions: list):
     if not os.path.exists(folder):
@@ -270,7 +261,5 @@ def _delete_files(folder: str, extensions: list):
     else:
         print(f"Deleted empty folders count: {deleted_folders}")
 
-folder_path = "/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds"
-extensions_list = ["db", "pg", "dr", "tb"]
 
-_delete_files(folder_path, extensions_list)
+_delete_files("/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds", ["db", "pg", "dr", "tb"])
