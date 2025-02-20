@@ -31,7 +31,7 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     table->columns  = columns;
     table->row_size = row_size;
     
-    table->lock   = THR_create_lock();
+    table->lock = THR_create_lock();
     table->header = header;
     return table;
 #endif
@@ -52,7 +52,7 @@ int TBM_save_table(table_t* table) {
 
             // Open or create file
             int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd < 0) print_error("Can't save or create table [%s] file", save_path);
+            if (fd < 0) { print_error("Can't save or create table [%s] file", save_path); }
             else {
                 // Write header
                 status = 1;
@@ -97,7 +97,7 @@ table_t* TBM_load_table(char* name) {
     {
         int fd = open(load_path, O_RDONLY);
         print_debug("Loading table [%s] from disk", load_path);
-        if (fd < 0) print_error("Can't open table [%s]", load_path);
+        if (fd < 0) { print_error("Can't open table [%s]", load_path); }
         else {
             // Read header of table from file.
             // Note: If magic is wrong, we can say, that this file isn`t table.
@@ -107,13 +107,14 @@ table_t* TBM_load_table(char* name) {
                 pread(fd, header, sizeof(table_header_t), 0);
                 if (header->magic != TABLE_MAGIC) {
                     print_error("Table file wrong magic for [%s]", load_path);
-                    free(header);
+                    SOFT_FREE(header);
                     close(fd);
                 } else {
                     // Read columns from file.
                     table_t* table = (table_t*)malloc(sizeof(table_t));
                     table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
                     if (!table || !columns) {
+                        SOFT_FREE(header);
                         SOFT_FREE(table);
                         ARRAY_SOFT_FREE(columns, header->column_count);
                     } else {
@@ -122,7 +123,10 @@ table_t* TBM_load_table(char* name) {
 
                         for (int i = 0; i < header->column_count; i++) {
                             columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
-                            if (!columns[i]) continue;
+                            if (!columns[i]) {
+                                continue; // TODO NULL!!!!!
+                            }
+
                             memset(columns[i], 0, sizeof(table_column_t));
                             pread(fd, columns[i], sizeof(table_column_t), sizeof(table_header_t) + sizeof(table_column_t) * i);
                         }
@@ -178,21 +182,21 @@ int TBM_delete_table(table_t* table, int full) {
 }
 
 int TBM_flush_table(table_t* table) {
-    if (table == NULL) return -2;
+    if (!table) return -2;
     if (table->is_cached == 1) return -1;
-
     TBM_save_table(table);
     return TBM_free_table(table);
 }
 
 int TBM_free_table(table_t* table) {
-    if (table == NULL) return -1;
+    if (!table) return -1;
     ARRAY_SOFT_FREE(table->columns, table->header->column_count);
     SOFT_FREE(table);
     return 1;
 }
 
 unsigned int TBM_get_checksum(table_t* table) {
+    if (!table) return 0;
     unsigned int prev_checksum = table->header->checksum;
     table->header->checksum = 0;
 

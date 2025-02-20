@@ -16,7 +16,7 @@ directory_t* DRM_create_directory(char* name) {
     strncpy(header->name, name, DIRECTORY_NAME_SIZE);
     header->magic = DIRECTORY_MAGIC;
 
-    directory->lock   = THR_create_lock();
+    directory->lock = THR_create_lock();
     directory->header = header;
     return directory;
 }
@@ -24,8 +24,10 @@ directory_t* DRM_create_directory(char* name) {
 directory_t* DRM_create_empty_directory() {
     char directory_name[DIRECTORY_NAME_SIZE] = { 0 };
     char* unique_name = generate_unique_filename(DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, DIRECTORY_EXTENSION);
+    if (!unique_name) return NULL;
+
     strncpy(directory_name, unique_name, DIRECTORY_NAME_SIZE);
-    free(unique_name);
+    SOFT_FREE(unique_name);
 
     return DRM_create_directory(directory_name);
 }
@@ -42,7 +44,7 @@ int DRM_save_directory(directory_t* directory) {
             get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, save_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
 
             int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd < 0) print_error("Can`t create file: [%s]", save_path);
+            if (fd < 0) { print_error("Can`t create file: [%s]", save_path); }
             else {
                 status = 1;
                 directory->header->checksum = DRM_get_checksum(directory);
@@ -80,7 +82,7 @@ directory_t* DRM_load_directory(char* name) {
         // Open file directory
         int fd = open(load_path, O_RDONLY);
         print_debug("Loading directory [%s]", load_path);
-        if (fd < 0) print_error("Directory not found! Path: [%s]", load_path);
+        if (fd < 0) { print_error("Directory not found! Path: [%s]", load_path); }
         else {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
@@ -152,22 +154,21 @@ int DRM_delete_directory(directory_t* directory, int full) {
 }
 
 int DRM_flush_directory(directory_t* directory) {
-    if (directory == NULL) return -2;
+    if (!directory) return -2;
     if (directory->is_cached == 1) return -1;
-
     DRM_save_directory(directory);
     return DRM_free_directory(directory);
 }
 
 int DRM_free_directory(directory_t* directory) {
-    if (directory == NULL) return -1;
+    if (!directory) return -1;
     SOFT_FREE(directory->header);
     SOFT_FREE(directory);
-
     return 1;
 }
 
 unsigned int DRM_get_checksum(directory_t* directory) {
+    if (!directory) return 0;
     unsigned int prev_checksum = directory->header->checksum;
     directory->header->checksum = 0;
 

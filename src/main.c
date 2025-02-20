@@ -18,6 +18,9 @@
  *  that we can work with big data by using very light weighten app.
  * 
  *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
+ *  TODO:
+ *      - Custom malloc in STM32 branch (pre-allocated buffer)
+ *      - Add more log options
 */
 
 #include "kernel/include/user.h"
@@ -142,6 +145,7 @@ static void _start_kernel_session(int source, int destination, int session) {
             continue;
 #else
         user = (user_t*)malloc(sizeof(user_t));
+        if (!user) break;
         user->access = CREATE_ACCESS_BYTE(0, 0, 0);
 #endif
         }

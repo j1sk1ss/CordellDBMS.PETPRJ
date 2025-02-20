@@ -94,15 +94,17 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
 
     ((cache_body_t*)entry)->is_cached = 1;
 
+    if (base_path != NULL) {
+        GCT[current].base_path = (char*)malloc(strlen(base_path));
+        if (!GCT[current].base_path) return -5;
+        strcpy(GCT[current].base_path, base_path);
+    }
+
     GCT[current].pointer = entry;
     strncpy(GCT[current].name, name, ENTRY_NAME_SIZE);
     GCT[current].type = type;
     GCT[current].free = free;
     GCT[current].save = save;
-    if (base_path != NULL) {
-        GCT[current].base_path = (char*)malloc(strlen(base_path));
-        strcpy(GCT[current].base_path, base_path);
-    }
 
     #pragma omp critical (gct_types_increase)
     GCT_TYPES[type] = MIN(GCT_TYPES[type] + 1, GCT_TYPES_MAX[type]);

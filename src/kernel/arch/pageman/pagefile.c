@@ -25,12 +25,18 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
 
 page_t* PGM_create_empty_page(char* base_path) {
     char* unique_name = generate_unique_filename(base_path, PAGE_NAME_SIZE, PAGE_EXTENSION);
-    page_t* page = PGM_create_page(unique_name, NULL, 0);
+    if (!unique_name) return NULL;
 
+    page_t* page = PGM_create_page(unique_name, NULL, 0);
     page->base_path = (char*)malloc(strlen(base_path) + 1);
+    if (!page->base_path) {
+        SOFT_FREE(unique_name);
+        return NULL;
+    }
+
     strcpy(page->base_path, base_path);
     
-    free(unique_name);
+    SOFT_FREE(unique_name);
     return page;
 }
 
@@ -50,7 +56,7 @@ int PGM_save_page(page_t* page) {
 
             // Open or create file
             int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd < 0) print_error("Can't save or create [%s] file", save_path);
+            if (fd < 0) { print_error("Can't save or create [%s] file", save_path); }
             else {
                 // Write data to disk
                 status = 1;
@@ -89,7 +95,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
         // Open file page
         int fd = open(load_path, O_RDONLY);
         print_debug("Loading page [%s]", load_path);
-        if (fd < 0) print_error("Page not found! Path: [%s]", load_path);
+        if (fd < 0) { print_error("Page not found! Path: [%s]", load_path); }
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
@@ -126,28 +132,32 @@ page_t* PGM_load_page(char* base_path, char* name) {
     }
 
     loaded_page->base_path = (char*)malloc(strlen(base_path) + 1);
+    if (!loaded_page->base_path) {
+        PGM_free_page(loaded_page);
+        return NULL;
+    }
+
     strcpy(loaded_page->base_path, base_path);
     return loaded_page;
 }
 
 int PGM_flush_page(page_t* page) {
-    if (page == NULL) return -2;
+    if (!page) return -2;
     if (page->is_cached == 1) return -1;
-
     PGM_save_page(page);
     return PGM_free_page(page);
 }
 
 int PGM_free_page(page_t* page) {
-    if (page == NULL) return -1;
-
+    if (!page) return -1;
     SOFT_FREE(page->header);
+    SOFT_FREE(page->base_path);
     SOFT_FREE(page);
-
     return 1;
 }
 
 unsigned int PGM_get_checksum(page_t* page) {
+    if (!page) return 0;
     unsigned int prev_checksum = page->header->checksum;
     page->header->checksum = 0;
 

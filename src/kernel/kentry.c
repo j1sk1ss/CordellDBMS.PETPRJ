@@ -127,6 +127,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
     }
 
     database_t* database = _connections[connection];
+    if (!database) return answer;
 
     /*
     Save commands into RAM.

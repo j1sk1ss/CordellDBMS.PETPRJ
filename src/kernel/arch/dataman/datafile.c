@@ -57,7 +57,7 @@ int DB_save_database(database_t* database) {
         get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
 
         int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        if (fd < 0) print_error("Can`t create or open file: [%s]", save_path);
+        if (fd < 0) { print_error("Can`t create or open file: [%s]", save_path); }
         else {
             status = 1;
             if (pwrite(fd, database->header, sizeof(database_header_t), 0) != sizeof(database_header_t)) status = -2;
@@ -86,19 +86,21 @@ database_t* DB_load_database(char* name) {
     {
         int fd = open(load_path, O_RDONLY);
         print_debug("Loading database [%s]", load_path);
-        if (fd < 0) print_error("Database file not found! [%s]", load_path);
+        if (fd < 0) { print_error("Database file not found! [%s]", load_path); }
         else {
             loaded_database = DB_create_database(NULL);
-            pread(fd, loaded_database->header, sizeof(database_header_t), 0);
-            if (loaded_database->header->magic != DATABASE_MAGIC) {
-                print_error("Database file wrong magic for [%s]", load_path);
-                DB_free_database(loaded_database);
-                close(fd);
-            } else {
-                for (int i = 0; i < loaded_database->header->table_count; i++)
-                    pread(fd, loaded_database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i);
+            if (loaded_database) {
+                pread(fd, loaded_database->header, sizeof(database_header_t), 0);
+                if (loaded_database->header->magic != DATABASE_MAGIC) {
+                    print_error("Database file wrong magic for [%s]", load_path);
+                    DB_free_database(loaded_database);
+                    close(fd);
+                } else {
+                    for (int i = 0; i < loaded_database->header->table_count; i++)
+                        pread(fd, loaded_database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i);
 
-                close(fd);
+                    close(fd);
+                }
             }
         }
     }

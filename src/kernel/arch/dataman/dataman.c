@@ -186,6 +186,7 @@ int DB_cleanup_tables(database_t* database) {
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
         table_t* table = DB_get_table(database, database->table_names[i]);
+        if (!table) continue;
         TBM_cleanup_dirs(table);
         TBM_flush_table(table);
     }
