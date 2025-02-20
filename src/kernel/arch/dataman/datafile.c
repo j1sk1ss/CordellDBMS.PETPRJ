@@ -94,14 +94,13 @@ database_t* DB_load_database(char* name) {
                 if (loaded_database->header->magic != DATABASE_MAGIC) {
                     print_error("Database file wrong magic for [%s]", load_path);
                     DB_free_database(loaded_database);
-                    close(fd);
                 } else {
                     for (int i = 0; i < loaded_database->header->table_count; i++)
                         pread(fd, loaded_database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i);
-
-                    close(fd);
                 }
             }
+
+            close(fd);
         }
     }
 

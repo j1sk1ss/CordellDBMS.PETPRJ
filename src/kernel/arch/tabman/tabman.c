@@ -202,18 +202,9 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 
 int TBM_cleanup_dirs(table_t* table) {
 #ifndef NO_DELETE_COMMAND
-    int temp_count = table->header->dir_count; // TODO Incapsulate!!!!
-    char** temp_names = (char**)malloc(sizeof(char*) * temp_count);
+    int temp_count = table->header->dir_count;
+    char** temp_names = copy_array2array((char**)table->dir_names, DIRECTORY_NAME_SIZE, temp_count, PAGE_NAME_SIZE);
     if (!temp_names) return -1;
-    for (int i = 0; i < temp_count; i++) {
-        temp_names[i] = (char*)malloc(PAGE_NAME_SIZE);
-        if (!temp_names[i]) {
-            ARRAY_SOFT_FREE(temp_names, temp_count);
-            return -1;
-        }
-
-        strncpy(temp_names[i], table->dir_names[i], DIRECTORY_NAME_SIZE);
-    }
 
     #pragma omp parallel for schedule(dynamic, 4)
     for (int i = 0; i < temp_count; i++) {

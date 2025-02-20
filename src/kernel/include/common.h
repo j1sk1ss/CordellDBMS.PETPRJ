@@ -208,4 +208,16 @@ Return checksum.
 */
 unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
 
+/*
+Copt char* array to new destination.
+
+Params:
+  - source - Source array.
+  - elem_size - Each elem size or max size in source array.
+  - size - source array size.
+
+Return pointer to array copy or NULL.
+*/
+char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size);
+
 #endif

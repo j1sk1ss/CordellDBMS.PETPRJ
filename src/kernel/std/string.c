@@ -75,3 +75,20 @@ unsigned int str2hash(const char* str) {
     for (int i = 0; i < MAGIC; i++) hashedValue ^= (hashedValue << MAGIC) + (hashedValue >> 2) + SALT[i];
     return hashedValue;
 }
+
+char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size) {
+    char** temp_names = (char**)malloc(sizeof(char*) * count);
+    if (!temp_names) return NULL;
+
+    for (size_t i = 0; i < count; i++) {
+        temp_names[i] = (char*)malloc(row_size);
+        if (!temp_names[i]) {
+            ARRAY_SOFT_FREE(temp_names, (int)count);
+            return NULL;
+        }
+
+        memcpy(temp_names[i], (char*)source + i * elem_size, row_size);
+    }
+
+    return temp_names;
+}

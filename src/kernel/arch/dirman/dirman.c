@@ -220,17 +220,8 @@ int DRM_find_content(
 int DRM_cleanup_pages(directory_t* directory) {
 #ifndef NO_DELETE_COMMAND
     int temp_count = directory->header->page_count;
-    char** temp_names = (char**)malloc(sizeof(char*) * temp_count);
+    char** temp_names = copy_array2array((void*)directory->page_names, PAGE_NAME_SIZE, temp_count, PAGE_NAME_SIZE);
     if (!temp_names) return -1;
-    for (int i = 0; i < temp_count; i++) {
-        temp_names[i] = (char*)malloc(PAGE_NAME_SIZE);
-        if (!temp_names[i]) {
-            ARRAY_SOFT_FREE(temp_names, temp_count);
-            return -1;
-        }
-
-        strncpy(temp_names[i], directory->page_names[i], PAGE_NAME_SIZE);
-    }
 
     #pragma omp parallel for schedule(dynamic, 4)
     for (int i = 0; i < temp_count; i++) {
