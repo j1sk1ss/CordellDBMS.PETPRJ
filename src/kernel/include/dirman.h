@@ -219,37 +219,6 @@
     int DRM_save_directory(directory_t* directory);
 
     /*
-    Link current page to this directory.
-    This function just add page name to directory page names and increment page count.
-    Note: You can avoid page loading from disk if you want just link.
-          For avoiuding additional IO file operations, use create_page function with same name,
-          then just link allocated struct to directory.
-
-    Params:
-    - directory - Home directory.
-    - page - Page for linking.
-
-    Return -1 if we reach page limit per directory.
-    If sighnature wrong, return 0.
-    If all okey - return 1.
-    */
-    int DRM_link_page2dir(directory_t* __restrict directory, page_t* __restrict page);
-
-    /*
-    Unlink page from directory. This function just remove page name from directory structure.
-    Note: If you want to delete page permanently, be sure that you unlink it from directory.
-
-    Params:
-    - directory - directory pointer.
-    - page_name - page name (Not path).
-
-    Return -1 if something goes wrong.
-    Return 0 if page not found.
-    Return 1 if unlink was success.
-    */
-    int DRM_unlink_page_from_directory(directory_t* __restrict directory, char* __restrict page_name);
-
-    /*
     Allocate memory and create new directory.
 
     Params:

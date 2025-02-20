@@ -53,12 +53,7 @@ int DRM_save_directory(directory_t* directory) {
                     }
                 }
 
-                #ifndef _WIN32
                 fsync(fd);
-                #else
-                fflush(fd);
-                #endif
-
                 close(fd);
             }
         }
@@ -144,7 +139,8 @@ int DRM_delete_directory(directory_t* directory, int full) {
             }
         }
 
-        print_debug("Directory [%s] was deleted with result [%i]", directory->header->name, delete_file(directory->header->name, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION));
+        delete_file(directory->header->name, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
+        CHC_flush_entry(directory, DIRECTORY_CACHE);
         return 1;
     }
     else {

@@ -1,6 +1,33 @@
 #include "../../include/tabman.h"
 
 
+static int _link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
+    #pragma omp critical (link_dir2table)
+    strncpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
+    return 1;
+}
+
+static int _unlink_dir_from_table(table_t* table, const char* dir_name) {
+    int status = 0;
+    #pragma omp critical (unlink_dir_from_table)
+    {
+        for (int i = 0; i < table->header->dir_count; i++) {
+            if (strncmp(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
+                for (int j = i; j < table->header->dir_count - 1; j++) {
+                    memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
+                }
+
+                table->header->dir_count--;
+                table->append_offset = MAX(table->append_offset - 1, 0);
+                status = 1;
+                break;
+            }
+        }
+    }
+
+    return status;
+}
+
 #pragma region [CRUD]
 
 int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data, size_t data_size) {
@@ -41,7 +68,7 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
         return append_result - 10;
     }
 
-    TBM_link_dir2table(table, new_directory);
+    _link_dir2table(table, new_directory);
 
     // Save directory to DDT
     CHC_add_entry(
@@ -158,7 +185,7 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
             int result = DRM_delete_content(directory, MAX(offset - current_index, 0), size4delete);
-            table->append_offset = i;
+            table->append_offset = MIN(table->append_offset, i);
 
             offset = 0;
             size4delete -= result;
@@ -186,15 +213,28 @@ int TBM_cleanup_dirs(table_t* table) {
         strncpy(temp_names[i], table->dir_names[i], DIRECTORY_NAME_SIZE);
     }
 
-    #pragma omp parallel for schedule(dynamic, 1)
+    #pragma omp parallel for schedule(dynamic, 4)
     for (int i = 0; i < temp_count; i++) {
+        char dir_path[DEFAULT_PATH_SIZE] = { 0 };
+        sprintf(dir_path, "%s/%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, temp_names[i], DIRECTORY_EXTENSION);
+
         directory_t* directory = DRM_load_directory(temp_names[i]);
-        DRM_cleanup_pages(directory);
-        if (directory->header->page_count == 0) {
-            TBM_unlink_dir_from_table(table, directory->header->name);
-            DRM_delete_directory(directory, 0);
+        if (directory) {
+            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+                DRM_cleanup_pages(directory);
+                if (directory->header->page_count == 0) {
+                    _unlink_dir_from_table(table, directory->header->name);
+                    CHC_flush_entry(directory, DIRECTORY_CACHE);
+                    print_debug("Directory [%s] was deleted with result [%i]", temp_names[i], remove(dir_path));
+                    continue;
+                }
+                else {
+                    THR_release_lock(&directory->lock, omp_get_thread_num());
+                }
+            }
+
+            DRM_flush_directory(directory);
         }
-        else DRM_flush_directory(directory);
     }
 
     ARRAY_SOFT_FREE(temp_names, temp_count);
@@ -246,32 +286,6 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
 
     if (target_global_index != -1) target_global_index += current_index;
     return target_global_index;
-}
-
-int TBM_link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
-    #pragma omp critical (link_dir2table)
-    strncpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
-    return 1;
-}
-
-int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
-    int status = 0;
-    #pragma omp critical (unlink_dir_from_table)
-    {
-        for (int i = 0; i < table->header->dir_count; i++) {
-            if (strncmp(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
-                for (int j = i; j < table->header->dir_count - 1; j++) {
-                    memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
-                }
-
-                table->header->dir_count--;
-                status = 1;
-                break;
-            }
-        }
-    }
-
-    return status;
 }
 
 int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __restrict querry[], size_t querry_size) {

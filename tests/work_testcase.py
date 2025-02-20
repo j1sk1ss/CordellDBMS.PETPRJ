@@ -253,7 +253,7 @@ def delete_files(folder: str, extensions: list):
     else:
         print(f"Deleted files count: {deleted_files}")
 
-folder_path = "/Users/nikolaj/Documents/CordellDBMS.EXMPL/builds"
+folder_path = "/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds"
 extensions_list = ["db", "pg", "dr", "tb"]
 
 delete_files(folder_path, extensions_list)

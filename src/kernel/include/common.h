@@ -26,7 +26,12 @@
 
 #ifdef _WIN32
   typedef intptr_t ssize_t;
+  #include <io.h>
+  #include <direct.h>
+  #include <winsock2.h>
   #include <windows.h>
+
+  #define mkdir(path, mode) _mkdir(path)
 #else
   #include <sys/stat.h>
 #endif
@@ -153,12 +158,17 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
   /*
   Windows wrapper for pwrite.
   */
-  intptr_t pwrite(int fd, const void *buf, size_t count, long long int offset);
+  intptr_t pwrite(int fd, const void* buf, size_t count, long long int offset);
 
   /*
-  Windows wrapper for pread
+  Windows wrapper for pread.
   */
-  intptr_t pread(int fd, void *buf, size_t count, long long int offset);
+  intptr_t pread(int fd, void* buf, size_t count, long long int offset);
+
+  /*
+  Windows wrapper for fsync.
+  */
+  int fsync(int fd);
 
 #endif
 

@@ -416,34 +416,6 @@
 
 #pragma region [Table]
 
-
-    /*
-    Link directory to table
-    Note: Be sure that directory has same signature with table
-
-    Params:
-    - table - pointer to table (Can be freed after function)
-    - directory - pointer to directory (Can be freed after function)
-
-    Return 0 - if something goes wrong
-    Return 1 - if link was success
-    */
-    int TBM_link_dir2table(table_t* __restrict table, directory_t* __restrict directory);
-
-    /*
-    Unlink directory from table. This function just remove directory name from table structure.
-    Note: If you want to delete directory permanently, be sure that you unlink it from table.
-
-    Params:
-    - table - table pointer.
-    - dir_name - directory name (Not path).
-
-    Return -1 if something goes wrong.
-    Return 0 if directory not found.
-    Return 1 if unlink was success.
-    */
-    int TBM_unlink_dir_from_table(table_t* table, const char* dir_name);
-
     /*
     Create new table
 
