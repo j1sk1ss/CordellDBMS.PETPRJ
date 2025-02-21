@@ -400,7 +400,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                                 if (limit != -1 && get_data++ >= limit) break;
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
-                                answer_data = (unsigned char*)realloc(answer_data, answer_size);
+                                answer_data = (unsigned char*)realloc_s(answer_data, answer_size);
                                 memcpy_s(answer_data + data_start, row_data, table->row_size);
                             }
                         }

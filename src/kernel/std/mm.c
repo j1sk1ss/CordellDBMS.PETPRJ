@@ -37,6 +37,38 @@ void* malloc_s(size_t size) {
     return NULL;
 }
 
+void* realloc_s(void* ptr, size_t elem) {
+    if (ptr == NULL) return malloc_s(elem);
+    if (elem == 0) {
+        free_s(ptr);
+        return NULL;
+    }
+
+    mm_block_t* block = (mm_block_t*)((unsigned char*)ptr - sizeof(mm_block_t));
+    size_t old_size = block->size;
+    if (elem <= old_size) {
+        return ptr;
+    }
+
+    mm_block_t* next_block = (mm_block_t*)((unsigned char*)block + sizeof(mm_block_t) + block->size);
+    if (next_block && next_block->free && (block->size + sizeof(mm_block_t) + next_block->size) >= elem) {
+        block->size += sizeof(mm_block_t) + next_block->size;
+        block->free = 0;
+        next_block->next = next_block->next;
+        return ptr;
+    }
+
+    void* new_ptr = malloc_s(elem);
+    if (new_ptr == NULL) {
+        return NULL;
+    }
+
+    memcpy_s(new_ptr, ptr, old_size);
+    free_s(ptr);
+    return new_ptr;
+}
+
+
 int free_s(void* ptr) {
     if (!ptr || ptr < (void*)buffer || ptr >= (void*)(buffer + BUFFER_SIZE)) {
         return -1;

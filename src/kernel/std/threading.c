@@ -8,7 +8,7 @@ int THR_create_thread(void* (*entry)(void*), void* args) {
         #ifdef _WIN32
             HANDLE client_thread = CreateThread(NULL, 0, entry, args, 0, NULL);
             if (client_thread == NULL) {
-                free(args);
+                free_s(args);
                 return -1;
             }
 
@@ -16,7 +16,7 @@ int THR_create_thread(void* (*entry)(void*), void* args) {
         #else
             pthread_t client_thread;
             if (pthread_create(&client_thread, NULL, entry, args) != 0) {
-                free(args);
+                free_s(args);
                 return -1;
             }
 

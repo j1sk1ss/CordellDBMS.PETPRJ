@@ -204,6 +204,7 @@ int main() {
     print_info("Cordell Database Manager Studio server-side.");
     print_info("Current version of kernel is [%s].", KERNEL_VERSION);
 
+    init_memory();
     TB_enable();
     CL_enable();
     CHC_init();

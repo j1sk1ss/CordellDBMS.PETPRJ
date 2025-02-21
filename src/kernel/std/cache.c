@@ -34,7 +34,7 @@ static int _flush_index(int index) {
     GCT[index].free = NULL;
     GCT[index].save = NULL;
     GCT[index].type = ANY_CACHE;
-    free(GCT[index].base_path);
+    free_s(GCT[index].base_path);
     GCT[index].base_path = NULL;
 
     return 1;
