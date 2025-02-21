@@ -34,38 +34,22 @@ void* malloc_s(size_t size) {
         current = current->next;
     }
 
+    print_error("Allocation error! Returned NULL!");
     return NULL;
 }
 
 void* realloc_s(void* ptr, size_t elem) {
-    if (ptr == NULL) return malloc_s(elem);
-    if (elem == 0) {
-        free_s(ptr);
-        return NULL;
+    void* new_data = NULL;
+    if (elem) {
+        if(!ptr) return malloc_s(elem);
+        new_data = malloc_s(elem);
+        if(new_data) {
+            memcpy_s(new_data, ptr, elem);
+            free_s(ptr);
+        }
     }
 
-    mm_block_t* block = (mm_block_t*)((unsigned char*)ptr - sizeof(mm_block_t));
-    size_t old_size = block->size;
-    if (elem <= old_size) {
-        return ptr;
-    }
-
-    mm_block_t* next_block = (mm_block_t*)((unsigned char*)block + sizeof(mm_block_t) + block->size);
-    if (next_block && next_block->free && (block->size + sizeof(mm_block_t) + next_block->size) >= elem) {
-        block->size += sizeof(mm_block_t) + next_block->size;
-        block->free = 0;
-        next_block->next = next_block->next;
-        return ptr;
-    }
-
-    void* new_ptr = malloc_s(elem);
-    if (new_ptr == NULL) {
-        return NULL;
-    }
-
-    memcpy_s(new_ptr, ptr, old_size);
-    free_s(ptr);
-    return new_ptr;
+    return new_data;
 }
 
 
@@ -83,6 +67,7 @@ int free_s(void* ptr) {
             current->size += sizeof(mm_block_t) + current->next->size;
             current->next = current->next->next;
         }
+        
         current = current->next;
     }
 

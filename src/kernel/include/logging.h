@@ -41,7 +41,7 @@
 #endif
 
 #ifdef IO_OPERATION
-    #define print_io(message, ...)       log_message("IO_OPERATION", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_io(message, ...)          log_message("IO_OPERATION", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_io(message, ...)
 #endif

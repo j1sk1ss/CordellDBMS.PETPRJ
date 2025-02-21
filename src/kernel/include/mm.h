@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "common.h"
+#include "logging.h"
 
 #define BUFFER_SIZE 81920
 #define ALIGNMENT 8  
@@ -36,6 +37,7 @@ void* malloc_s(size_t size);
 
 /*
 Realloc pointer to new location with new size.
+Realloc took from https://github.com/j1sk1ss/CordellOS.PETPRJ/blob/Userland/src/kernel/memory/allocator.c#L138
 
 Params:
     - ptr - Pointer to old place.
