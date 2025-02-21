@@ -52,12 +52,7 @@
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
-#define ARRAY_SOFT_FREE(ptr, size) do {                 \
-    if (ptr != NULL) {                                  \
-      for (int i = 0; i < size; i++) SOFT_FREE(ptr[i]); \
-      SOFT_FREE(ptr);                                   \
-    }                                                   \
-  } while(0) 
+
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
       free((ptr));           \
@@ -287,5 +282,24 @@ Params:
 Return pointer to array copy or NULL.
 */
 char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size);
+
+  /*
+  Took from: https://github.com/appinha/42cursus-00-Libft/blob/master/libft/srcs/str/ft_strstr.c
+  */
+ size_t strlen_s(const char* str);
+ char* strncpy_s(char* dst, char* src, int n);
+ int strncmp_s(char* str1, const char* str2, size_t n);
+ char* strcpy_s(char* dst, char* src);
+ char* strstr_s(char* haystack, char* needle);
+ char* strpbrk_s(char* s, char* accept);
+ size_t strspn_s(char* s, char* accept);
+ char* strtok_s(char* string, char* delim);
+ char* strcat_s(char* dest, char* src);
+ char* strchr_s(char* str, char chr);
+ int strcmp_s(char* firstStr, char* secondStr);
+ int atoi_s(char *str);
+ void* memcpy_s(void* destination, void* source, size_t num);
+ void* memset_s(void* pointer, unsigned char value, size_t num);
+ int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
 
 #endif

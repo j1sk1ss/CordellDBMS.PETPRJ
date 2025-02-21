@@ -95,9 +95,9 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
     ((cache_body_t*)entry)->is_cached = 1;
 
     if (base_path != NULL) {
-        GCT[current].base_path = (char*)malloc(strlen(base_path));
+        GCT[current].base_path = (char*)malloc(strlen_s(base_path));
         if (!GCT[current].base_path) return -5;
-        strcpy(GCT[current].base_path, base_path);
+        strcpy_s(GCT[current].base_path, base_path);
     }
 
     GCT[current].pointer = entry;
@@ -115,12 +115,12 @@ void* CHC_find_entry(char* name, char* base_path, unsigned char type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
         if (
-            strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && 
+            strncmp_s(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && 
             (GCT[i].type == type || type == ANY_CACHE)
         ) {
             if (!GCT[i].base_path && !base_path) return GCT[i].pointer;
             else {
-                if (strcmp(GCT[i].base_path, base_path) == 0) return GCT[i].pointer;
+                if (strcmp_s(GCT[i].base_path, base_path) == 0) return GCT[i].pointer;
             }
         }
     }

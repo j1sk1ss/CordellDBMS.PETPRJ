@@ -3,7 +3,7 @@
 
 static int _link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
     #pragma omp critical (link_dir2table)
-    strncpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
+    strncpy_s(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
     return 1;
 }
 
@@ -12,9 +12,9 @@ static int _unlink_dir_from_table(table_t* table, const char* dir_name) {
     #pragma omp critical (unlink_dir_from_table)
     {
         for (int i = 0; i < table->header->dir_count; i++) {
-            if (strncmp(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
+            if (strncmp_s(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
                 for (int j = i; j < table->header->dir_count - 1; j++) {
-                    memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
+                    memcpy_s(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
                 }
 
                 table->header->dir_count--;
@@ -88,7 +88,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     unsigned char* output_content = (unsigned char*)malloc(size);
     if (!output_content) return NULL;
     unsigned char* output_content_pointer = output_content;
-    memset(output_content_pointer, 0, size);
+    memset_s(output_content_pointer, 0, size);
 
     // Iterate from all directories in table
     int current_index = 0;
@@ -108,7 +108,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
             unsigned char* directory_content = DRM_get_content(directory, MAX(offset - current_index, 0), current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
             if (directory_content != NULL) {
-                memcpy(output_content_pointer, directory_content, current_size);
+                memcpy_s(output_content_pointer, directory_content, current_size);
 
                 // Realise data
                 free(directory_content);
@@ -305,7 +305,7 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __
                 table_columns_info_t squerry;
                 TBM_get_column_info(dst, querry[i + 1], &fquerry);
                 TBM_get_column_info(src, querry[i], &squerry);
-                memcpy(new_row + fquerry.offset, data + squerry.offset, squerry.size);
+                memcpy_s(new_row + fquerry.offset, data + squerry.offset, squerry.size);
             }
 
             TBM_append_content(dst, new_row, dst->row_size);

@@ -9,12 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-<<<<<<< HEAD:src/userland/include/user.h
-#include "hash.h"
-#include "../../kernel/include/common.h"
-=======
 #include "common.h"
->>>>>>> main:src/kernel/include/user.h
 
 
 #define USERNAME_SIZE   8

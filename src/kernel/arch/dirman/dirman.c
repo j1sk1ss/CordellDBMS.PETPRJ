@@ -3,7 +3,7 @@
 
 static int _link_page2dir(directory_t* __restrict directory, page_t* __restrict page) {
     #pragma omp critical (link_page2dir)
-    strncpy(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
+    strncpy_s(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
     return 1;
 }
 
@@ -12,9 +12,9 @@ static int _unlink_page_from_directory(directory_t* __restrict directory, char* 
     #pragma omp critical (unlink_page_from_directory)
     {
         for (int i = 0; i < directory->header->page_count; i++) {
-            if (strncmp(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
+            if (strncmp_s(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
                 for (int j = i; j < directory->header->page_count - 1; j++)
-                    memcpy(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
+                    memcpy_s(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
 
                 directory->header->page_count--;
                 directory->append_offset = MAX(directory->append_offset - 1, 0);
@@ -83,7 +83,7 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - page_offset, (int)data_lenght);
-            memcpy(content_pointer, (unsigned char*)page->content + page_offset, current_size);
+            memcpy_s(content_pointer, (unsigned char*)page->content + page_offset, current_size);
 
             // We reload local index and update size2get
             // Also we move content pointer to next location

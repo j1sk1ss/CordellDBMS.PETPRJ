@@ -14,15 +14,8 @@ user_t* USR_auth(char* name, char* password) {
 user_t* USR_load(char* name) {
 #ifndef NO_USER
     char load_path[128] = { 0 };
-<<<<<<< HEAD:src/userland/std/user.c
-    if (path == NULL && name != NULL) sprintf(load_path, "%s%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, name, USER_EXTENSION);
-    else if (path != NULL) strcpy_s(load_path, path);
-    else return NULL;
-
-=======
     sprintf(load_path, "%s/%.*s.%s", USER_BASE_PATH, USERNAME_SIZE, name, USER_EXTENSION);
     
->>>>>>> main:src/kernel/std/user.c
     FILE* file = fopen(load_path, "rb");
     if (file == NULL) return NULL;
     else {

@@ -129,7 +129,7 @@ table_t* TBM_load_table(char* name) {
                                 continue;
                             }
 
-                            memset(columns[i], 0, sizeof(table_column_t));
+                            memset_s(columns[i], 0, sizeof(table_column_t));
                             pread(fd, columns[i], sizeof(table_column_t), sizeof(table_header_t) + sizeof(table_column_t) * i);
                         }
 

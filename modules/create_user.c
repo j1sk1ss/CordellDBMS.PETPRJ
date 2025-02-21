@@ -34,10 +34,10 @@ int main(int argc, char* argv[]) {
     printf("Name: %s, pass: %s, rwd: %s-%s-%s\n", argv[1], argv[2], argv[3], argv[4], argv[5]);
     user_t* empty_user = (user_t*)malloc(sizeof(user_t));
     if (!empty_user) return -1;
-    memset(empty_user, 0, sizeof(user_t));
+    memset_s(empty_user, 0, sizeof(user_t));
 
-    strncpy(empty_user->name, argv[1], USERNAME_SIZE);
-    empty_user->access = CREATE_ACCESS_BYTE(atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
+    strncpy_s(empty_user->name, argv[1], USERNAME_SIZE);
+    empty_user->access = CREATE_ACCESS_BYTE(atoi_s(argv[3]), atoi_s(argv[4]), atoi_s(argv[5]));
     empty_user->pass_hash = _str2hash((const unsigned char*)argv[2]);
 
     char save_path[50] = { 0 };

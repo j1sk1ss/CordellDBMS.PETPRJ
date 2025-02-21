@@ -21,27 +21,27 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         char* temp_fdata = (char*)malloc(fdata_size + 1);
         if (!temp_fdata) return 0;
 
-        memcpy(temp_fdata, fdata, fdata_size);
+        memcpy_s(temp_fdata, fdata, fdata_size);
         temp_fdata[fdata_size] = '\0';
-        char* mv_fdata = temp_fdata + strspn(temp_fdata, " ");
+        char* mv_fdata = temp_fdata + strspn_s(temp_fdata, " ");
         
         char* temp_sdata = (char*)malloc(sdata_size + 1);
         if (!temp_sdata) return 0;
 
-        memcpy(temp_sdata, sdata, sdata_size);
+        memcpy_s(temp_sdata, sdata, sdata_size);
         temp_sdata[sdata_size] = '\0';
-        char* mv_sdata = temp_sdata + strspn(temp_sdata, " ");
+        char* mv_sdata = temp_sdata + strspn_s(temp_sdata, " ");
 
         int comparison = 0;
-        if (strcmp(expression, STR_EQUALS) == 0) comparison = strcmp(mv_fdata, mv_sdata) == 0;
-        else if (strcmp(expression, STR_NEQUALS) == 0) comparison = strcmp(mv_fdata, mv_sdata) != 0;
+        if (strcmp_s(expression, STR_EQUALS) == 0) comparison = strcmp_s(mv_fdata, mv_sdata) == 0;
+        else if (strcmp_s(expression, STR_NEQUALS) == 0) comparison = strcmp_s(mv_fdata, mv_sdata) != 0;
         else {
-            int first = atoi(mv_fdata);
-            int second = atoi(mv_sdata);
-            if (strcmp(expression, NEQUALS) == 0) comparison = first != second;
-            else if (strcmp(expression, EQUALS) == 0) comparison = first == second;
-            else if (strcmp(expression, LESS_THAN) == 0) comparison = first < second;
-            else if (strcmp(expression, MORE_THAN) == 0) comparison = first > second;
+            int first = atoi_s(mv_fdata);
+            int second = atoi_s(mv_sdata);
+            if (strcmp_s(expression, NEQUALS) == 0) comparison = first != second;
+            else if (strcmp_s(expression, EQUALS) == 0) comparison = first == second;
+            else if (strcmp_s(expression, LESS_THAN) == 0) comparison = first < second;
+            else if (strcmp_s(expression, MORE_THAN) == 0) comparison = first > second;
         }
 
         free(temp_fdata);
@@ -68,15 +68,15 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
             char* operator = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             if (!operator) break;
 
-            if (strcmp(operator, COLUMN) == 0) {
+            if (strcmp_s(operator, COLUMN) == 0) {
                 conditions[condition_count].column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
                 conditions[condition_count].expression = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
                 conditions[condition_count].value = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
                 condition_count++;
-            } else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
+            } else if (strcmp_s(operator, OR) == 0 || strcmp_s(operator, AND) == 0) {
                 operators[operator_count++] = operator;
-            } else if (strcmp(operator, LIMIT) == 0) {
-                *out_limit = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
+            } else if (strcmp_s(operator, LIMIT) == 0) {
+                *out_limit = atoi_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
             }
             else break;
         }
@@ -87,14 +87,14 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
             table_columns_info_t col_info;
             TBM_get_column_info(table, conditions[i].column_name, &col_info);
             results[i] = _compare_data(
-                conditions[i].expression, (char*)(row_data + col_info.offset), col_info.size, conditions[i].value, strlen(conditions[i].value)
+                conditions[i].expression, (char*)(row_data + col_info.offset), col_info.size, conditions[i].value, strlen_s(conditions[i].value)
             );
         }
 
         int match = results[0];
         for (int i = 0; i < operator_count; i++) {
-            if (strcmp(operators[i], AND) == 0) match &= results[i + 1];
-            else if (strcmp(operators[i], OR) == 0) match |= results[i + 1];
+            if (strcmp_s(operators[i], AND) == 0) match &= results[i + 1];
+            else if (strcmp_s(operators[i], OR) == 0) match |= results[i + 1];
         }
 
         return match;
@@ -238,7 +238,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                 unsigned char access_byte = access;
                 char* table_access = SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index);                
-                if (strcmp(table_access, ACCESS_SAME) != 0) {
+                if (strcmp_s(table_access, ACCESS_SAME) != 0) {
                     access_byte = CREATE_ACCESS_BYTE((table_access[0] - '0'), (table_access[1] - '0'), (table_access[2] - '0'));
                     access_byte = (access_byte < access) ? access : access_byte;
                 }
@@ -286,11 +286,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                                 if (equals_pos && comma_pos) {
                                     columns[k]->module_params = COLUMN_MODULE_POSTLOAD;
-                                    if (strncmp(comma_pos + 1, MODULE_PRELOAD, strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
-                                    else if (strncmp(comma_pos + 1, MODULE_BOTH_LOAD, strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
+                                    if (strncmp_s(comma_pos + 1, MODULE_PRELOAD, strlen_s(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
+                                    else if (strncmp_s(comma_pos + 1, MODULE_BOTH_LOAD, strlen_s(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
 
-                                    strncpy(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
-                                    strncpy(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
+                                    strncpy_s(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
+                                    strncpy_s(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
                                     print_log(
                                         "Module [%s] registered with [%s] querry", columns[k]->module_name, columns[column_count]->module_querry
                                     );
@@ -332,7 +332,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (strcmp_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                     char* input_data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    int result = DB_append_row(database, table_name, (unsigned char*)input_data, strlen(input_data), access);
+                    int result = DB_append_row(database, table_name, (unsigned char*)input_data, strlen_s(input_data), access);
                     if (result >= 0) { print_log("Row [%s] successfully added to [%s] database!", input_data, database->header->name); }
                     else {
                         print_error("Error code: %i, Params: [%s] [%s] [%s] [%i]", result, database->header->name, table_name, input_data, access);
@@ -401,7 +401,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
                                 answer_data = (unsigned char*)realloc(answer_data, answer_size);
-                                memcpy(answer_data + data_start, row_data, table->row_size);
+                                memcpy_s(answer_data + data_start, row_data, table->row_size);
                             }
                         }
                         
@@ -461,7 +461,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         if (tag != PAGE_EMPTY && tag != '\0') {
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
                                 if (limit != -1 && updated_rows++ >= limit) break;
-                                answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
+                                answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen_s(data), access);
                             }
                         }
                         

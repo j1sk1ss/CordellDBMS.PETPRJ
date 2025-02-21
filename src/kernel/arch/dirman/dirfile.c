@@ -26,7 +26,7 @@ directory_t* DRM_create_empty_directory() {
     char* unique_name = generate_unique_filename(DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, DIRECTORY_EXTENSION);
     if (!unique_name) return NULL;
 
-    strncpy(directory_name, unique_name, DIRECTORY_NAME_SIZE);
+    strncpy_s(directory_name, unique_name, DIRECTORY_NAME_SIZE);
     SOFT_FREE(unique_name);
 
     return DRM_create_directory(directory_name);
@@ -87,7 +87,7 @@ directory_t* DRM_load_directory(char* name) {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
             if (header) {
-                memset(header, 0, sizeof(directory_header_t));
+                memset_s(header, 0, sizeof(directory_header_t));
                 pread(fd, header, sizeof(directory_header_t), 0);
 
                 // Check directory magic

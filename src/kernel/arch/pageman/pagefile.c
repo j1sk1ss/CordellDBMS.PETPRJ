@@ -28,13 +28,13 @@ page_t* PGM_create_empty_page(char* base_path) {
     if (!unique_name) return NULL;
 
     page_t* page = PGM_create_page(unique_name, NULL, 0);
-    page->base_path = (char*)malloc(strlen(base_path) + 1);
+    page->base_path = (char*)malloc(strlen_s(base_path) + 1);
     if (!page->base_path) {
         SOFT_FREE(unique_name);
         return NULL;
     }
 
-    strcpy(page->base_path, base_path);
+    strcpy_s(page->base_path, base_path);
     
     SOFT_FREE(unique_name);
     return page;
@@ -100,7 +100,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
             if (header) {
-                memset(header, 0, sizeof(page_header_t));
+                memset_s(header, 0, sizeof(page_header_t));
                 pread(fd, header, sizeof(page_header_t), 0);
 
                 // Check page magic
@@ -113,7 +113,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
                     page_t* page = (page_t*)malloc(sizeof(page_t));
                     if (!page) free(header);
                     else {
-                        memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
+                        memset_s(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
                         pread(fd, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t));
                         close(fd);
 
@@ -130,13 +130,13 @@ page_t* PGM_load_page(char* base_path, char* name) {
         }
     }
 
-    loaded_page->base_path = (char*)malloc(strlen(base_path) + 1);
+    loaded_page->base_path = (char*)malloc(strlen_s(base_path) + 1);
     if (!loaded_page->base_path) {
         PGM_free_page(loaded_page);
         return NULL;
     }
 
-    strcpy(loaded_page->base_path, base_path);
+    strcpy_s(loaded_page->base_path, base_path);
     return loaded_page;
 }
 
