@@ -81,10 +81,7 @@ int TBM_save_table(table_t* table) {
 
 table_t* TBM_load_table(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, TABLE_NAME_SIZE, load_path, TABLE_BASE_PATH, TABLE_EXTENSION) == -1) {
-        print_error("Name should be provided!");
-        return NULL;
-    }
+    get_load_path(name, TABLE_NAME_SIZE, load_path, TABLE_BASE_PATH, TABLE_EXTENSION);
 
     // If path is not NULL, we use function for getting file name
     table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_BASE_PATH, TABLE_CACHE);
@@ -182,7 +179,7 @@ int TBM_delete_table(table_t* table, int full) {
 
         // Delete table from disk by provided, generated path
         delete_file(table->header->name, TABLE_BASE_PATH, TABLE_EXTENSION);
-        CHC_flush_entry(table, TABLE_CACHE);
+        if (CHC_flush_entry(table, TABLE_CACHE) == -2) TBM_flush_table(table);
         return 1;
     }
     

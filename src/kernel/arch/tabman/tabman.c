@@ -203,13 +203,13 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 int TBM_cleanup_dirs(table_t* table) {
 #ifndef NO_DELETE_COMMAND
     int temp_count = table->header->dir_count;
-    char** temp_names = copy_array2array((char**)table->dir_names, DIRECTORY_NAME_SIZE, temp_count, PAGE_NAME_SIZE);
+    char** temp_names = copy_array2array((char**)table->dir_names, DIRECTORY_NAME_SIZE, temp_count, DIRECTORY_NAME_SIZE);
     if (!temp_names) return -1;
 
     #pragma omp parallel for schedule(dynamic, 4)
     for (int i = 0; i < temp_count; i++) {
         char dir_path[DEFAULT_PATH_SIZE] = { 0 };
-        sprintf(dir_path, "%s/%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, temp_names[i], DIRECTORY_EXTENSION);
+        get_load_path(temp_names[i], DIRECTORY_NAME_SIZE, dir_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
 
         directory_t* directory = DRM_load_directory(temp_names[i]);
         if (!directory) continue;
@@ -217,7 +217,7 @@ int TBM_cleanup_dirs(table_t* table) {
             DRM_cleanup_pages(directory);
             if (directory->header->page_count == 0) {
                 _unlink_dir_from_table(table, directory->header->name);
-                CHC_flush_entry(directory, DIRECTORY_CACHE);
+                if (CHC_flush_entry(directory, DIRECTORY_CACHE) == -2) DRM_flush_directory(directory);
                 print_debug("Directory [%s] was deleted with result [%i]", temp_names[i], remove(dir_path));
                 continue;
             }

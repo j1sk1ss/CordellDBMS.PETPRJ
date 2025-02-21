@@ -47,7 +47,8 @@ ifeq ($(PROD), 1)
 	CFLAGS = -Wall -Wextra -flto -fno-stack-protector -D_FORTUFY_SOURCE=0 -Ikernel/include -Wcomment -Os -s -DWARNINGS -DERRORS -DINFORMING
 else
 	CC = gcc
-	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DDEBUG -DLOGGING -DWARNINGS -DERRORS -DINFORMING -DSPECIAL -DIO_OPERATION
+	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DERRORS -DINFORMING -DMEM_OPERATION
+	# CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DERRORS -DINFORMING -DDEBUG -DLOGGING -DWARNINGS -DSPECIAL -DIO_OPERATION -DMEM_OPERATION
 endif
 
 ifeq ($(DEBUG_PROFILER), 1)

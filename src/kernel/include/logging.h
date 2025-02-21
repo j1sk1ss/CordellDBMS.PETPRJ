@@ -46,6 +46,12 @@
     #define print_io(message, ...)
 #endif
 
+#ifdef MEM_OPERATION
+    #define print_mm(message, ...)          log_message("MEM_OPERATION", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
+    #define print_mm(message, ...)
+#endif
+
 #ifdef LOGGING
     #define print_log(message, ...)         log_message("LOG", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else

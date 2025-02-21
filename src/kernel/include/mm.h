@@ -5,11 +5,13 @@
 #include "common.h"
 #include "logging.h"
 
-#define BUFFER_SIZE 81920
-#define ALIGNMENT 8  
+#define ALLOC_BUFFER_SIZE   65536
+#define ALIGNMENT           8  
+#define MM_BLOCK_MAGIC      0xC07DEL
 
 
 typedef struct mm_block {
+    unsigned int magic;
     size_t size;
     int free;
     struct mm_block* next;

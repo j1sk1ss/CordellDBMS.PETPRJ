@@ -66,10 +66,7 @@ int DRM_save_directory(directory_t* directory) {
 
 directory_t* DRM_load_directory(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, DIRECTORY_NAME_SIZE, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION) == -1) {
-        print_error("Name should be provided!");
-        return NULL;
-    }
+    get_load_path(name, DIRECTORY_NAME_SIZE, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
 
     directory_t* loaded_directory = (directory_t*)CHC_find_entry(name, DIRECTORY_BASE_PATH, DIRECTORY_CACHE);
     if (loaded_directory != NULL) {

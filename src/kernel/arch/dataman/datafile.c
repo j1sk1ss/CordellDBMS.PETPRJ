@@ -76,10 +76,7 @@ int DB_save_database(database_t* database) {
 
 database_t* DB_load_database(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, DATABASE_NAME_SIZE, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION) == -1) {
-        print_error("Name should be provided!");
-        return NULL;
-    }
+    get_load_path(name, DATABASE_NAME_SIZE, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
 
     database_t* loaded_database = NULL;
     #pragma omp critical (load_database)

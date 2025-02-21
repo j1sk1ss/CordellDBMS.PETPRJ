@@ -79,10 +79,7 @@ int PGM_save_page(page_t* page) {
 
 page_t* PGM_load_page(char* base_path, char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(name, PAGE_NAME_SIZE, load_path, base_path, PAGE_EXTENSION) == -1) {
-        print_error("Name should be provided!");
-        return NULL;
-    }
+    get_load_path(name, PAGE_NAME_SIZE, load_path, base_path, PAGE_EXTENSION);
 
     page_t* loaded_page = (page_t*)CHC_find_entry(name, base_path, PAGE_CACHE);
     if (loaded_page != NULL) {
