@@ -27,8 +27,6 @@
 #include "kernel/include/logging.h"
 #include "kernel/include/threading.h"
 
-#include <stdio.h>
-
 #ifdef _WIN32
     #include <ws2tcpip.h>
 #else

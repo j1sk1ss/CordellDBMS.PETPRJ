@@ -31,7 +31,6 @@
 #ifndef PAGEMAN_H_
 #define PAGEMAN_H_
 
-#include <stdio.h>
 #include <fcntl.h>
 
 #ifndef _WIN32

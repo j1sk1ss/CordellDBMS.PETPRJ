@@ -31,8 +31,6 @@
 #ifndef DIRMAN_H_
 #define DIRMAN_H_
 
-#include <stdio.h>
-
 #ifndef _WIN32
     #include <unistd.h>
 #endif

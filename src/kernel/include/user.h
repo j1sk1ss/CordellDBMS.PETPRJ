@@ -6,10 +6,7 @@
 #ifndef USER_H_
 #define USER_H_
 
-#include <stdio.h>
-
 #include "common.h"
-
 
 #define USERNAME_SIZE   8
 #define USER_BASE_PATH  getenv("USER_BASE_PATH") == NULL ? "." : getenv("USER_BASE_PATH")
