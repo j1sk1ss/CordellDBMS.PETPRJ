@@ -226,7 +226,7 @@ int DRM_cleanup_pages(directory_t* directory) {
     #pragma omp parallel for schedule(dynamic, 4)
     for (int i = 0; i < temp_count; i++) {
         char page_path[DEFAULT_PATH_SIZE] = { 0 };
-        sprintf(page_path, "%s/%.*s.%s", directory->header->name, PAGE_NAME_SIZE, temp_names[i], PAGE_EXTENSION);
+        get_load_path(temp_names[i], PAGE_NAME_SIZE, page_path, directory->header->name, PAGE_EXTENSION);
 
         page_t* page = PGM_load_page(directory->header->name, temp_names[i]);
         if (page) {

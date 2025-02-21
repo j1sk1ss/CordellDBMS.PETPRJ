@@ -209,7 +209,7 @@ int TBM_cleanup_dirs(table_t* table) {
     #pragma omp parallel for schedule(dynamic, 4)
     for (int i = 0; i < temp_count; i++) {
         char dir_path[DEFAULT_PATH_SIZE] = { 0 };
-        sprintf(dir_path, "%s/%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, temp_names[i], DIRECTORY_EXTENSION);
+        get_load_path(temp_names[i], DIRECTORY_NAME_SIZE, dir_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
 
         directory_t* directory = DRM_load_directory(temp_names[i]);
         if (!directory) continue;
