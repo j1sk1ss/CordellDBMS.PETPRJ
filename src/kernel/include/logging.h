@@ -41,6 +41,12 @@
     #define print_debug(message, ...)
 #endif
 
+#ifdef IO_OPERATION
+    #define print_io(message, ...)       log_message("IO_OPERATION", __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
+    #define print_io(message, ...)
+#endif
+
 #ifdef LOGGING
     #define print_log(message, ...)         log_message("LOG", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else

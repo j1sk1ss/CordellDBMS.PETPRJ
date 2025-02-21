@@ -86,7 +86,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
 
     page_t* loaded_page = (page_t*)CHC_find_entry(name, base_path, PAGE_CACHE);
     if (loaded_page != NULL) {
-        print_debug("Loading page [%s] from GCT", load_path);
+        print_io("Loading page [%s] from GCT", load_path);
         return loaded_page;
     }
 
@@ -94,7 +94,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
     {
         // Open file page
         int fd = open(load_path, O_RDONLY);
-        print_debug("Loading page [%s]", load_path);
+        print_io("Loading page [%s]", load_path);
         if (fd < 0) { print_error("Page not found! Path: [%s]", load_path); }
         else {
             // Read header from file
@@ -122,8 +122,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
                         loaded_page  = page;
 
                         CHC_add_entry(
-                            loaded_page, loaded_page->header->name, base_path,
-                            PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
+                            loaded_page, loaded_page->header->name, base_path, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
                         );
                     }
                 }

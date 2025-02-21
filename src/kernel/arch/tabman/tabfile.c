@@ -89,14 +89,15 @@ table_t* TBM_load_table(char* name) {
     // If path is not NULL, we use function for getting file name
     table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_BASE_PATH, TABLE_CACHE);
     if (loaded_table != NULL) {
-        print_debug("Loading table [%s] from GCT", load_path);
+        print_io("Loading table [%s] from GCT", load_path);
         return loaded_table;
     }
 
+    int table_load_break = 0;
     #pragma omp critical (table_load)
     {
         int fd = open(load_path, O_RDONLY);
-        print_debug("Loading table [%s] from disk", load_path);
+        print_io("Loading table [%s] from disk", load_path);
         if (fd < 0) { print_error("Can't open table [%s]", load_path); }
         else {
             // Read header of table from file.
@@ -123,8 +124,9 @@ table_t* TBM_load_table(char* name) {
 
                         for (int i = 0; i < header->column_count; i++) {
                             columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
-                            if (!columns[i]) {
-                                continue; // TODO NULL!!!!!
+                            if (!columns[i]) { 
+                                table_load_break = 1;                               
+                                continue;
                             }
 
                             memset(columns[i], 0, sizeof(table_column_t));
@@ -153,6 +155,13 @@ table_t* TBM_load_table(char* name) {
                 }
             }
         }
+    }
+
+    if (table_load_break) {
+        SOFT_FREE(loaded_table->header);
+        ARRAY_SOFT_FREE(loaded_table->columns, loaded_table->header->column_count);
+        SOFT_FREE(loaded_table);
+        return NULL;
     }
 
     return loaded_table;
