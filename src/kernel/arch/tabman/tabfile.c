@@ -173,7 +173,7 @@ int TBM_delete_table(table_t* table, int full) {
 
         // Delete table from disk by provided, generated path
         delete_file(table->header->name, TABLE_BASE_PATH, TABLE_EXTENSION);
-        CHC_flush_entry(table, TABLE_CACHE);
+        if (CHC_flush_entry(table, TABLE_CACHE) == -2) TBM_flush_table(table);
         return 1;
     }
     

@@ -236,7 +236,7 @@ int DRM_cleanup_pages(directory_t* directory) {
                 int free_space = PGM_get_free_space(page, PAGE_START);
                 if (free_space == PAGE_CONTENT_SIZE) {
                     _unlink_page_from_directory(directory, page->header->name);
-                    CHC_flush_entry(page, PAGE_CACHE);
+                    if (CHC_flush_entry(page, PAGE_CACHE) == -2) PGM_flush_page(page);
                     print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
                     continue;
                 }
