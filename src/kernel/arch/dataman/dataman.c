@@ -1,6 +1,26 @@
 #include "../../include/dataman.h"
 
 
+static int _unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
+    int status = 0;
+    #pragma omp critical (unlink_table_from_database)
+    {
+        for (int i = 0; i < database->header->table_count; i++) {
+            if (strncmp(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
+                for (int j = i; j < database->header->table_count - 1; j++) {
+                    strncpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
+                }
+
+                database->header->table_count--;
+                status = 1;
+                break;
+            }
+        }
+    }
+
+    return status;
+}
+
 static int _get_global_offset(int row_size, int row) {
     int rows_per_page = PAGE_CONTENT_SIZE / row_size;
     int pages_offset  = row / rows_per_page;
@@ -23,18 +43,7 @@ static table_t* _get_table_access(
     return table;
 }
 
-unsigned char* DB_get_row(
-    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access
-) {
-    table_t* table = _get_table_access(database, table_name, access, check_write_access);
-    if (table == NULL) return NULL;
-
-    unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
-    TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
-    TBM_flush_table(table);
-
-    return data;
-}
+#pragma region [CRUD]
 
 int DB_append_row(
     database_t* __restrict database, char* __restrict table_name, 
@@ -47,7 +56,7 @@ int DB_append_row(
         return -5;
     }
 
-    int result = TBM_check_signature(table, data);
+    int result = TBM_check_signature(table, data); // O(n)
     if (result != 1) {
         TBM_flush_table(table);
         return result - 10;
@@ -56,7 +65,7 @@ int DB_append_row(
     // Get primary column and column offset
     int column_offset = 0;
     table_column_t* primary_column = NULL;
-    for (int i = 0; i < table->header->column_count; i++) {
+    for (int i = 0; i < table->header->column_count; i++) { // O(n)
         if (GET_COLUMN_PRIMARY(table->columns[i]->type) == COLUMN_PRIMARY) {
             primary_column = table->columns[i];
         }
@@ -101,12 +110,25 @@ int DB_append_row(
         }
     }
 
-    TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
+    TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD); // O(n)
     result = TBM_append_content(table, data, data_size);
 
     table->header->row_count++;
     TBM_flush_table(table);
     return result;
+}
+
+unsigned char* DB_get_row(
+    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access
+) {
+    table_t* table = _get_table_access(database, table_name, access, check_write_access);
+    if (table == NULL) return NULL;
+
+    unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
+    TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
+    TBM_flush_table(table);
+
+    return data;
 }
 
 int DB_insert_row(
@@ -157,11 +179,14 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
     return 1;
 }
 
+#pragma endregion
+
 int DB_cleanup_tables(database_t* database) {
 #ifndef NO_DELETE_COMMAND
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
         table_t* table = DB_get_table(database, database->table_names[i]);
+        if (!table) continue;
         TBM_cleanup_dirs(table);
         TBM_flush_table(table);
     }
@@ -216,7 +241,8 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     table_t* table = NULL;
     #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < database->header->table_count; i++) {
-        if (strncmp_s(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0 && table == NULL) {
+        if (table) continue;
+        if (strncmp(database->table_names[i], table_name, TABLE_NAME_SIZE) == 0) {
             table = TBM_load_table(table_name);
         }
     }
@@ -231,7 +257,7 @@ int DB_delete_table(database_t* __restrict database, char* __restrict table_name
     table_t* table = DB_get_table(database, table_name);
     if (table == NULL) return -1;
 
-    DB_unlink_table_from_database(database, table_name);
+    _unlink_table_from_database(database, table_name);
     return TBM_delete_table(table, full);
 #endif
     return 1;
@@ -243,24 +269,4 @@ int DB_link_table2database(database_t* __restrict database, table_t* __restrict 
     #pragma omp critical (link_table2database)
     strncpy_s(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
     return 1;
-}
-
-int DB_unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
-    int status = 0;
-    #pragma omp critical (unlink_table_from_database)
-    {
-        for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp_s(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
-                for (int j = i; j < database->header->table_count - 1; j++) {
-                    strncpy_s(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
-                }
-
-                database->header->table_count--;
-                status = 1;
-                break;
-            }
-        }
-    }
-
-    return status;
 }

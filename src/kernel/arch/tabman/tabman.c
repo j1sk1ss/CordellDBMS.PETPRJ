@@ -1,73 +1,51 @@
 #include "../../include/tabman.h"
 
 
-unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
-    // Data for DRM
-    directory_t* directory = NULL;
-    int content2get_size = (int)size;
+static int _link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
+    #pragma omp critical (link_dir2table)
+    strncpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
+    return 1;
+}
 
-    // Allocate data for output
-    unsigned char* output_content = (unsigned char*)malloc(size);
-    if (!output_content) return NULL;
-    unsigned char* output_content_pointer = output_content;
-    memset_s(output_content_pointer, 0, size);
+static int _unlink_dir_from_table(table_t* table, const char* dir_name) {
+    int status = 0;
+    #pragma omp critical (unlink_dir_from_table)
+    {
+        for (int i = 0; i < table->header->dir_count; i++) {
+            if (strncmp(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
+                for (int j = i; j < table->header->dir_count - 1; j++) {
+                    memcpy(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
+                }
 
-    // Iterate from all directories in table
-    int current_index = 0;
-    for (int i = 0; i < table->header->dir_count && content2get_size > 0; i++) {
-        // Load directory to memory
-        directory = DRM_load_directory(table->dir_names[i]);
-        if (directory == NULL) continue;
-
-        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE < offset) continue;        
-        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            // Get data from directory
-            // After getting data, copy it to allocated output
-            int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
-            unsigned char* directory_content = DRM_get_content(directory, MAX(offset - current_index, 0), current_size);
-            THR_release_lock(&directory->lock, omp_get_thread_num());
-            if (directory_content != NULL) {
-                memcpy_s(output_content_pointer, directory_content, current_size);
-
-                // Realise data
-                free(directory_content);
-
-                // Set offset to 0, because we go to next directory
-                // Update size of getcontent
-                offset = 0;
-                current_index = 0;
-
-                content2get_size -= current_size;
-                output_content_pointer += current_size;
+                table->header->dir_count--;
+                table->append_offset = MAX(table->append_offset - 1, 0);
+                status = 1;
+                break;
             }
         }
-
-        current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
-        DRM_flush_directory(directory);
     }
 
-    return output_content;
+    return status;
 }
+
+#pragma region [CRUD]
 
 int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data, size_t data_size) {
     unsigned char* data_pointer = data;
     int size4append = (int)data_size;
 
     // Iterate existed directories. Maybe we can store data here?
-    for (int i = table->append_offset; i < table->header->dir_count; i++) {
+    for (int i = table->append_offset; i < table->header->dir_count; i++) { // O(n)
         // Load directory to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
-        if (directory != NULL) {
-            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-                if (directory->header->page_count + size4append <= PAGES_PER_DIRECTORY) {
-                    int result = DRM_append_content(directory, data_pointer, size4append);
-                    THR_release_lock(&directory->lock, omp_get_thread_num());
-                    DRM_flush_directory(directory);
-                    if (result < 0) return result - 10;
-                    else if (result == 0 || result == 1 || result == 2) {
-                        return 1;
-                    }
-                }
+        if (!directory) continue;
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            int result = DRM_append_content(directory, data_pointer, size4append);
+            THR_release_lock(&directory->lock, omp_get_thread_num());
+            DRM_flush_directory(directory);
+            if (result < 0) return result - 10;
+            else if (result == 0 || result == 1 || result == 2) {
+                return 1;
             }
         }
 
@@ -89,16 +67,66 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
         return append_result - 10;
     }
 
-    TBM_link_dir2table(table, new_directory);
+    _link_dir2table(table, new_directory);
 
     // Save directory to DDT
     CHC_add_entry(
-        new_directory, new_directory->header->name, 
+        new_directory, new_directory->header->name, DIRECTORY_BASE_PATH,
         DIRECTORY_CACHE, (void*)DRM_free_directory, (void*)DRM_save_directory
     );
     
     DRM_flush_directory(new_directory);
     return 1;
+}
+
+unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
+    // Data for DRM
+    directory_t* directory = NULL;
+    int content2get_size = (int)size;
+
+    // Allocate data for output
+    unsigned char* output_content = (unsigned char*)malloc(size);
+    if (!output_content) return NULL;
+    unsigned char* output_content_pointer = output_content;
+    memset(output_content_pointer, 0, size);
+
+    // Iterate from all directories in table
+    int current_index = 0;
+    for (int i = 0; i < table->header->dir_count && content2get_size > 0; i++) {
+        // Load directory to memory
+        directory = DRM_load_directory(table->dir_names[i]);
+        if (!directory) continue;
+        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
+            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
+            continue;
+        }
+
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            // Get data from directory
+            // After getting data, copy it to allocated output
+            int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
+            unsigned char* directory_content = DRM_get_content(directory, MAX(offset - current_index, 0), current_size);
+            THR_release_lock(&directory->lock, omp_get_thread_num());
+            if (directory_content != NULL) {
+                memcpy(output_content_pointer, directory_content, current_size);
+
+                // Realise data
+                free(directory_content);
+
+                // Set offset to 0, because we go to next directory
+                // Update size of getcontent
+                offset = 0;
+                current_index = 0;
+
+                content2get_size -= current_size;
+                output_content_pointer += current_size;
+            }
+        }
+
+        DRM_flush_directory(directory);
+    }
+
+    return output_content;
 }
 
 int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
@@ -110,9 +138,12 @@ int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __r
     for (int i = 0; i < table->header->dir_count && size4insert > 0; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
-        if (directory == NULL) return -1;
+        if (!directory) return -1;
+        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
+            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
+            continue;
+        }
 
-        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE < offset) continue;
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
             int result = DRM_insert_content(directory, MAX(offset - current_index, 0), data_pointer, size4insert);
             THR_release_lock(&directory->lock, omp_get_thread_num());
@@ -125,7 +156,6 @@ int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __r
             }
         }
 
-        current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
         DRM_flush_directory(directory);
     }
 
@@ -143,12 +173,15 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
     for (int i = 0; i < table->header->dir_count && size4delete > 0; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
-        if (directory == NULL) return -1;
+        if (!directory) return -1;
+        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
+            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
+            continue;
+        }
 
-        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE < offset) continue;
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
             int result = DRM_delete_content(directory, MAX(offset - current_index, 0), size4delete);
-            table->append_offset = i;
+            table->append_offset = MIN(table->append_offset, i);
 
             offset = 0;
             size4delete -= result;
@@ -157,7 +190,6 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
             THR_release_lock(&directory->lock, omp_get_thread_num());
         }
 
-        current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
         DRM_flush_directory(directory);
     }
 
@@ -166,38 +198,61 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
     return -2;
 }
 
+#pragma endregion
+
 int TBM_cleanup_dirs(table_t* table) {
 #ifndef NO_DELETE_COMMAND
-    #pragma omp parallel for schedule(dynamic, 1)
-    for (int i = 0; i < table->header->dir_count; i++) {
-        directory_t* directory = DRM_load_directory(table->dir_names[i]);
-        DRM_cleanup_pages(directory);
-        if (directory->header->page_count == 0) {
-            TBM_unlink_dir_from_table(table, directory->header->name);
-            DRM_delete_directory(directory, 0);
+    int temp_count = table->header->dir_count;
+    char** temp_names = copy_array2array((char**)table->dir_names, DIRECTORY_NAME_SIZE, temp_count, PAGE_NAME_SIZE);
+    if (!temp_names) return -1;
+
+    #pragma omp parallel for schedule(dynamic, 4)
+    for (int i = 0; i < temp_count; i++) {
+        char dir_path[DEFAULT_PATH_SIZE] = { 0 };
+        sprintf(dir_path, "%s/%.*s.%s", DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, temp_names[i], DIRECTORY_EXTENSION);
+
+        directory_t* directory = DRM_load_directory(temp_names[i]);
+        if (!directory) continue;
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            DRM_cleanup_pages(directory);
+            if (directory->header->page_count == 0) {
+                _unlink_dir_from_table(table, directory->header->name);
+                CHC_flush_entry(directory, DIRECTORY_CACHE);
+                print_debug("Directory [%s] was deleted with result [%i]", temp_names[i], remove(dir_path));
+                continue;
+            }
+            else {
+                THR_release_lock(&directory->lock, omp_get_thread_num());
+            }
         }
-        else DRM_flush_directory(directory);
+
+        DRM_flush_directory(directory);
     }
 
+    ARRAY_SOFT_FREE(temp_names, temp_count);
 #endif
     return 1;
 }
 
 int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
     unsigned char* data_pointer = data;
-    int directory_offset    = 0;
-    int target_global_index = -1;
     size_t temp_data_size = data_size;
-
-    for (; directory_offset < table->header->dir_count && temp_data_size > 0; directory_offset++) {
+    int target_global_index = -1;
+    int current_index = 0;
+ 
+    for (int i = 0; i < table->header->dir_count && temp_data_size > 0; i++) {
         // We load current page to memory
-        directory_t* directory = DRM_load_directory(table->dir_names[directory_offset]);
-        if (directory == NULL) return -2;
+        directory_t* directory = DRM_load_directory(table->dir_names[i]);
+        if (!directory) return -2;
+        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
+            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
+            continue;
+        }
 
         // We search part of data in this directory, save index and unload directory.
-        int current_size = MIN((directory->header->page_count * PAGE_CONTENT_SIZE) - offset, (int)temp_data_size);
+        int current_size = MIN((directory->header->page_count * PAGE_CONTENT_SIZE) - MAX(offset - current_index, 0), (int)temp_data_size);
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            int result = DRM_find_content(directory, offset, data_pointer, current_size);
+            int result = DRM_find_content(directory, MAX(offset - current_index, 0), data_pointer, current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
 
             // If TGI is -1, we know that we start seacrhing from start.
@@ -220,51 +275,13 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
         DRM_flush_directory(directory);
     }
 
-    if (target_global_index != -1) {
-        for (int i = 0; i < MAX(directory_offset - 1, 0); i++) {
-            directory_t* directory = DRM_load_directory(table->dir_names[i]);
-            if (directory != NULL) {
-                target_global_index += directory->header->page_count * PAGE_CONTENT_SIZE;
-                DRM_flush_directory(directory);
-            }
-        }
-    }
-
+    if (target_global_index != -1) target_global_index += current_index;
     return target_global_index;
 }
 
-int TBM_link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
-    #pragma omp critical (link_dir2table)
-    strncpy_s(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
-    return 1;
-}
-
-int TBM_unlink_dir_from_table(table_t* table, const char* dir_name) {
-    int status = 0;
-    #pragma omp critical (unlink_dir_from_table)
-    {
-        for (int i = 0; i < table->header->dir_count; i++) {
-            if (strncmp_s(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
-                for (int j = i; j < table->header->dir_count - 1; j++) {
-                    memcpy_s(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
-                }
-
-                table->header->dir_count--;
-                status = 1;
-                break;
-            }
-        }
-    }
-
-    return status;
-}
-
-int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __restrict querry, size_t querry_size) {
+int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __restrict querry[], size_t querry_size) {
 #ifndef NO_MIGRATE_COMMAND
     if (THR_require_lock(&src->lock, omp_get_thread_num()) == 1 && THR_require_lock(&dst->lock, omp_get_thread_num()) == 1) {
-        table_column_t** src_columns = src->columns;
-        table_column_t** dst_columns = dst->columns;
-
         int offset = 0;
         unsigned char* data = (unsigned char*)" ";
 
@@ -286,9 +303,9 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, int* __r
             for (size_t i = 0; i < querry_size; i += 2) {
                 table_columns_info_t fquerry;
                 table_columns_info_t squerry;
-                TBM_get_column_info(dst, dst_columns[querry[i + 1]]->name, &fquerry);
-                TBM_get_column_info(src, src_columns[querry[i]]->name, &squerry);
-                memcpy_s(new_row + fquerry.offset, data + squerry.offset, src_columns[querry[i]]->size);
+                TBM_get_column_info(dst, querry[i + 1], &fquerry);
+                TBM_get_column_info(src, querry[i], &squerry);
+                memcpy(new_row + fquerry.offset, data + squerry.offset, squerry.size);
             }
 
             TBM_append_content(dst, new_row, dst->row_size);

@@ -2,15 +2,12 @@
 
 
 int DB_init_transaction(database_t* database) {
-    if (database == NULL) return -4;
     if (CHC_sync() != 1) return -1;
-
     DB_save_database(database);
     return DB_cleanup_tables(database);
 }
 
 int DB_rollback(database_t** database) {
-    if (*database == NULL) return -4;
     if (CHC_free() != 1) return -1;
 
     database_t* old_database = DB_load_database((*database)->header->name);

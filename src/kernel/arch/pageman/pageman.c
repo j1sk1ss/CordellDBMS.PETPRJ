@@ -1,10 +1,12 @@
 #include "../../include/pageman.h"
 
 
+#pragma region [CRUD]
+
 int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
     for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) page->content[i] = data[j];
-    return (int)data_length - (end_index - offset);
+    return end_index - offset;
 }
 
 int PGM_delete_content(page_t* page, int offset, size_t length) {
@@ -15,6 +17,8 @@ int PGM_delete_content(page_t* page, int offset, size_t length) {
 #endif
     return 1;
 }
+
+#pragma endregion
 
 int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size) {
     if (offset >= PAGE_CONTENT_SIZE) return -2;
@@ -42,20 +46,12 @@ int PGM_get_fit_free_space(page_t* page, int offset, int size) {
     }
 
     if (offset == -1) return index;
-
-    int is_reading   = 0;
-    int free_index   = index;
-    int current_size = 0;
     for (int i = MAX(offset, index); i < PAGE_CONTENT_SIZE; i++) {
         if (page->content[i] == PAGE_EMPTY) {
-            if (is_reading == 0) free_index = i;
-            is_reading = 1;
-
-            if (++current_size >= size) return free_index;
-        }
-        else {
-            is_reading = 0;
-            current_size = 0;
+            int free_index = i;
+            for (int current_size = 0; i < PAGE_CONTENT_SIZE && page->content[i] == PAGE_EMPTY; i++, current_size++) {
+                if (current_size >= size) return free_index;
+            }
         }
     }
 

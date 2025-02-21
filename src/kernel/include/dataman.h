@@ -41,7 +41,7 @@
 #define DATABASE_EXTENSION      ENV_GET("DATABASE_EXTENSION", "db")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL databases
-#define DATABASE_BASE_PATH      ENV_GET("DATABASE_BASE_PATH", "")
+#define DATABASE_BASE_PATH      ENV_GET("DATABASE_BASE_PATH", ".")
 
 // Database magic for file load_database function check
 #define DATABASE_MAGIC      0xFC
@@ -244,7 +244,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     /*
     Get table from database by table name
     Note: Returned pointer shouldn't be flushed by user with TLB_free_table, because
-          this is a pointer to cached table in datadabe. Please use DB_unlink_table_from_database.
+          this is a pointer to cached table in datadabe. Please use _unlink_table_from_database.
           Anyway, if you want to flash table, be sure that you replace it by NULL in database cache.
     Note 2: Pointers shouldn't overlap each other!
 
@@ -283,21 +283,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if link was success.
     */
     int DB_link_table2database(database_t* __restrict database, table_t* __restrict table);
-
-    /*
-    Delete assosiation with provided table in provided database.
-    Note: This function don't delete table. This function just unlink table.
-          For deleting tables - manualy use C file delete (Or higher abstaction language file operation).
-    Note 2: Pointers shouldn't overlap each other!
-
-    Params:
-    - database - Pointer to database.
-    - name - Table name for delete.
-
-    Return -1 if something goes wrong.
-    Return 1 if unlink was success.
-    */
-    int DB_unlink_table_from_database(database_t* __restrict database, char* __restrict name);
 
     /*
     Create new empty data base with provided name.

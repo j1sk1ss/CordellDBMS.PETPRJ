@@ -9,12 +9,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+<<<<<<< HEAD:src/userland/include/user.h
 #include "hash.h"
 #include "../../kernel/include/common.h"
+=======
+#include "common.h"
+>>>>>>> main:src/kernel/include/user.h
 
 
 #define USERNAME_SIZE   8
-#define USER_BASE_PATH  getenv("USER_BASE_PATH") == NULL ? "" : getenv("USER_BASE_PATH")
+#define USER_BASE_PATH  getenv("USER_BASE_PATH") == NULL ? "." : getenv("USER_BASE_PATH")
 #define USER_EXTENSION  getenv("USER_EXTENSION") == NULL ? "usr" : getenv("USER_EXTENSION")
 
 
@@ -42,12 +46,11 @@ Load user by name or path from disk to RAM.
 Note: If path is NULL, it will use default path.
 
 Params:
-- path - Path to user file. (Can be NULL, if provided name).
 - name - Name of user. (Can be NULL, if provided path).
 
 Return NULL if user file not found.
 Return allocated user struct if file was load success.
 */
-user_t* USR_load(char* path, char* name);
+user_t* USR_load(char* name);
 
 #endif

@@ -18,9 +18,12 @@
  *  that we can work with big data by using very light weighten app.
  * 
  *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
+ *  TODO:
+ *      - Custom malloc in STM32 branch (pre-allocated buffer)
+ *      - Add more log options
 */
 
-#include "userland/include/user.h"
+#include "kernel/include/user.h"
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
 #include "kernel/include/cache.h"
@@ -30,9 +33,7 @@
 #include <stdlib.h>
 
 #ifdef _WIN32
-    #include <winsock2.h>
     #include <ws2tcpip.h>
-    #include <windows.h>
 #else
     #include <unistd.h>
     #include <sys/socket.h>
@@ -47,55 +48,58 @@
 #define MAX_SESSION_COUNT   5
 
 
-void _cleanup();
-int _send2destination(int destination, void* data, size_t data_size);
-int _send2destination_byte(int destination, int byte);
-void* _handle_client(void* client_socket_fd);
-void _start_kernel_session(int source, int destination, int session);
-
-
 static int sessions[MAX_SESSION_COUNT] = { 0 };
 
 
-void _cleanup() {
+static void _cleanup() {
     #ifdef _WIN32
         WSACleanup();
     #endif
 }
 
-#pragma region [Send functions]
+static int _send2destination(int destination, void* data, size_t data_size) {
+    #ifdef _WIN32
+        int sent_size = send(destination, (const char*)data, data_size, 0);
+    #else
+        int sent_size = (int)write(destination, data, data_size);
+    #endif
 
-    int _send2destination(int destination, void* data, size_t data_size) {
-        #ifdef _WIN32
-            int sent_size = send(destination, (const char*)data, data_size, 0);
-        #else
-            int sent_size = (int)write(destination, data, data_size);
-        #endif
+    if (sent_size != (int)data_size) print_warn("Data send size != data write");
+    return 1;
+}
 
-        if (sent_size != (int)data_size) print_warn("Data send size != data write");
-        return 1;
+static int _send2destination_byte(int destination, int byte) {
+    return _send2destination(destination, &byte, 1);
+}
+
+static int _process_quotes(unsigned char* buffer, char* argv[]) {
+    char* current_arg = NULL;
+
+    int argc = 1;
+    int in_quotes = 0;
+
+    for (char *p = (char*)buffer; *p != '\0'; p++) {
+        if (*p == '"') {
+            in_quotes = !in_quotes;
+            if (in_quotes) current_arg = p + 1;
+            else {
+                *p = '\0';
+                argv[argc++] = current_arg;
+                current_arg  = NULL;
+            }
+        }
+        else if (!in_quotes && (*p == ' ' || *p == '\t')) {
+            *p = '\0';
+            if (current_arg) {
+                argv[argc++] = current_arg;
+                current_arg  = NULL;
+            }
+        }
+        else if (!current_arg) current_arg = p;
     }
 
-    int _send2destination_byte(int destination, int byte) {
-        return _send2destination(destination, &byte, 1);
-    }
-
-#pragma endregion
-
-void* _handle_client(void* client_socket_fd) {
-    int socket_fd = ((int*)client_socket_fd)[0];
-    int session = ((int*)client_socket_fd)[1];
-
-    _start_kernel_session(socket_fd, socket_fd, session);
-    close_connection(session);
-    close(socket_fd);
-
-    sessions[session] = 0;
-    print_info("Session [%i] closed", session);
-    free(client_socket_fd);
-
-    THR_kill_thread();
-    return NULL;
+    if (current_arg) argv[argc++] = current_arg;
+    return argc;
 }
 
 /*
@@ -106,7 +110,8 @@ void* _handle_client(void* client_socket_fd) {
  * - source - source FD with commands.
  * - destination - destination FD for kernel answer.
 */
-void _start_kernel_session(int source, int destination, int session) {
+static void _start_kernel_session(int source, int destination, int session) {
+#ifndef NO_SERVER
     unsigned char buffer[MESSAGE_BUFFER] = { 0 };
     user_t* user = NULL;
     int count = 0;
@@ -121,6 +126,7 @@ void _start_kernel_session(int source, int destination, int session) {
         print_info("Session [%i]: [%s]", session, buffer);
 
         if (user == NULL) {
+#ifndef NO_USER
             char username[USERNAME_SIZE] = { 0 };
             char password[128] = { 0 };
             sscanf((char*)buffer, "%[^:]:%s", username, password);
@@ -136,35 +142,15 @@ void _start_kernel_session(int source, int destination, int session) {
             }
 
             continue;
+#else
+        user = (user_t*)malloc(sizeof(user_t));
+        if (!user) break;
+        user->access = CREATE_ACCESS_BYTE(0, 0, 0);
+#endif
         }
 
-        char* argv[COMMANDS_BUFFER] = { NULL };
-        char* current_arg = NULL;
-
-        int argc = 1;
-        int in_quotes = 0;
-
-        for (char *p = (char*)buffer; *p != '\0'; p++) {
-            if (*p == '"') {
-                in_quotes = !in_quotes;
-                if (in_quotes) current_arg = p + 1;
-                else {
-                    *p = '\0';
-                    argv[argc++] = current_arg;
-                    current_arg  = NULL;
-                }
-            }
-            else if (!in_quotes && (*p == ' ' || *p == '\t')) {
-                *p = '\0';
-                if (current_arg) {
-                    argv[argc++] = current_arg;
-                    current_arg  = NULL;
-                }
-            }
-            else if (!current_arg) current_arg = p;
-        }
-
-        if (current_arg) argv[argc++] = current_arg;
+        char* argv[MAX_COMMANDS] = { NULL };
+        int argc = _process_quotes(buffer, argv);
         kernel_answer_t* result = kernel_process_command(argc, argv, user->access, session);
         if (result->answer_body != NULL) {
             _send2destination(destination, result->answer_body, result->answer_size);
@@ -180,12 +166,41 @@ void _start_kernel_session(int source, int destination, int session) {
 
     free(user);
     user = NULL;
+#endif
+}
+
+static void* _handle_client(void* client_socket_fd) {
+#ifndef NO_SERVER
+    int socket_fd = ((int*)client_socket_fd)[0];
+    int session = ((int*)client_socket_fd)[1];
+
+    _start_kernel_session(socket_fd, socket_fd, session);
+    close_connection(session);
+    close(socket_fd);
+
+    sessions[session] = 0;
+    print_info("Session [%i] closed", session);
+    free(client_socket_fd);
+
+    THR_kill_thread();
+#endif
+    return NULL;
+}
+
+kernel_answer_t* entry(char* command) {
+#ifdef NO_SERVER
+    char* argv[MAX_COMMANDS] = { NULL };
+    int argc = _process_quotes(buffer, argv);
+    return kernel_process_command(argc, argv, user->access, session);
+#endif
+    return NULL;
 }
 
 /*
  * Server setup function
 */
 int main() {
+#ifndef NO_SERVER
     /*
     Enable traceback for current session.
     */
@@ -263,5 +278,6 @@ int main() {
     }
 
     _cleanup();
+#endif
     return 1;
 }

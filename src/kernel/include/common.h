@@ -24,7 +24,13 @@
 #include <stdio.h>
 
 #ifdef _WIN32
+  typedef intptr_t ssize_t;
+  #include <io.h>
+  #include <direct.h>
+  #include <winsock2.h>
   #include <windows.h>
+
+  #define mkdir(path, mode) _mkdir(path)
 #else
   #include <sys/stat.h>
 #endif
@@ -41,8 +47,17 @@
 #define DEFAULT_PATH_SIZE   128
 #define DEFAULT_DELAY       999999999
 
+#define SALT    "CordellDBMS_SHA"
+#define MAGIC   8
+
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#define ARRAY_SOFT_FREE(ptr, size) do {                 \
+    if (ptr != NULL) {                                  \
+      for (int i = 0; i < size; i++) SOFT_FREE(ptr[i]); \
+      SOFT_FREE(ptr);                                   \
+    }                                                   \
+  } while(0) 
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
       free((ptr));           \
@@ -155,12 +170,14 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   /*
   Check if file exists.
 
-  Params:
-  - path - Path to file with filename and extension.
+Params:
+- path - Path to file with filename and extension.
+- base_path - Base path of file. Can be NULL.
+- filename - Filename.
 
-  Return 1 if exist, 0 if not.
-  */
-  int file_exists(const char* path, const char* filename);
+Return 1 if exist, 0 if not.
+*/
+int file_exists(const char* path, char* base_path, const char* filename);
 
   /*
   Delete file by provided filename, basepath and extension.
@@ -170,9 +187,28 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   - basepath - Path, where placed file.
   - extension - File extension.
 
-  Return remove status code.
+Return remove status code.
+*/
+int delete_file(const char* filename, const char* basepath, const char* extension);
+
+#ifdef _WIN32
+
+  /*
+  Windows wrapper for pwrite.
   */
-  int delete_file(const char* filename, const char* basepath, const char* extension);
+  intptr_t pwrite(int fd, const void* buf, size_t count, long long int offset);
+
+  /*
+  Windows wrapper for pread.
+  */
+  intptr_t pread(int fd, void* buf, size_t count, long long int offset);
+
+  /*
+  Windows wrapper for fsync.
+  */
+  int fsync(int fd);
+
+#endif
 
   // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
   // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
@@ -219,36 +255,37 @@ unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
   - source - Sub memory for replace.
   - target - New sub string.
 
-  Return new string with replaced sub-memory.
-  */
-  char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
+Return new string with replaced sub-memory.
+*/
+char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
-  /*
-  Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
-  Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
-  Return checksum.
-  */
-  unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
-  size_t strlen_s(const char* str);
-  char* strncpy_s(char* dst, char* src, int n);
-  int strncmp_s(char* str1, const char* str2, size_t n);
-  char* strcpy_s(char* dst, char* src);
+/*
+Simple hash generator.
 
-  /*
-  Took from: https://github.com/appinha/42cursus-00-Libft/blob/master/libft/srcs/str/ft_strstr.c
-  */
-  char* strstr_s(char* haystack, char* needle);
-  char* strpbrk_s(char* s, char* accept);
-  size_t strspn_s(char* s, char* accept);
-  char* strtok_s(char* string, char* delim);
-  char* strcat_s(char* dest, char* src);
-  char* strchr_s(char* str, char chr);
-  int strcmp_s(char* firstStr, char* secondStr);
-  int atoi_s(char *str);
-  void* memcpy_s(void* destination, void* source, size_t num);
-  void* memset_s(void* pointer, unsigned char value, size_t num);
-  int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
+Params:
+- str - input string for hash.
 
-#pragma endregion
+Return hash (unsigned int)
+*/
+unsigned int str2hash(const char* str);
+
+/*
+Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
+Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+Return checksum.
+*/
+unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
+
+/*
+Copt char* array to new destination.
+
+Params:
+  - source - Source array.
+  - elem_size - Each elem size or max size in source array.
+  - size - source array size.
+
+Return pointer to array copy or NULL.
+*/
+char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size);
 
 #endif

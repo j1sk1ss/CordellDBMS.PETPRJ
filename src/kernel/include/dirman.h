@@ -48,14 +48,14 @@
 #define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL directories.
-#define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", "")
+#define DIRECTORY_BASE_PATH ENV_GET("DIRECTORY_BASE_PATH", ".")
 
 // 62^5 * PAGES_PER_DIRECTORY = 233.613.872.160 maximum pages in database.
 // 62^5 * 4096 = 233.6 * 10^9 KB = MIN(255TB, 211TB) - Maximum size of database.
 #define DIRECTORY_NAME_SIZE 6
 #define DIRECTORY_MAGIC     0xCC
 
-#define PAGES_PER_DIRECTORY 0xFF
+#define PAGES_PER_DIRECTORY 50
 #define DIRECTORY_OFFSET    PAGES_PER_DIRECTORY * PAGE_CONTENT_SIZE
 
 
@@ -216,37 +216,6 @@
     Return 1 if file create success.
     */
     int DRM_save_directory(directory_t* directory);
-
-    /*
-    Link current page to this directory.
-    This function just add page name to directory page names and increment page count.
-    Note: You can avoid page loading from disk if you want just link.
-          For avoiuding additional IO file operations, use create_page function with same name,
-          then just link allocated struct to directory.
-
-    Params:
-    - directory - Home directory.
-    - page - Page for linking.
-
-    Return -1 if we reach page limit per directory.
-    If sighnature wrong, return 0.
-    If all okey - return 1.
-    */
-    int DRM_link_page2dir(directory_t* __restrict directory, page_t* __restrict page);
-
-    /*
-    Unlink page from directory. This function just remove page name from directory structure.
-    Note: If you want to delete page permanently, be sure that you unlink it from directory.
-
-    Params:
-    - directory - directory pointer.
-    - page_name - page name (Not path).
-
-    Return -1 if something goes wrong.
-    Return 0 if page not found.
-    Return 1 if unlink was success.
-    */
-    int DRM_unlink_page_from_directory(directory_t* __restrict directory, char* __restrict page_name);
 
     /*
     Allocate memory and create new directory.

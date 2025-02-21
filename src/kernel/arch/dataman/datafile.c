@@ -35,7 +35,7 @@ int DB_delete_database(database_t* database, int full) {
     }
 
     if (result != 1) return result;
-    delete_file(database->header->name, TABLE_BASE_PATH, TABLE_EXTENSION);
+    delete_file(database->header->name, DATABASE_BASE_PATH, DATABASE_EXTENSION);
     DB_free_database(database);
 #endif
     return 1;
@@ -48,6 +48,32 @@ int DB_free_database(database_t* database) {
     return 1;
 }
 
+int DB_save_database(database_t* database) {
+    int status = -1;
+    #pragma omp critical (save_database)
+    {
+        // We generate default path
+        char save_path[DEFAULT_PATH_SIZE] = { 0 };
+        get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
+
+        int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) { print_error("Can`t create or open file: [%s]", save_path); }
+        else {
+            status = 1;
+            if (pwrite(fd, database->header, sizeof(database_header_t), 0) != sizeof(database_header_t)) status = -2;
+            for (int i = 0; i < database->header->table_count; i++)
+                if (pwrite(fd, database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i) != 1) {
+                    status = -3;
+                }
+
+            fsync(fd);
+            close(fd);
+        }
+    }
+
+    return status;
+}
+
 database_t* DB_load_database(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(name, DATABASE_NAME_SIZE, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION) == -1) {
@@ -58,55 +84,25 @@ database_t* DB_load_database(char* name) {
     database_t* loaded_database = NULL;
     #pragma omp critical (load_database)
     {
-        FILE* file = fopen(load_path, "rb");
-        print_debug("Loading database [%s]", load_path);
-        if (file == NULL) print_error("Database file not found! [%s]", load_path);
+        int fd = open(load_path, O_RDONLY);
+        print_io("Loading database [%s]", load_path);
+        if (fd < 0) { print_error("Database file not found! [%s]", load_path); }
         else {
             loaded_database = DB_create_database(NULL);
-            fread(loaded_database->header, sizeof(database_header_t), 1, file);
-            if (loaded_database->header->magic != DATABASE_MAGIC) {
-                print_error("Database file wrong magic for [%s]", load_path);
-                DB_free_database(loaded_database);
-                fclose(file);
-            } else {
-                for (int i = 0; i < loaded_database->header->table_count; i++)
-                    fread(loaded_database->table_names[i], TABLE_NAME_SIZE, 1, file);
-
-                fclose(file);
+            if (loaded_database) {
+                pread(fd, loaded_database->header, sizeof(database_header_t), 0);
+                if (loaded_database->header->magic != DATABASE_MAGIC) {
+                    print_error("Database file wrong magic for [%s]", load_path);
+                    DB_free_database(loaded_database);
+                } else {
+                    for (int i = 0; i < loaded_database->header->table_count; i++)
+                        pread(fd, loaded_database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i);
+                }
             }
+
+            close(fd);
         }
     }
 
     return loaded_database;
-}
-
-int DB_save_database(database_t* database) {
-    int status = -1;
-    #pragma omp critical (save_database)
-    {
-        // We generate default path
-        char save_path[DEFAULT_PATH_SIZE] = { 0 };
-        get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
-
-        FILE* file = fopen(save_path, "wb");
-        if (file == NULL) print_error("Can`t create or open file: [%s]", save_path);
-        else {
-            status = 1;
-            if (fwrite(database->header, sizeof(database_header_t), 1, file) != 1) status = -2;
-            for (int i = 0; i < database->header->table_count; i++)
-                if (fwrite(database->table_names[i], TABLE_NAME_SIZE, 1, file) != 1) {
-                    status = -3;
-                }
-
-            #ifndef _WIN32
-            fsync(fileno(file));
-            #else
-            fflush(file);
-            #endif
-
-            fclose(file);
-        }
-    }
-
-    return status;
 }
