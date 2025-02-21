@@ -85,7 +85,7 @@ database_t* DB_load_database(char* name) {
     #pragma omp critical (load_database)
     {
         int fd = open(load_path, O_RDONLY);
-        print_debug("Loading database [%s]", load_path);
+        print_io("Loading database [%s]", load_path);
         if (fd < 0) { print_error("Database file not found! [%s]", load_path); }
         else {
             loaded_database = DB_create_database(NULL);

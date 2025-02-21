@@ -73,7 +73,7 @@ directory_t* DRM_load_directory(char* name) {
 
     directory_t* loaded_directory = (directory_t*)CHC_find_entry(name, DIRECTORY_BASE_PATH, DIRECTORY_CACHE);
     if (loaded_directory != NULL) {
-        print_debug("Loading directory [%s] from GCT", load_path);
+        print_io("Loading directory [%s] from GCT", load_path);
         return loaded_directory;
     }
 
@@ -81,7 +81,7 @@ directory_t* DRM_load_directory(char* name) {
     {
         // Open file directory
         int fd = open(load_path, O_RDONLY);
-        print_debug("Loading directory [%s]", load_path);
+        print_io("Loading directory [%s]", load_path);
         if (fd < 0) { print_error("Directory not found! Path: [%s]", load_path); }
         else {
             // Read header from file
@@ -132,7 +132,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < directory->header->page_count; i++) {
-                print_debug(
+                print_io(
                     "Page [%s] was deleted and flushed with results [%i | %i]",
                     directory->page_names[i], CHC_flush_entry(
                         PGM_load_page(directory->header->name, directory->page_names[i]), PAGE_CACHE
