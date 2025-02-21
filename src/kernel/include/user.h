@@ -6,7 +6,6 @@
 #ifndef USER_H_
 #define USER_H_
 
-#include <stdlib.h>
 #include <stdio.h>
 
 #include "common.h"

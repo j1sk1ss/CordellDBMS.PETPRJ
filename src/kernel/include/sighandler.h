@@ -16,7 +16,6 @@
 
 #include <stdio.h>
 #include <signal.h>
-#include <stdlib.h>
 
 #ifndef NO_TRACE
 #ifndef _WIN32

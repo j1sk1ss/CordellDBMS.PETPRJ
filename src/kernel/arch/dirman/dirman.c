@@ -68,7 +68,7 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 }
 
 unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght) {
-    unsigned char* content = (unsigned char*)malloc(data_lenght);
+    unsigned char* content = (unsigned char*)malloc_s(data_lenght);
     if (!content) return NULL;
     unsigned char* content_pointer = content;
     memset_s(content_pointer, 0, data_lenght);

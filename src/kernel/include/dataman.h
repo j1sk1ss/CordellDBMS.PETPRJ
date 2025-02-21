@@ -24,8 +24,6 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
-#include <stdlib.h>
-
 #ifndef _WIN32
     #include <unistd.h>
 #endif

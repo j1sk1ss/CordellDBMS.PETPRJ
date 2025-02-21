@@ -18,19 +18,16 @@
  *  that we can work with big data by using very light weighten app.
  * 
  *  Base code of sockets took from: https://devhops.ru/code/c/sockets.php
- *  TODO:
- *      - Custom malloc in STM32 branch (pre-allocated buffer)
- *      - Add more log options
 */
 
+#include "kernel/include/mm.h"
 #include "kernel/include/user.h"
+#include "kernel/include/cache.h"
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
-#include "kernel/include/cache.h"
 #include "kernel/include/threading.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #ifdef _WIN32
     #include <ws2tcpip.h>
@@ -143,7 +140,7 @@ static void _start_kernel_session(int source, int destination, int session) {
 
             continue;
 #else
-        user = (user_t*)malloc(sizeof(user_t));
+        user = (user_t*)malloc_s(sizeof(user_t));
         if (!user) break;
         user->access = CREATE_ACCESS_BYTE(0, 0, 0);
 #endif
@@ -164,7 +161,7 @@ static void _start_kernel_session(int source, int destination, int session) {
         kernel_free_answer(result);
     }
 
-    free(user);
+    free_s(user);
     user = NULL;
 #endif
 }
@@ -180,7 +177,7 @@ static void* _handle_client(void* client_socket_fd) {
 
     sessions[session] = 0;
     print_info("Session [%i] closed", session);
-    free(client_socket_fd);
+    free_s(client_socket_fd);
 
     THR_kill_thread();
 #endif
@@ -258,7 +255,7 @@ int main() {
             continue;
         }
 
-        int* client_socket_fd_ptr = (int*)malloc(sizeof(int) * 3);
+        int* client_socket_fd_ptr = (int*)malloc_s(sizeof(int) * 3);
         if (!client_socket_fd_ptr) return -1;
         
         client_socket_fd_ptr[0] = client_socket_fd;

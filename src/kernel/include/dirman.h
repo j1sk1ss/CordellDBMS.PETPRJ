@@ -32,7 +32,6 @@
 #define DIRMAN_H_
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #ifndef _WIN32
     #include <unistd.h>

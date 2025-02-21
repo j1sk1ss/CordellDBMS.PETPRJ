@@ -19,7 +19,7 @@ user_t* USR_load(char* name) {
     FILE* file = fopen(load_path, "rb");
     if (file == NULL) return NULL;
     else {
-        user_t* user = (user_t*)malloc(sizeof(user_t));
+        user_t* user = (user_t*)malloc_s(sizeof(user_t));
         if (!user) return NULL;
         if (fread(user, sizeof(user_t), 1, file) != 1) printf("[%s %i] Something goes wrong?\n", __FILE__, __LINE__);
         fclose(file);

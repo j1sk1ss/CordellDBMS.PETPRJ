@@ -2,8 +2,8 @@
 
 
 directory_t* DRM_create_directory(char* name) {
-    directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-    directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
+    directory_t* directory = (directory_t*)malloc_s(sizeof(directory_t));
+    directory_header_t* header = (directory_header_t*)malloc_s(sizeof(directory_header_t));
     if (!directory || !header) {
         SOFT_FREE(directory);
         SOFT_FREE(header);
@@ -85,7 +85,7 @@ directory_t* DRM_load_directory(char* name) {
         if (fd < 0) { print_error("Directory not found! Path: [%s]", load_path); }
         else {
             // Read header from file
-            directory_header_t* header = (directory_header_t*)malloc(sizeof(directory_header_t));
+            directory_header_t* header = (directory_header_t*)malloc_s(sizeof(directory_header_t));
             if (header) {
                 memset_s(header, 0, sizeof(directory_header_t));
                 pread(fd, header, sizeof(directory_header_t), 0);
@@ -93,13 +93,13 @@ directory_t* DRM_load_directory(char* name) {
                 // Check directory magic
                 if (header->magic != DIRECTORY_MAGIC) {
                     print_error("Directory file wrong magic for [%s]", load_path);
-                    free(header);
+                    free_s(header);
                     close(fd);
                 } else {
                     // First we allocate memory for directory struct
                     // Then we read page names
-                    directory_t* directory = (directory_t*)malloc(sizeof(directory_t));
-                    if (!directory) free(header);
+                    directory_t* directory = (directory_t*)malloc_s(sizeof(directory_t));
+                    if (!directory) free_s(header);
                     else {
                         memset_s(directory, 0, sizeof(directory_t));
                         for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)

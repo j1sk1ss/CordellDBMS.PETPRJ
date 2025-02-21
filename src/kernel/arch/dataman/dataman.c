@@ -87,7 +87,7 @@ int DB_append_row(
                     memcpy_s(current_data, buffer, table->columns[i]->size);
                 }
 
-                free(previous_data);
+                free_s(previous_data);
             }
         }
 

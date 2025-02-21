@@ -18,10 +18,10 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
-#include <stdlib.h>
-#include <ctype.h>
 #include <time.h>
+#include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef _WIN32
   typedef intptr_t ssize_t;
@@ -35,6 +35,7 @@
   #include <sys/stat.h>
 #endif
 
+#include "mm.h"
 #include "cache.h"
 
 #ifdef NO_ENV
@@ -55,7 +56,7 @@
 
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
-      free((ptr));           \
+      free_s((ptr));           \
       (ptr) = NULL;          \
     }                        \
   } while(0)

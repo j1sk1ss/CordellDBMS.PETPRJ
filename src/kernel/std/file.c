@@ -7,7 +7,7 @@ inline int get_load_path(char* name, int name_size, char* buffer, char* base_pat
 }
 
 char* generate_unique_filename(char* base_path, int name_size, char* extension) {
-    char* name = (char*)malloc(name_size);
+    char* name = (char*)malloc_s(name_size);
     if (!name) return NULL;
     memset_s(name, 0, name_size);
 
@@ -19,7 +19,7 @@ char* generate_unique_filename(char* base_path, int name_size, char* extension) 
 
         if (file_exists(save_path, base_path, name)) {
             if (name[0] == 0) {
-                free(name);
+                free_s(name);
                 return NULL;
             }
         }

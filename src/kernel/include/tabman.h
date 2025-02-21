@@ -32,7 +32,6 @@
 #ifndef TABMAN_H_
 #define TABMAN_H_
 
-#include <stdlib.h>
 #include <stdio.h>
 
 #ifndef _WIN32

@@ -49,7 +49,7 @@ char* strrep(char* __restrict string, char* __restrict source, char* __restrict 
         ins = tmp + len_source;
     }
 
-    tmp = result = (char*)malloc(strlen_s(string) + (len_target - len_source) * count + 1);
+    tmp = result = (char*)malloc_s(strlen_s(string) + (len_target - len_source) * count + 1);
     if (!result) return NULL;
 
     // first time through the loop, all the variable are set correctly
@@ -301,11 +301,11 @@ int atoi_s(char *str) {
 }
 
 char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size) {
-    char** temp_names = (char**)malloc(sizeof(char*) * count);
+    char** temp_names = (char**)malloc_s(sizeof(char*) * count);
     if (!temp_names) return NULL;
 
     for (size_t i = 0; i < count; i++) {
-        temp_names[i] = (char*)malloc(row_size);
+        temp_names[i] = (char*)malloc_s(row_size);
         if (!temp_names[i]) {
             ARRAY_SOFT_FREE(temp_names, (int)count);
             return NULL;

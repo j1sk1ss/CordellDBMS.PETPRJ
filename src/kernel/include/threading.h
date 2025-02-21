@@ -18,8 +18,6 @@
 #ifndef THREADING_H_
 #define THREADING_H_
 
-#include <stdlib.h>
-
 #include "common.h"
 
 #define LOCKED    1

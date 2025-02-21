@@ -2,8 +2,8 @@
 
 
 page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
-    page_t* page = (page_t*)malloc(sizeof(page_t));
-    page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
+    page_t* page = (page_t*)malloc_s(sizeof(page_t));
+    page_header_t* header = (page_header_t*)malloc_s(sizeof(page_header_t));
     if (!page || !header) {
         SOFT_FREE(page);
         SOFT_FREE(header);
@@ -28,7 +28,7 @@ page_t* PGM_create_empty_page(char* base_path) {
     if (!unique_name) return NULL;
 
     page_t* page = PGM_create_page(unique_name, NULL, 0);
-    page->base_path = (char*)malloc(strlen_s(base_path) + 1);
+    page->base_path = (char*)malloc_s(strlen_s(base_path) + 1);
     if (!page->base_path) {
         SOFT_FREE(unique_name);
         return NULL;
@@ -98,7 +98,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
         if (fd < 0) { print_error("Page not found! Path: [%s]", load_path); }
         else {
             // Read header from file
-            page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
+            page_header_t* header = (page_header_t*)malloc_s(sizeof(page_header_t));
             if (header) {
                 memset_s(header, 0, sizeof(page_header_t));
                 pread(fd, header, sizeof(page_header_t), 0);
@@ -106,12 +106,12 @@ page_t* PGM_load_page(char* base_path, char* name) {
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
                     print_error("Page file wrong magic for [%s]", load_path);
-                    free(header);
+                    free_s(header);
                     close(fd);
                 } else {
                     // Allocate memory for page structure
-                    page_t* page = (page_t*)malloc(sizeof(page_t));
-                    if (!page) free(header);
+                    page_t* page = (page_t*)malloc_s(sizeof(page_t));
+                    if (!page) free_s(header);
                     else {
                         memset_s(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
                         pread(fd, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t));
@@ -130,7 +130,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
         }
     }
 
-    loaded_page->base_path = (char*)malloc(strlen_s(base_path) + 1);
+    loaded_page->base_path = (char*)malloc_s(strlen_s(base_path) + 1);
     if (!loaded_page->base_path) {
         PGM_free_page(loaded_page);
         return NULL;

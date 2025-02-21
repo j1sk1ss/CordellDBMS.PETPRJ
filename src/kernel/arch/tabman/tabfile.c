@@ -12,8 +12,8 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     // then page size, because that will brake all DB structure.
     if (row_size >= PAGE_CONTENT_SIZE) return NULL;
 
-    table_t* table = (table_t*)malloc(sizeof(table_t));
-    table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
+    table_t* table = (table_t*)malloc_s(sizeof(table_t));
+    table_header_t* header = (table_header_t*)malloc_s(sizeof(table_header_t));
     if (!table || !header) {
         SOFT_FREE(table);
         SOFT_FREE(header);
@@ -103,7 +103,7 @@ table_t* TBM_load_table(char* name) {
             // Read header of table from file.
             // Note: If magic is wrong, we can say, that this file isn`t table.
             //       We just return error code.
-            table_header_t* header = (table_header_t*)malloc(sizeof(table_header_t));
+            table_header_t* header = (table_header_t*)malloc_s(sizeof(table_header_t));
             if (header) {
                 pread(fd, header, sizeof(table_header_t), 0);
                 if (header->magic != TABLE_MAGIC) {
@@ -112,8 +112,8 @@ table_t* TBM_load_table(char* name) {
                     close(fd);
                 } else {
                     // Read columns from file.
-                    table_t* table = (table_t*)malloc(sizeof(table_t));
-                    table_column_t** columns = (table_column_t**)malloc(header->column_count * sizeof(table_column_t*));
+                    table_t* table = (table_t*)malloc_s(sizeof(table_t));
+                    table_column_t** columns = (table_column_t**)malloc_s(header->column_count * sizeof(table_column_t*));
                     if (!table || !columns) {
                         SOFT_FREE(header);
                         SOFT_FREE(table);
@@ -123,7 +123,7 @@ table_t* TBM_load_table(char* name) {
                         memset_s(columns, 0, header->column_count * sizeof(table_column_t*));
 
                         for (int i = 0; i < header->column_count; i++) {
-                            columns[i] = (table_column_t*)malloc(sizeof(table_column_t));
+                            columns[i] = (table_column_t*)malloc_s(sizeof(table_column_t));
                             if (!columns[i]) { 
                                 table_load_break = 1;                               
                                 continue;

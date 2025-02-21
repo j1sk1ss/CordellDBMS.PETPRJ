@@ -18,14 +18,14 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
     }
 
     static int _compare_data(char* expression, char* fdata, size_t fdata_size, char* sdata, size_t sdata_size) {
-        char* temp_fdata = (char*)malloc(fdata_size + 1);
+        char* temp_fdata = (char*)malloc_s(fdata_size + 1);
         if (!temp_fdata) return 0;
 
         memcpy_s(temp_fdata, fdata, fdata_size);
         temp_fdata[fdata_size] = '\0';
         char* mv_fdata = temp_fdata + strspn_s(temp_fdata, " ");
         
-        char* temp_sdata = (char*)malloc(sdata_size + 1);
+        char* temp_sdata = (char*)malloc_s(sdata_size + 1);
         if (!temp_sdata) return 0;
 
         memcpy_s(temp_sdata, sdata, sdata_size);
@@ -44,8 +44,8 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
             else if (strcmp_s(expression, MORE_THAN) == 0) comparison = first > second;
         }
 
-        free(temp_fdata);
-        free(temp_sdata);
+        free_s(temp_fdata);
+        free_s(temp_sdata);
         return comparison;
     }
 
@@ -104,7 +104,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
 
 
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
-    kernel_answer_t* answer = (kernel_answer_t*)malloc(sizeof(kernel_answer_t));
+    kernel_answer_t* answer = (kernel_answer_t*)malloc_s(sizeof(kernel_answer_t));
     if (!answer) return NULL;
     memset_s(answer, 0, sizeof(kernel_answer_t));
 
@@ -164,7 +164,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         */
 #ifndef NO_VERSION_COMMAND
         else if (strcmp_s(command, VERSION) == 0) {
-            answer->answer_body = (unsigned char*)malloc(strlen_s(KERNEL_VERSION));
+            answer->answer_body = (unsigned char*)malloc_s(strlen_s(KERNEL_VERSION));
             if (!answer->answer_body) return answer;
             memcpy_s(answer->answer_body, KERNEL_VERSION, strlen_s(KERNEL_VERSION));
             answer->answer_size = strlen_s(KERNEL_VERSION);
@@ -254,7 +254,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
 
                         column_count = current_stack_pointer / 5;
-                        columns = (table_column_t**)malloc(column_count * sizeof(table_column_t*));
+                        columns = (table_column_t**)malloc_s(column_count * sizeof(table_column_t*));
                         if (!columns) return answer;
                         memset_s(columns, 0, column_count * sizeof(table_column_t*));
 
@@ -405,7 +405,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                             }
                         }
                         
-                        free(row_data);
+                        free_s(row_data);
                         if (tag == '\0') break;
                     }
 
@@ -466,7 +466,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
                         
                         index++;
-                        free(row_data);
+                        free_s(row_data);
                         if (tag == '\0') break;
                     }
                 }
@@ -547,7 +547,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
                         
                         index++;
-                        free(row_data);
+                        free_s(row_data);
                         if (tag == '\0') break;
                     }
                 }
@@ -570,8 +570,8 @@ int close_connection(int connection) {
 }
 
 int kernel_free_answer(kernel_answer_t* answer) {
-    if (answer->answer_body != NULL) free(answer->answer_body);
-    free(answer);
+    if (answer->answer_body != NULL) free_s(answer->answer_body);
+    free_s(answer);
     return 1;
 }
 

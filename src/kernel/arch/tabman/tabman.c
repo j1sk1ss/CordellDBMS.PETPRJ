@@ -85,7 +85,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
     int content2get_size = (int)size;
 
     // Allocate data for output
-    unsigned char* output_content = (unsigned char*)malloc(size);
+    unsigned char* output_content = (unsigned char*)malloc_s(size);
     if (!output_content) return NULL;
     unsigned char* output_content_pointer = output_content;
     memset_s(output_content_pointer, 0, size);
@@ -111,7 +111,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
                 memcpy_s(output_content_pointer, directory_content, current_size);
 
                 // Realise data
-                free(directory_content);
+                free_s(directory_content);
 
                 // Set offset to 0, because we go to next directory
                 // Update size of getcontent
@@ -288,7 +288,7 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __
         while (*data != '\0') {
             SOFT_FREE(data);
             data = TBM_get_content(src, offset, src->row_size);
-            unsigned char* new_row = (unsigned char*)malloc(dst->row_size);
+            unsigned char* new_row = (unsigned char*)malloc_s(dst->row_size);
             if (!new_row || !data) {
                 SOFT_FREE(new_row);
                 SOFT_FREE(data);
@@ -330,25 +330,25 @@ int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data
         if (GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_MODULE) {
             if (table->columns[i]->module_params == type || table->columns[i]->module_params == COLUMN_MODULE_BOTH) {
                 char* formula = table->columns[i]->module_querry;
-                char* output_querry = (char*)malloc(COLUMN_MODULE_SIZE);
+                char* output_querry = (char*)malloc_s(COLUMN_MODULE_SIZE);
                 if (!output_querry) return -1;
                 strncpy_s(output_querry, formula, COLUMN_MODULE_SIZE);
 
                 int content_offset = 0;
                 for (int j = 0; j < table->header->column_count; j++) {
                     unsigned char* content_pointer = data + content_offset;
-                    char* content_part = (char*)malloc(table->columns[j]->size + 1);
+                    char* content_part = (char*)malloc_s(table->columns[j]->size + 1);
                     if (!content_part) {
-                        free(output_querry);
+                        free_s(output_querry);
                         return -2;
                     }
 
                     strncpy_s(content_part, (char*)content_pointer, table->columns[j]->size);
                     char* next_output_querry = strrep(output_querry, table->columns[j]->name, content_part);
 
-                    free(content_part);
+                    free_s(content_part);
                     if (!next_output_querry) continue;
-                    free(output_querry);
+                    free_s(output_querry);
 
                     output_querry = (char*)next_output_querry;
                     content_offset += table->columns[j]->size;
