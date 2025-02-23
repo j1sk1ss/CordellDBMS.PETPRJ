@@ -262,4 +262,4 @@ def _delete_files(folder: str, extensions: list):
         print(f"Deleted empty folders count: {deleted_folders}")
 
 
-_delete_files("/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds", ["db", "pg", "dr", "tb"])
+_delete_files("/Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds", ["db", "pg", "dr", "tb"])

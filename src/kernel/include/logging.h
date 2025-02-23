@@ -29,50 +29,50 @@
 // Note: LOG_TO_FILE option very heavy function. Prefere console logging, if your host machine can do this.
 // If you use micro controller, use LOG_TO_FILE with disabled DEBUG, LOGGING, INFORMING and SPECIAL.
 // #define LOG_TO_FILE
-#define LOG_FILE_PATH       ENV_GET("LOG_FILE_PATH", "")
+#define LOG_FILE_PATH       ENV_GET("LOG_FILE_PATH", ".")
 #define LOG_FILE_EXTENSION  ENV_GET("LOG_FILE_EXTENSION", "log")
 
 #define LOG_FILE_NAME_SIZE  16
-#define LOG_FILE_SIZE       100
+#define LOG_FILE_SIZE       10000
 
 #ifdef DEBUG
-    #define print_debug(message, ...)       log_message("DEBUG", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_debug(message, ...)  log_message("DEBUG", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_debug(message, ...)
 #endif
 
 #ifdef IO_OPERATION
-    #define print_io(message, ...)       log_message("IO_OPERATION", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_io(message, ...)     log_message("IO_OPERATION", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_io(message, ...)
 #endif
 
 #ifdef LOGGING
-    #define print_log(message, ...)         log_message("LOG", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_log(message, ...)    log_message("LOG", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_log(message, ...)
 #endif
 
 #ifdef WARNINGS
-    #define print_warn(message, ...)        log_message("WARN", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_warn(message, ...)   log_message("WARN", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_warn(message, ...)
 #endif
 
 #ifdef ERRORS
-    #define print_error(message, ...)       log_message("ERROR", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_error(message, ...)  log_message("ERROR", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_error(message, ...)
 #endif
 
 #ifdef INFORMING
-    #define print_info(message, ...)         log_message("INFO", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_info(message, ...)   log_message("INFO", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_info(message, ...)
 #endif
 
 #ifdef SPECIAL
-    #define print_spec(message, ...)         log_message("SPEC", __FILE__, __LINE__, message, ##__VA_ARGS__)
+    #define print_spec(message, ...)   log_message("SPEC", __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
     #define print_spec(message, ...)
 #endif
