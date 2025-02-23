@@ -11,7 +11,7 @@ This defined vars guaranty, that database will take only:
 4 * 2056 bytes (for directory_t)
 4 * 4112 bytes (for page_t)
 
-In summary, whole GCT will take 28KB of RAM.
+In summary, whole GCT will take 24KB of RAM.
 Reduction of ENTRY_COUNT and MAX_TABLE_ENTRY, MAX_DIRECTORY_ENTRY, MAX_PAGE_ENTRY
 will decrease usage of RAM by next formula:
 X * 2080 bytes (for table_t)

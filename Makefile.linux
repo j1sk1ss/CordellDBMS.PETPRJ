@@ -1,7 +1,7 @@
 # Enable optimisation flags and use minimalistic libs.
 # 1 - Compiler optimisation with only error logs.
 # 0 - Full debug with debug flags and debug logs.
-PROD ?= 1
+PROD ?= 0
 # Enable Pthreads (Without it will support only one session at server)
 # 1 - Pthreads enabled.
 PTHREADS ?= 0
@@ -9,9 +9,9 @@ PTHREADS ?= 0
 # 1 - OpenMP enabled.
 OMP ?= 0
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
-MAX_OPT ?= 1
+MAX_OPT ?= 0
 # Include std libs with -static
-INCLUDE_LIBS ?= 1
+INCLUDE_LIBS ?= 0
 # User check at start. Will give max access to any session.
 # 1 - User (username and pass required) enabled.
 USERS ?= 1
@@ -46,7 +46,7 @@ ifeq ($(PROD), 1)
 	CC = musl-gcc
 	CFLAGS = -Wall -Wextra -flto -fno-stack-protector -D_FORTUFY_SOURCE=0 -Ikernel/include -Wcomment -Os -s -DWARNINGS -DERRORS -DINFORMING
 else
-	CC = gcc
+	CC = gcc-14
 	CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DERRORS -DINFORMING -DMEM_OPERATION
 	# CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DERRORS -DINFORMING -DDEBUG -DLOGGING -DWARNINGS -DSPECIAL -DIO_OPERATION -DMEM_OPERATION
 endif

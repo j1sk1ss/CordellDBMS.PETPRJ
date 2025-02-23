@@ -1,26 +1,26 @@
-#include "../include/mm.h"
+#include "../../include/mm.h"
 
 
-static unsigned char buffer[ALLOC_BUFFER_SIZE] = { 0 };
-static mm_block_t* free_list = (mm_block_t*)buffer;
+static unsigned char _buffer[ALLOC_BUFFER_SIZE];
+static mm_block_t* _mm_head = (mm_block_t*)_buffer;
 static int _allocated = 0;
 
 
 int init_memory() {
-    free_list->magic = MM_BLOCK_MAGIC;
-    free_list->size  = ALLOC_BUFFER_SIZE - sizeof(mm_block_t);
-    free_list->free  = 1;
-    free_list->next  = NULL;
+    _mm_head->magic = MM_BLOCK_MAGIC;
+    _mm_head->size  = ALLOC_BUFFER_SIZE - sizeof(mm_block_t);
+    _mm_head->free  = 1;
+    _mm_head->next  = NULL;
     return 1;
 }
 
 static int __coalesce_memory() {
-    mm_block_t* current = free_list;
-    int merged = 1;
+    int merged = 0;
+    mm_block_t* current = _mm_head;
     
     do {
         merged = 0;
-        current = free_list;
+        current = _mm_head;
 
         while (current && current->next) {
             if (current->free && current->next->free) {
@@ -36,12 +36,11 @@ static int __coalesce_memory() {
 }
 
 static void* __malloc_s(size_t size, int prepare_mem) {
-    print_mm("Try to allocate %i / %i", size, _allocated);
     if (size == 0) return NULL;
     if (prepare_mem) __coalesce_memory();
 
     size = (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
-    mm_block_t* current = free_list;
+    mm_block_t* current = _mm_head;
     while (current) {
         if (current->free && current->size >= size) {
             if (current->size >= size + sizeof(mm_block_t)) {
@@ -56,20 +55,21 @@ static void* __malloc_s(size_t size, int prepare_mem) {
             }
 
             current->free = 0;
-            _allocated += size + sizeof(mm_block_t);
+            _allocated += current->size + sizeof(mm_block_t);
+            print_mm("Allocated node with [%i] size / [%i]", current->size, _allocated);
             return (unsigned char*)current + sizeof(mm_block_t);
         }
 
         current = current->next;
     }
 
-    print_mm("Allocation error! I can't allocate [%i]!", (int)size);
+    print_mm("Allocation error! I can't allocate [%i]!", size);
     return prepare_mem ? NULL : __malloc_s(size, 1);
 }
 
 void* malloc_s(size_t size) {
     void* ptr = __malloc_s(size, 0);
-    if (!ptr) print_mm("Allocation error! I can't allocate [%i]!", (int)size);
+    if (!ptr) print_mm("Allocation error! I can't allocate [%i]!", size);
     return ptr;
 }
 
@@ -88,8 +88,7 @@ void* realloc_s(void* ptr, size_t elem) {
 }
 
 int free_s(void* ptr) {
-    print_mm("Try to free [%p]", ptr);
-    if (!ptr || ptr < (void*)buffer || ptr >= (void*)(buffer + ALLOC_BUFFER_SIZE)) return -1;
+    if (!ptr || ptr < (void*)_buffer || ptr >= (void*)(_buffer + ALLOC_BUFFER_SIZE)) return -1;
     
     mm_block_t* block = (mm_block_t*)((unsigned char*)ptr - sizeof(mm_block_t));
     if (block->magic != MM_BLOCK_MAGIC) return -1;
@@ -97,6 +96,7 @@ int free_s(void* ptr) {
 
     block->free = 1;
     _allocated -= block->size + sizeof(mm_block_t);
+    print_mm("Free [%p] with [%i] size / [%i]", ptr, block->size, _allocated);
     
     return 1;
 }
