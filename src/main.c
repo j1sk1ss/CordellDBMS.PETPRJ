@@ -138,9 +138,9 @@ static void _start_kernel_session(int source, int destination, int session) {
 
             continue;
 #else
-        user = (user_t*)malloc_s(sizeof(user_t));
-        if (!user) break;
-        user->access = CREATE_ACCESS_BYTE(0, 0, 0);
+            user = (user_t*)malloc_s(sizeof(user_t));
+            if (!user) break;
+            user->access = CREATE_ACCESS_BYTE(0, 0, 0);
 #endif
         }
 
@@ -202,7 +202,7 @@ int main() {
     print_info("Cordell Database Manager Studio server-side.");
     print_info("Current version of kernel is [%s].", KERNEL_VERSION);
 
-    init_memory();
+    mm_init();
     TB_enable();
     CL_enable();
     CHC_init();

@@ -19,7 +19,6 @@
 #define COMMON_H_
 
 #include <time.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -67,8 +66,7 @@
 
 
 /*
-Get current time from time.h libraryю
-!! Note: Output should be freed after usage. !!
+Get current time from time.h library.
 
 Return char* of current time in format: "%Y-%m-%d %H:%M:%S".
 */
@@ -251,56 +249,72 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
   - source - Sub memory for replace.
   - target - New sub string.
 
-Return new string with replaced sub-memory.
-*/
-char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
+  Return new string with replaced sub-memory.
+  */
+  char* strrep(char* __restrict string, char* __restrict source, char* __restrict target);
 
-/*
-Simple hash generator.
+  /*
+  Simple hash generator.
 
-Params:
-- str - input string for hash.
+  Params:
+  - str - input string for hash.
 
-Return hash (unsigned int)
-*/
-unsigned int str2hash(const char* str);
+  Return hash (unsigned int)
+  */
+  unsigned int str2hash(const char* str);
 
-/*
-Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
-Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
-Return checksum.
-*/
-unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
+  /*
+  Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
+  Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
+  Return checksum.
+  */
+  unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
 
-/*
-Copt char* array to new destination.
+  /*
+  Copt char* array to new destination.
 
-Params:
-  - source - Source array.
-  - elem_size - Each elem size or max size in source array.
-  - size - source array size.
+  Params:
+    - source - Source array.
+    - elem_size - Each elem size or max size in source array.
+    - size - source array size.
 
-Return pointer to array copy or NULL.
-*/
-char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size);
+  Return pointer to array copy or NULL.
+  */
+  char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size);
 
   /*
   Took from: https://github.com/appinha/42cursus-00-Libft/blob/master/libft/srcs/str/ft_strstr.c
+  string.c
   */
- size_t strlen_s(const char* str);
- char* strncpy_s(char* dst, char* src, int n);
- int strncmp_s(char* str1, const char* str2, size_t n);
- char* strcpy_s(char* dst, char* src);
- char* strstr_s(char* haystack, char* needle);
- char* strpbrk_s(char* s, char* accept);
- size_t strspn_s(char* s, char* accept);
- char* strtok_s(char* string, char* delim);
- char* strcat_s(char* dest, char* src);
- char* strchr_s(char* str, char chr);
- int strcmp_s(char* firstStr, char* secondStr);
- int atoi_s(char *str);
- void* memcpy_s(void* destination, void* source, size_t num);
- void* memset_s(void* pointer, unsigned char value, size_t num);
- int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
+  size_t strlen_s(const char* str);
+  char* strncpy_s(char* dst, char* src, int n);
+  int strncmp_s(char* str1, const char* str2, size_t n);
+  char* strcpy_s(char* dst, char* src);
+  char* strstr_s(char* haystack, char* needle);
+  char* strpbrk_s(char* s, char* accept);
+  size_t strspn_s(char* s, char* accept);
+  char* strtok_s(char* string, char* delim);
+  char* strcat_s(char* dest, char* src);
+  char* strchr_s(char* str, char chr);
+  int strcmp_s(char* firstStr, char* secondStr);
+  int atoi_s(char *str);
+
+#pragma endregion
+
+/*
+memory.c
+*/
+void* memcpy_s(void* destination, void* source, size_t num);
+void* memset_s(void* pointer, unsigned char value, size_t num);
+int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
+
+/*
+ctype.c
+*/
+int isdigit_s(int c);
+int isspace_s(int c);
+int islower_s(int c);
+int tolower_s(int c);
+int toupper_s(int c);
 
 #endif

@@ -6,4 +6,5 @@ builds/*
 *.dr
 *.tb
 *.pyc
-.sconsign.dblite
+*.dblite
+*.txt

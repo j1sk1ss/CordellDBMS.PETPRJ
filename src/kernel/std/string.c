@@ -19,7 +19,7 @@ void strrand(char* dest, size_t length, int offset) {
 
 int is_integer(const char* str) {
     while (*str) {
-        if (!isdigit(*str)) return 0;
+        if (!isdigit_s(*str)) return 0;
         str++;
     }
 

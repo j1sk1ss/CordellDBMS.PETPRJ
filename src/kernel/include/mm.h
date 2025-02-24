@@ -13,7 +13,7 @@
 typedef struct mm_block {
     unsigned int magic;
     size_t size;
-    int free;
+    unsigned char free;
     struct mm_block* next;
 } mm_block_t;
 
@@ -24,7 +24,7 @@ Init first memory block in memory manager.
 Return -1 if something goes wrong.
 Return 1 if success init.
 */
-int init_memory();
+int mm_init();
 
 /*
 Allocate memory block.

@@ -190,8 +190,6 @@ int DB_cleanup_tables(database_t* database) {
         TBM_cleanup_dirs(table);
         TBM_flush_table(table);
     }
-
-    if (CHC_sync() != 1) return -1;
 #endif
     return 1;
 }

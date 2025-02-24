@@ -6,7 +6,7 @@ static mm_block_t* _mm_head = (mm_block_t*)_buffer;
 static int _allocated = 0;
 
 
-int init_memory() {
+int mm_init() {
     _mm_head->magic = MM_BLOCK_MAGIC;
     _mm_head->size  = ALLOC_BUFFER_SIZE - sizeof(mm_block_t);
     _mm_head->free  = 1;
@@ -56,7 +56,7 @@ static void* __malloc_s(size_t size, int prepare_mem) {
 
             current->free = 0;
             _allocated += current->size + sizeof(mm_block_t);
-            print_mm("Allocated node with [%i] size / [%i]", current->size, _allocated);
+            print_mm("Allocated node [%p] with [%i] size / [%i]", (unsigned char*)current + sizeof(mm_block_t), current->size, _allocated);
             return (unsigned char*)current + sizeof(mm_block_t);
         }
 

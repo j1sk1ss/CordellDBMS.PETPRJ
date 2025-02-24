@@ -197,6 +197,7 @@ int TBM_flush_table(table_t* table) {
 int TBM_free_table(table_t* table) {
     if (!table) return -1;
     ARRAY_SOFT_FREE(table->columns, table->header->column_count);
+    SOFT_FREE(table->header);
     SOFT_FREE(table);
     return 1;
 }

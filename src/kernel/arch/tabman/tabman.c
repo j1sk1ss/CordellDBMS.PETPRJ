@@ -107,7 +107,7 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
             int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
             unsigned char* directory_content = DRM_get_content(directory, MAX(offset - current_index, 0), current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
-            if (directory_content != NULL) {
+            if (directory_content) {
                 memcpy_s(output_content_pointer, directory_content, current_size);
 
                 // Realise data
@@ -217,7 +217,7 @@ int TBM_cleanup_dirs(table_t* table) {
             DRM_cleanup_pages(directory);
             if (directory->header->page_count == 0) {
                 _unlink_dir_from_table(table, directory->header->name);
-                if (CHC_flush_entry(directory, DIRECTORY_CACHE) == -2) DRM_flush_directory(directory);
+                if (CHC_flush_entry(directory, DIRECTORY_CACHE) == -2) DRM_free_directory(directory);
                 print_debug("Directory [%s] was deleted with result [%i]", temp_names[i], remove(dir_path));
                 continue;
             }
