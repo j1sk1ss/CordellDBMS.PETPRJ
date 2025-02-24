@@ -144,9 +144,9 @@ static void _start_kernel_session(int source, int destination, int session) {
 
             continue;
 #else
-        user = (user_t*)malloc(sizeof(user_t));
-        if (!user) break;
-        user->access = CREATE_ACCESS_BYTE(0, 0, 0);
+            user = (user_t*)malloc(sizeof(user_t));
+            if (!user) break;
+            user->access = CREATE_ACCESS_BYTE(0, 0, 0);
 #endif
         }
 

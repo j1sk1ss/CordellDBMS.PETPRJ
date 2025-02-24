@@ -182,7 +182,7 @@ int TBM_delete_table(table_t* table, int full) {
 
         // Delete table from disk by provided, generated path
         delete_file(table->header->name, TABLE_BASE_PATH, TABLE_EXTENSION);
-        if (CHC_flush_entry(table, TABLE_CACHE) == -2) TBM_flush_table(table);
+        if (CHC_flush_entry(table, TABLE_CACHE) == -2) TBM_free_table(table);
         return 1;
     }
     
@@ -200,6 +200,7 @@ int TBM_flush_table(table_t* table) {
 int TBM_free_table(table_t* table) {
     if (!table) return -1;
     ARRAY_SOFT_FREE(table->columns, table->header->column_count);
+    SOFT_FREE(table->header);
     SOFT_FREE(table);
     return 1;
 }

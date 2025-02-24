@@ -2,9 +2,9 @@
 
 
 int DB_init_transaction(database_t* database) {
-    if (CHC_sync() != 1) return -1;
     DB_save_database(database);
-    return DB_cleanup_tables(database);
+    DB_cleanup_tables(database);
+    return CHC_sync();
 }
 
 int DB_rollback(database_t** database) {

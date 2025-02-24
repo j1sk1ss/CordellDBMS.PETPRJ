@@ -1,9 +1,11 @@
 #include "../include/logging.h"
 
 
-static int _log_size = 0;
-static FILE* _log_file = NULL;
-static char* _log_file_name = NULL;
+#ifdef LOG_TO_FILE
+    static int _log_size = 0;
+    static FILE* _log_file = NULL;
+    static char* _log_file_name = NULL;
+#endif
 
 
 void _write_log(const char* level, const char* file, int line, const char* message, va_list args) {

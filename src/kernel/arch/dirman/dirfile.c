@@ -142,7 +142,7 @@ int DRM_delete_directory(directory_t* directory, int full) {
         }
 
         delete_file(directory->header->name, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
-        CHC_flush_entry(directory, DIRECTORY_CACHE);
+        if (CHC_flush_entry(directory, DIRECTORY_CACHE) == -2) DRM_free_directory(directory);
         return 1;
     }
     else {

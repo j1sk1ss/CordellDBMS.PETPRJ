@@ -23,7 +23,7 @@ DEBUG_PROFILER ?= 0
 
 # Kernel commands setup.
 # Log to .log file
-FILE_LOGGING ?= 1
+FILE_LOGGING ?= 0
 # Disable all commands with update functionality
 # Exmpl: insert / update by_index / update by_value
 DISABLE_UPDATE ?= 0
@@ -43,18 +43,62 @@ DISABLE_MIGRATION ?= 0
 # Disable check signature in append and insert data
 DISABLE_CHECK_SIGNATURE ?= 0
 
+# Logger flags
+ERROR_LOGS ?= 1
+WARN_LOGS ?= 0
+INFO_LOGS ?= 1
+DEBUG_LOGS ?= 0
+IO_LOGS ?= 0
+MEM_LOGS ?= 1
+LOGGING_LOGS ?= 0
+SPECIAL_LOGS ?= 0
 
-CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -DERRORS -DINFORMING -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body -Wno-unused-parameter
-
-
+#########
+# Base flags
+CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body -Wno-unused-parameter
 ifeq ($(PROD), 1)
     CC = musl-gcc
-    CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0 -DINFORMING -DERRORS -DWARNINGS
+    CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0
 else
     CC = gcc-14
-    CFLAGS = -DDEBUG -DLOGGING -DINFORMING -DERRORS -DWARNINGS -DSPECIAL -DIO_OPERATION
 endif
 
+########
+# Logger flags
+ifeq ($(ERROR_LOGS), 1)
+    CFLAGS += -DERROR_LOGS
+endif
+
+ifeq ($(WARN_LOGS), 1)
+    CFLAGS += -DWARNING_LOGS
+endif
+
+ifeq ($(INFO_LOGS), 1)
+    CFLAGS += -DINFO_LOGS
+endif
+
+ifeq ($(DEBUG_LOGS), 1)
+    CFLAGS += -DDEBUG_LOGS
+endif
+
+ifeq ($(IO_LOGS), 1)
+    CFLAGS += -DIO_OPERATION_LOGS
+endif
+
+ifeq ($(MEM_LOGS), 1)
+    CFLAGS += -DMEM_OPERATION_LOGS
+endif
+
+ifeq ($(LOGGING_LOGS), 1)
+    CFLAGS += -DLOGGING_LOGS
+endif
+
+ifeq ($(SPECIAL_LOGS), 1)
+    CFLAGS += -DSPECIAL_LOGS
+endif
+
+########
+# Settings flags
 ifeq ($(DEBUG_PROFILER), 1)
     CFLAGS += -pg
 endif
@@ -117,9 +161,7 @@ endif
 
 #############################
 # Build part
-
 OS := $(shell uname -s 2>/dev/null || echo Windows)
-
 ifeq ($(OS),Linux)
     UNIX_BASED := 1
 else ifeq ($(OS),Darwin)

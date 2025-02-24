@@ -352,10 +352,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
             Command syntax: get row <table_name> <operation_type> <options>
             */
             if (strcmp(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), ROW) == 0) {
-                int index = -1;
-                int answer_size = 0;
-                unsigned char* answer_data = NULL;
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
+                table_t* table = _get_table(database, table_name);
+                if (!table) return answer;
+
+                unsigned char* answer_data = NULL;
+                int answer_size = 0;
+                int index = -1;
 
                 /*
                 Note: Will get entire row.
@@ -365,15 +368,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
                     answer_data = DB_get_row(database, table_name, index, access);
-                    if (answer_data == NULL) {
+                    if (!answer_data) {
                         print_error("Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", DATABASE_NAME_SIZE, database->header->name, table_name, index, access);
                         answer->answer_code = 8;
                         return answer;
                     }
 
-                    table_t* table = _get_table(database, table_name);
                     answer_size = table->row_size;
-                    TBM_flush_table(table);
                 }
                 /*
                 Note: will get line of rows, that equals expression.
@@ -381,9 +382,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 */
 #ifndef NO_GET_EXPRESSION_COMMAND
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
-                    table_t* table = _get_table(database, table_name);
-                    if (!table) return answer;
-
                     index = 0;
                     int get_data = 0;
                     unsigned char* row_data = (unsigned char*)" ";
@@ -394,10 +392,18 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         
                         int limit = 0;
                         unsigned char tag = *row_data;
+                        if (tag == '\0') {
+                            free(row_data);
+                            break;
+                        }
 
-                        if (tag != PAGE_EMPTY && tag != '\0') {
+                        if (tag != PAGE_EMPTY) {
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && get_data++ >= limit) break;
+                                if (limit != -1 && get_data++ >= limit) {
+                                    free(row_data);
+                                    break;
+                                }
+
                                 int data_start = answer_size;
                                 answer_size += table->row_size;
                                 answer_data = (unsigned char*)realloc(answer_data, answer_size);
@@ -406,16 +412,14 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
                         
                         free(row_data);
-                        if (tag == '\0') break;
                     }
-
-                    TBM_flush_table(table);
                 }
 #endif
 
                 answer->answer_body = answer_data;
                 answer->answer_code = index;
                 answer->answer_size = answer_size;
+                TBM_flush_table(table);
             }
         }
         /*
