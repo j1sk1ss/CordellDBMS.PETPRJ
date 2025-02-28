@@ -8,6 +8,7 @@
 #define ALLOC_BUFFER_SIZE   65536
 #define ALIGNMENT           8  
 #define MM_BLOCK_MAGIC      0xC07DEL
+#define NO_OFFSET           0
 
 
 typedef struct mm_block {
@@ -36,6 +37,18 @@ Return NULL if can't allocate memory.
 Return pointer to allocated memory.
 */
 void* malloc_s(size_t size);
+
+/*
+Allocate memory block with offset.
+
+Params:
+    - size - Memory block size.
+    - offset - Minimum offset for memory block.
+
+Return NULL if can't allocate memory.
+Return pointer to allocated memory.
+*/
+void* malloc_off_s(size_t size, size_t offset);
 
 /*
 Realloc pointer to new location with new size.

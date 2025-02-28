@@ -35,14 +35,18 @@ static int __coalesce_memory() {
     return 1;
 }
 
-static void* __malloc_s(size_t size, int prepare_mem) {
+static void* __malloc_s(size_t size, size_t offset, int prepare_mem) {
     if (size == 0) return NULL;
     if (prepare_mem) __coalesce_memory();
 
     size = (size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
+    offset = (offset + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1);
     mm_block_t* current = _mm_head;
+    
     while (current) {
-        if (current->free && current->size >= size) {
+        void* aligned_addr = (unsigned char*)current + sizeof(mm_block_t);
+        size_t position = (size_t)((unsigned char*)aligned_addr - _buffer);
+        if (current->free && current->size >= size && position >= offset) {
             if (current->size >= size + sizeof(mm_block_t)) {
                 mm_block_t* new_block = (mm_block_t*)((unsigned char*)current + sizeof(mm_block_t) + size);
                 new_block->magic = MM_BLOCK_MAGIC;
@@ -64,11 +68,17 @@ static void* __malloc_s(size_t size, int prepare_mem) {
     }
 
     print_mm("Allocation error! I can't allocate [%i]!", size);
-    return prepare_mem ? NULL : __malloc_s(size, 1);
+    return prepare_mem ? NULL : __malloc_s(size, offset, 1);
 }
 
 void* malloc_s(size_t size) {
-    void* ptr = __malloc_s(size, 0);
+    void* ptr = __malloc_s(size, NO_OFFSET, 0);
+    if (!ptr) print_mm("Allocation error! I can't allocate [%i]!", size);
+    return ptr;
+}
+
+void* malloc_off_s(size_t size, size_t offset) {
+    void* ptr = __malloc_s(size, offset, 0);
     if (!ptr) print_mm("Allocation error! I can't allocate [%i]!", size);
     return ptr;
 }
