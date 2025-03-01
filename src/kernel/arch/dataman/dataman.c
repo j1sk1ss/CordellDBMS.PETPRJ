@@ -125,6 +125,8 @@ unsigned char* DB_get_row(
     if (table == NULL) return NULL;
 
     unsigned char* data = (unsigned char*)malloc(table->row_size);
+    if (!data) return NULL;
+
     memset(data, 0, table->row_size);
     TBM_get_content(table, _get_global_offset(table->row_size, row), data, table->row_size);
     TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
