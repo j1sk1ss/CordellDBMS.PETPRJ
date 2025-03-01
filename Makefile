@@ -4,10 +4,10 @@
 PROD ?= 0
 # Enable Pthreads (Without it will support only one session at server)
 # 1 - Pthreads enabled.
-PTHREADS ?= 0
+PTHREADS ?= 1
 # Enable OpenMP flag
 # 1 - OpenMP enabled.
-OMP ?= 0
+OMP ?= 1
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
 MAX_OPT ?= 0
 # Include std libs with -static
@@ -23,7 +23,7 @@ DEBUG_PROFILER ?= 0
 
 # Kernel commands setup.
 # Log to .log file
-FILE_LOGGING ?= 1
+FILE_LOGGING ?= 0
 # Disable all commands with update functionality
 # Exmpl: insert / update by_index / update by_value
 DISABLE_UPDATE ?= 0

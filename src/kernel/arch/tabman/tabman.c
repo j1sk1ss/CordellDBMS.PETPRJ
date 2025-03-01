@@ -83,10 +83,7 @@ int TBM_get_content(table_t* __restrict table, int offset,  unsigned char* __res
     // Data for DRM
     directory_t* directory = NULL;
     int content2get_size = (int)size;
-
-    // Allocate data for output
     unsigned char* output_content_pointer = buffer;
-    memset(output_content_pointer, 0, size);
 
     // Iterate from all directories in table
     int current_index = 0;
@@ -280,6 +277,7 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __
         while (*data != '\0') {
             SOFT_FREE(data);
             data = (unsigned char*)malloc(src->row_size);
+            memset(data, 0, src->row_size);
             TBM_get_content(src, offset, data, src->row_size);
             unsigned char* new_row = (unsigned char*)malloc(dst->row_size);
             if (!new_row || !data) {

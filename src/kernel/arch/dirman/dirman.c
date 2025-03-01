@@ -69,8 +69,6 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 
 int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char* __restrict buffer, size_t data_lenght) {
     unsigned char* content_pointer = buffer;
-    memset(content_pointer, 0, data_lenght);
-
     int start_page = offset / PAGE_CONTENT_SIZE;
     int page_offset = offset % PAGE_CONTENT_SIZE;
 
