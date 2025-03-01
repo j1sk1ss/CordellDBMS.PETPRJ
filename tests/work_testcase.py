@@ -12,9 +12,7 @@ from cdbms_api.db_objects.objects.table.column import Column, ColumnDataType, Co
 from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator, Statement
 
 
-def _global_test(
-    create_test: bool = True 
-) -> None:
+def _global_test() -> None:
     start_test_time: float = time.perf_counter()
 
     ROWS: int = 10000
@@ -42,6 +40,28 @@ def _global_test(
         else:
             return []
         
+    def _test_data_test() -> None:
+        """
+        This test should check data safety. If it falls - It indicates, that data was overwritten / lost etc.
+        """
+        print('\n[Test] Test data should stay in database (FirstTest and SecondTest)...')
+        start_time: float = time.perf_counter()
+        rows: list = _by_exp_str_test(
+            expression=[
+                Statement(column_name="name", expression=Expressions.STR_EQUALS, value="FirstTest"),
+                LogicOperator.OR,
+                Statement(column_name="name", expression=Expressions.STR_EQUALS, value="SecondTest"),
+            ],
+            limit=100
+        )
+
+        retrieve_time = time.perf_counter() - start_time
+        print(f'[Time] Test data get from database time: {retrieve_time:.6f} sec.')
+
+        assert (len(rows)) == 2, f"FirstTest and SecondTest count is not 2 | count: {len(rows)}/2"
+        for i in rows:
+            assert i.name in [ 'FirstTest', 'SecondTest' ], "Not test value"
+        
     # region [CREATE]
 
     print('\n[Test] Creating database, table and test data...')
@@ -57,6 +77,7 @@ def _global_test(
     print(f'[Time] Test data insert time: {insert_time:.4f} sec.')
 
     database.sync()
+    _test_data_test()
 
     random_index: int = random.randint(1, ROWS - 2)
     start_time = time.perf_counter()
@@ -80,6 +101,7 @@ def _global_test(
         assert i.name != "Porosenok" and i.huid > ROWS - 1, "Test failed. Data incorrect"
 
     database.sync()
+    _test_data_test()
 
     # endregion
 
@@ -114,6 +136,8 @@ def _global_test(
     for i in rows:
         assert i.weight > 249 or i.name != "Porosenok", "Test failed. Data incorrect"
 
+    _test_data_test()
+
     # endregion
 
     # region [UPDATE]
@@ -142,6 +166,7 @@ def _global_test(
 
 
     database.sync()
+    _test_data_test()
 
     # endregion
 
@@ -165,7 +190,9 @@ def _global_test(
     )
 
     assert len(rows) == 0, "Deleted data exists"
+    
     database.sync()
+    _test_data_test()
 
     # endregion
 
@@ -193,28 +220,7 @@ def _global_test(
         assert i.name == "Kitty", "Wrong name for new data"
 
     database.sync()
-
-    # endregion
-
-    # region [CHECK TEST DATA]
-
-    print('\n[Test] Test data should stay in database (FirstTest and SecondTest)...')
-    start_time: float = time.perf_counter()
-    rows: list = _by_exp_str_test(
-        expression=[
-            Statement(column_name="name", expression=Expressions.STR_EQUALS, value="FirstTest"),
-            LogicOperator.OR,
-            Statement(column_name="name", expression=Expressions.STR_EQUALS, value="SecondTest"),
-        ],
-        limit=10
-    )
-
-    retrieve_time = time.perf_counter() - start_time
-    print(f'[Time] Test data get from database time: {retrieve_time:.6f} sec.')
-
-    assert (len(rows)) == 2, f"FirstTest and SecondTest count is not 2 | count: {len(rows)}/2"
-    for i in rows:
-        assert i.name in [ 'FirstTest', 'SecondTest' ], "Not test value"
+    _test_data_test()
 
     # endregion
 

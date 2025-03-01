@@ -468,7 +468,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         if (tag != PAGE_EMPTY) {
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && updated_rows++ >= limit) break;
+                                if (limit != -1 && updated_rows++ >= limit) {
+                                    free(row_data);
+                                    break;
+                                }
+                                
                                 answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
                             }
                         }
@@ -552,7 +556,11 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         if (tag != PAGE_EMPTY) {
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && deleted_rows++ >= limit) break;
+                                if (limit != -1 && deleted_rows++ >= limit) {
+                                    free(row_data);
+                                    break;
+                                }
+
                                 answer->answer_code = DB_delete_row(database, table_name, index, access);
                             }
                         }
