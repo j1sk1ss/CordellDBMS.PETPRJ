@@ -116,7 +116,7 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.8 (no-std-libs)"
+#define KERNEL_VERSION     "v2.9 (secure-mem)"
 
 
 typedef struct {
