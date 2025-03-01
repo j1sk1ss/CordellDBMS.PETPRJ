@@ -105,6 +105,19 @@
 #pragma region [Content]
 
     /*
+    Get content from page. This function just copy any content from page to buffer.
+
+    Params:
+    - page - Pointer to page.
+    - offset - Offset in page content.
+    - buffer - Location for data from page content.
+    - data_lenght - Lenght of data.
+
+    Return size of data, that can be stored in page.
+    */
+   int PGM_get_content(page_t* __restrict page, int offset, unsigned char* __restrict buffer, size_t data_length);
+
+    /*
     Insert content to page. This function don't move page_end symbol to new location.
     In summary this function just rewrite part of page with provided data.
     Note: You should use this function carefull, because it don't warn if it rewrite special bytes.

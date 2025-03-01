@@ -3,6 +3,12 @@
 
 #pragma region [CRUD]
 
+int PGM_get_content(page_t* __restrict page, int offset, unsigned char* __restrict buffer, size_t data_length) {
+    int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
+    for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) buffer[j] = page->content[i];
+    return end_index - offset;
+}
+
 int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
     for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) page->content[i] = data[j];
