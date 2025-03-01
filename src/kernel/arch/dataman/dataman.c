@@ -124,7 +124,8 @@ unsigned char* DB_get_row(
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
     if (table == NULL) return NULL;
 
-    unsigned char* data = TBM_get_content(table, _get_global_offset(table->row_size, row), table->row_size);
+    unsigned char* data = (unsigned char*)malloc(table->row_size);
+    TBM_get_content(table, _get_global_offset(table->row_size, row), data, table->row_size);
     TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
     TBM_flush_table(table);
 
