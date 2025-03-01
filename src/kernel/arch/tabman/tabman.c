@@ -277,6 +277,8 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __
         while (*data != '\0') {
             SOFT_FREE(data);
             data = (unsigned char*)malloc(src->row_size);
+            if (!data) return -2;
+
             memset(data, 0, src->row_size);
             TBM_get_content(src, offset, data, src->row_size);
             unsigned char* new_row = (unsigned char*)malloc(dst->row_size);
