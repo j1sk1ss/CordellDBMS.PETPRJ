@@ -79,16 +79,11 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
     return 1;
 }
 
-unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
+int TBM_get_content(table_t* __restrict table, int offset,  unsigned char* __restrict buffer, size_t size) {
     // Data for DRM
     directory_t* directory = NULL;
     int content2get_size = (int)size;
-
-    // Allocate data for output
-    unsigned char* output_content = (unsigned char*)malloc_s(size);
-    if (!output_content) return NULL;
-    unsigned char* output_content_pointer = output_content;
-    memset_s(output_content_pointer, 0, size);
+    unsigned char* output_content_pointer = buffer;
 
     // Iterate from all directories in table
     int current_index = 0;
@@ -105,28 +100,22 @@ unsigned char* TBM_get_content(table_t* table, int offset, size_t size) {
             // Get data from directory
             // After getting data, copy it to allocated output
             int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
-            unsigned char* directory_content = DRM_get_content(directory, MAX(offset - current_index, 0), current_size);
+            DRM_get_content(directory, MAX(offset - current_index, 0), output_content_pointer, current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
-            if (directory_content) {
-                memcpy_s(output_content_pointer, directory_content, current_size);
+            
+            // Set offset to 0, because we go to next directory
+            // Update size of getcontent
+            offset = 0;
+            current_index = 0;
 
-                // Realise data
-                free_s(directory_content);
-
-                // Set offset to 0, because we go to next directory
-                // Update size of getcontent
-                offset = 0;
-                current_index = 0;
-
-                content2get_size -= current_size;
-                output_content_pointer += current_size;
-            }
+            content2get_size -= current_size;
+            output_content_pointer += current_size;
         }
 
         DRM_flush_directory(directory);
     }
 
-    return output_content;
+    return 1;
 }
 
 int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
@@ -287,7 +276,10 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __
 
         while (*data != '\0') {
             SOFT_FREE(data);
-            data = TBM_get_content(src, offset, src->row_size);
+            data = (unsigned char*)malloc_s(src->row_size);
+            if (!data) return -2;
+
+            TBM_get_content(src, offset, data, src->row_size);
             unsigned char* new_row = (unsigned char*)malloc_s(dst->row_size);
             if (!new_row || !data) {
                 SOFT_FREE(new_row);

@@ -97,13 +97,14 @@
     Note: This function don`t check signature, and can return any values, that's why be sure that you get right size of content.
 
     Params:
-    - directory - pointer to directory
-    - offset - global offset in bytes
-    - size - size of content
+    - directory - Pointer to directory.
+    - offset - Global offset in bytes.
+    - buffer - Pointer to location for data from directory.
+    - size - Size of content.
 
-    Return point to allocated copy of data from directory
+    Return 1 if read success.
     */
-    unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght);
+   int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char* __restrict buffer, size_t data_lenght);
 
     /*
     Rewrite all line by EMPTY symbols.

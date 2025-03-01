@@ -67,12 +67,8 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
     return 2;
 }
 
-unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_lenght) {
-    unsigned char* content = (unsigned char*)malloc_s(data_lenght);
-    if (!content) return NULL;
-    unsigned char* content_pointer = content;
-    memset_s(content_pointer, 0, data_lenght);
-
+int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char* __restrict buffer, size_t data_lenght) {
+    unsigned char* content_pointer = buffer;
     int start_page = offset / PAGE_CONTENT_SIZE;
     int page_offset = offset % PAGE_CONTENT_SIZE;
 
@@ -83,9 +79,7 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - page_offset, (int)data_lenght);
-            for (int j = 0, k = page_offset; j < current_size && k < PAGE_CONTENT_SIZE; j++, k++) {
-                content_pointer[j] = decode_hamming_15_11(page->content[k]);
-            }
+            PGM_get_content(page, page_offset, content_pointer, current_size);
 
             // We reload local index and update size2get
             // Also we move content pointer to next location
@@ -99,7 +93,7 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
         PGM_flush_page(page);
     }
 
-    return content;
+    return 1;
 }
 
 int DRM_insert_content(

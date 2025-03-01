@@ -12,7 +12,9 @@ from cdbms_api.db_objects.objects.table.column import Column, ColumnDataType, Co
 from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator, Statement
 
 
-def _global_test() -> None:
+def _global_test(
+    create_test: bool = True 
+) -> None:
     start_test_time: float = time.perf_counter()
 
     ROWS: int = 10000
@@ -136,7 +138,7 @@ def _global_test() -> None:
     )
 
     for i in rows:
-        assert i.weight == 500, "Test failed. Data incorrect"
+        assert i.name == "Svinya" and i.weight == 500, "Test failed. Data incorrect"
 
 
     database.sync()
@@ -182,11 +184,11 @@ def _global_test() -> None:
     rows: list = _by_exp_str_test(
         expression=[
             Statement(column_name="name", expression=Expressions.STR_EQUALS, value="Kitty")
-        ], limit=50
+        ], limit=55
     )
 
     retrieve_time = time.perf_counter() - start_time
-    assert len(rows) == 50, f"Rows wasn't append: {len(rows)}/{50}"
+    assert len(rows) == 50, f"Rows wasn't append: {len(rows)}/50"
     for i in rows:
         assert i.name == "Kitty", "Wrong name for new data"
 
@@ -210,9 +212,9 @@ def _global_test() -> None:
     retrieve_time = time.perf_counter() - start_time
     print(f'[Time] Test data get from database time: {retrieve_time:.6f} sec.')
 
-    assert (len(rows)) >= 2, f"FirstTest and SecondTest not exists | count: {len(rows)}"
+    assert (len(rows)) == 2, f"FirstTest and SecondTest count is not 2 | count: {len(rows)}/2"
     for i in rows:
-        assert i.name in [ 'FirstTest', 'SecondTest' ]
+        assert i.name in [ 'FirstTest', 'SecondTest' ], "Not test value"
 
     # endregion
 
@@ -222,52 +224,56 @@ def _global_test() -> None:
     print(f'[Time] All tests time: {retrieve_time:.6f} sec.')
 
     print('\n')
+    
 
-    def _delete_files(folder: str, extensions: list):
-        if not os.path.exists(folder):
-            print(f"Dir {folder} does not exist!")
-            return
-        
-        deleted_files = 0
-        for ext in extensions:
-            files = glob.glob(os.path.join(folder, f"*.{ext}"))
-            for file in files:
-                try:
-                    os.remove(file)
-                    print(f"Deleted file: {file}")
-                    deleted_files += 1
-                except Exception as e:
-                    print(f"Delete error {file}: {e}")
+def _delete_files(folder: str, extensions: list):
+    if not os.path.exists(folder):
+        print(f"Dir {folder} does not exist!")
+        return
+    
+    deleted_files = 0
+    for ext in extensions:
+        files = glob.glob(os.path.join(folder, f"*.{ext}"))
+        for file in files:
+            try:
+                os.remove(file)
+                print(f"Deleted file: {file}")
+                deleted_files += 1
+            except Exception as e:
+                print(f"Delete error {file}: {e}")
 
-        if deleted_files == 0:
-            print("Files not found!")
-        else:
-            print(f"Deleted files count: {deleted_files}")
+    if deleted_files == 0:
+        print("Files not found!")
+    else:
+        print(f"Deleted files count: {deleted_files}")
 
-        deleted_folders = 0
-        for root, dirs, _ in os.walk(folder, topdown=False):
-            for dir_name in dirs:
-                dir_path = os.path.join(root, dir_name)
-                try:
-                    shutil.rmtree(dir_path)
-                    print(f"Deleted empty folder: {dir_path}")
-                    deleted_folders += 1
-                except Exception as e:
-                    print(f"Delete error {dir_path}: {e}")
+    deleted_folders = 0
+    for root, dirs, _ in os.walk(folder, topdown=False):
+        for dir_name in dirs:
+            dir_path = os.path.join(root, dir_name)
+            try:
+                shutil.rmtree(dir_path)
+                print(f"Deleted empty folder: {dir_path}")
+                deleted_folders += 1
+            except Exception as e:
+                print(f"Delete error {dir_path}: {e}")
 
-        if deleted_folders == 0:
-            print("No empty folders found!")
-        else:
-            print(f"Deleted empty folders count: {deleted_folders}")
-
-
-    _delete_files("/Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds", ["db", "pg", "dr", "tb"])
+    if deleted_folders == 0:
+        print("No empty folders found!")
+    else:
+        print(f"Deleted empty folders count: {deleted_folders}")
 
 
 if __name__ == "__main__":
     try:
         while True:
-            _global_test()
-            input("Press any key to continue...")
+            try:
+                _global_test()
+            except AssertionError as ex:
+                print("Test failed! Text:", str(ex))
+            finally:
+                _delete_files("/Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds", ["db", "pg", "dr", "tb"])
+            
+            input("\nPress any key to continue...")
     except KeyboardInterrupt:
-        print("Test stopped.")
+        print("\nTest stopped.")

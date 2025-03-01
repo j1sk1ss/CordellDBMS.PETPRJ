@@ -19,7 +19,7 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
 
     page->header = header;
     if (buffer != NULL) memcpy_s(page->content, buffer, data_size);
-    for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
+    for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encode_hamming_15_11(PAGE_EMPTY);
     return page;
 }
 
@@ -59,17 +59,17 @@ int PGM_save_page(page_t* page) {
             if (fd < 0) { print_error("Can't save or create [%s] file", save_path); }
             else {
                 // Write data to disk
-                status = 1;
                 int eof = PGM_get_page_occupie_size(page, PAGE_START);
 
+                status = 1;
                 page->header->checksum = page_cheksum;
                 if (pwrite(fd, page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
-                if (pwrite(fd, page->content, eof, sizeof(page_header_t)) != (ssize_t)eof) status = -3;
+                if (
+                    pwrite(fd, page->content, eof * sizeof(unsigned short), sizeof(page_header_t)) != (ssize_t)(eof * sizeof(unsigned short))
+                ) status = -3;
 
                 fsync(fd);
                 close(fd);
-                
-                page->content[eof] = PAGE_EMPTY;
             }
         }
     }
@@ -110,8 +110,8 @@ page_t* PGM_load_page(char* base_path, char* name) {
                     page_t* page = (page_t*)malloc_s(sizeof(page_t));
                     if (!page) free_s(header);
                     else {
-                        memset_s(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
-                        pread(fd, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t));
+                        memset_s(page->content, encode_hamming_15_11(PAGE_EMPTY), PAGE_CONTENT_SIZE);
+                        pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t));
                         close(fd);
 
                         page->lock   = THR_create_lock();

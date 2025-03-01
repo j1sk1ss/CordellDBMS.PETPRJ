@@ -252,11 +252,12 @@
     Params:
     - table - Pointer to table.
     - offset - Global offset in bytes.
+    - buffer - Destination place for data from table.
     - size - Size of content.
 
-    Return point to allocated copy of data from table
+    Return 1 if read success.
     */
-    unsigned char* TBM_get_content(table_t* table, int offset, size_t size);
+    int TBM_get_content(table_t* __restrict table, int offset,  unsigned char* __restrict buffer, size_t size);
 
     /*
     Insert data row to content pages in directories. Main difference with append_content is hard part.

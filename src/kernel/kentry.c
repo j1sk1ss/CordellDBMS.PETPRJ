@@ -543,7 +543,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         int limit = 0;
                         unsigned char tag = *row_data;
 
-                        if (tag != PAGE_EMPTY && tag != '\0') {
+                        if (tag != PAGE_EMPTY && tag != '\0') { // TODO
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
                                 if (limit != -1 && deleted_rows++ >= limit) break;
                                 answer->answer_code = DB_delete_row(database, table_name, index, access);
