@@ -5,10 +5,15 @@
 #include "common.h"
 #include "logging.h"
 
+
 #define ALLOC_BUFFER_SIZE   65536
 #define ALIGNMENT           8  
 #define MM_BLOCK_MAGIC      0xC07DEL
 #define NO_OFFSET           0
+
+#define GET_BIT(b, i) ((b >> i) & 1)
+#define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
+#define TOGGLE_BIT(b, i) (b ^ (1 << i))
 
 
 typedef struct mm_block {
@@ -73,5 +78,25 @@ Return -1 if something goes wrong.
 Return 1 if free success.
 */
 int free_s(void* ptr);
+
+/*
+Hamming 15,11 code encoding.
+
+Params:
+    - data - Data to encode. Can be unsigned char or unsigned short with 11 data bits.
+
+Return encoded unsigned short
+*/
+unsigned short encode_hamming_15_11(unsigned short data);
+
+/*
+Hamming 15,11 code decoding.
+
+Params:
+    - encoded - Encoded data from encode_hamming_15_11.
+
+Return decoded char or 11 data bits unsigned short.
+*/
+unsigned short decode_hamming_15_11(unsigned short encoded);
 
 #endif

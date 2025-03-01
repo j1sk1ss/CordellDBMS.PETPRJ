@@ -3,9 +3,11 @@
 
 #pragma region [CRUD]
 
+int 
+
 int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
-    for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) page->content[i] = data[j];
+    for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) page->content[i] = encode_hamming_15_11(data[i]);
     return end_index - offset;
 }
 

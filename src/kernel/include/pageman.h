@@ -54,8 +54,7 @@
 
 #pragma region [Page memory]
 
-    #define PAGE_EMPTY          0xEE
-    #define PAGE_END            0xED
+    #define PAGE_EMPTY          0xFFFF
     // 4096 is default. Lower - less RAM. Higher - faster.
     #define PAGE_CONTENT_SIZE   4096
     #define PAGE_START          0x00
@@ -94,7 +93,7 @@
         page_header_t* header;
 
         // Page content
-        unsigned char content[PAGE_CONTENT_SIZE];
+        unsigned short content[PAGE_CONTENT_SIZE];
         char* base_path;
     } page_t;
 

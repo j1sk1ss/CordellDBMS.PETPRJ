@@ -83,7 +83,9 @@ unsigned char* DRM_get_content(directory_t* directory, int offset, size_t data_l
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - page_offset, (int)data_lenght);
-            memcpy_s(content_pointer, (unsigned char*)page->content + page_offset, current_size);
+            for (int j = 0, k = page_offset; j < current_size && k < PAGE_CONTENT_SIZE; j++, k++) {
+                content_pointer[j] = decode_hamming_15_11(page->content[k]);
+            }
 
             // We reload local index and update size2get
             // Also we move content pointer to next location
