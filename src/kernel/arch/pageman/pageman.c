@@ -23,8 +23,8 @@ int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __res
 
 int PGM_delete_content(page_t* page, int offset, size_t length) {
 #ifndef NO_DELETE_COMMAND
-    int end_index = MIN(PAGE_CONTENT_SIZE, offset + (int)length);
-    for (int i = offset; i < end_index; i++) page->content[i] = encode_hamming_15_11(PAGE_EMPTY);
+    int end_index = MIN(PAGE_CONTENT_SIZE, (int)length + offset);
+    for (int i = offset; i < end_index; i++) page->content[i] = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
     return end_index - offset;
 #endif
     return 1;

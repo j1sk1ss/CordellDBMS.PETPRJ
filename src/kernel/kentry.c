@@ -391,7 +391,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         
                         int limit = 0;
                         unsigned char tag = *row_data;
-
                         if (tag == '\0') {
                             free_s(row_data);
                             break;
@@ -461,17 +460,24 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         int limit = 0;
                         unsigned char tag = *row_data;
+                        if (tag == '\0') {
+                            free_s(row_data);
+                            break;
+                        }
 
-                        if (tag != PAGE_EMPTY && tag != '\0') {
+                        if (tag != PAGE_EMPTY) {
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && updated_rows++ >= limit) break;
+                                if (limit != -1 && updated_rows++ >= limit) {
+                                    free_s(row_data);
+                                    break;
+                                }
+                                
                                 answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen_s(data), access);
                             }
                         }
                         
                         index++;
                         free_s(row_data);
-                        if (tag == '\0') break;
                     }
                 }
             }
@@ -542,17 +548,24 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                         int limit = 0;
                         unsigned char tag = *row_data;
+                        if (tag == '\0') {
+                            free_s(row_data);
+                            break;
+                        }
 
-                        if (tag != PAGE_EMPTY && tag != '\0') { // TODO
+                        if (tag != PAGE_EMPTY) {
                             if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && deleted_rows++ >= limit) break;
+                                if (limit != -1 && deleted_rows++ >= limit) {
+                                    free_s(row_data);
+                                    break;
+                                }
+
                                 answer->answer_code = DB_delete_row(database, table_name, index, access);
                             }
                         }
                         
                         index++;
                         free_s(row_data);
-                        if (tag == '\0') break;
                     }
                 }
             }
