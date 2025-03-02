@@ -110,7 +110,8 @@ page_t* PGM_load_page(char* base_path, char* name) {
                     page_t* page = (page_t*)malloc_s(sizeof(page_t));
                     if (!page) free_s(header);
                     else {
-                        for (int i = 0; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
+                        unsigned short encoded_pm = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
+                        for (int i = 0; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encoded_pm;
                         pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t));
                         close(fd);
 
