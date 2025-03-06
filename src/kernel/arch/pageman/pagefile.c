@@ -63,10 +63,11 @@ int PGM_save_page(page_t* page) {
 
                 status = 1;
                 page->header->checksum = page_cheksum;
-                if (pwrite(fd, page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
-                if (
-                    pwrite(fd, page->content, eof * sizeof(unsigned short), sizeof(page_header_t)) != (ssize_t)(eof * sizeof(unsigned short))
-                ) status = -3;
+
+                page_header_t encoded_header;
+                pack_memory((unsigned char*)page->header, (unsigned short*)&encoded_header, sizeof(page_header_t));
+                if (pwrite(fd, &encoded_header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
+                if (pwrite(fd, page->content, eof * sizeof(unsigned short), sizeof(page_header_t)) != (ssize_t)(eof * sizeof(unsigned short))) status = -3;
 
                 fsync(fd);
                 close(fd);
@@ -98,7 +99,10 @@ page_t* PGM_load_page(char* base_path, char* name) {
             page_header_t* header = (page_header_t*)malloc_s(sizeof(page_header_t));
             if (header) {
                 memset_s(header, 0, sizeof(page_header_t));
-                pread(fd, header, sizeof(page_header_t), 0);
+
+                page_header_t decoded_header;
+                pread(fd, &decoded_header, sizeof(page_header_t), 0);
+                unpack_memory((unsigned short*)&decoded_header, (unsigned char*)header, sizeof(page_header_t));
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {

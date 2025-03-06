@@ -50,3 +50,22 @@ unsigned short decode_hamming_15_11(unsigned short encoded) {
     data = SET_BIT(data, 10, GET_BIT(encoded, 14));
     return data;
 }
+
+unsigned char _get_byte(unsigned short* ptr, int offset) {
+    return (unsigned char)decode_hamming_15_11(ptr[offset]);
+}
+
+int _set_byte(unsigned short* ptr, int offset, unsigned char byte) {
+    ptr[offset] = encode_hamming_15_11((unsigned short)byte);
+    return 1;
+}
+
+void* unpack_memory(unsigned short* src, unsigned char* dst, size_t len) {
+    for (int i = 0; i < len; i++) dst[i] = _get_byte(src, i);
+    return (void*)dst;
+}
+
+void* pack_memory(unsigned char* src, unsigned short* dst, size_t len) {
+    for (int i = 0; i < len; i++) _set_byte(dst, i, src[i]);
+    return (void*)dst;
+}
