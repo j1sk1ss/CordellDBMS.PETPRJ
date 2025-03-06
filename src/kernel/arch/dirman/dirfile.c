@@ -46,13 +46,23 @@ int DRM_save_directory(directory_t* directory) {
             int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if (fd < 0) { print_error("Can`t create file: [%s]", save_path); }
             else {
+                int offset = 0;
                 status = 1;
                 directory->header->checksum = DRM_get_checksum(directory);
-                if (pwrite(fd, directory->header, sizeof(directory_header_t), 0) != sizeof(directory_header_t)) status = -1;
+
+                unsigned short encoded_header[sizeof(directory_header_t)] = { 0 };
+                pack_memory((unsigned char*)directory->header, (unsigned short*)encoded_header, sizeof(directory_header_t));
+                if (pwrite(fd, encoded_header, sizeof(directory_header_t) * sizeof(unsigned short), offset) != sizeof(directory_header_t) * sizeof(unsigned short)) status = -1;
+                offset += sizeof(directory_header_t) * sizeof(unsigned short);
+
                 for (int i = 0; i < directory->header->page_count; i++) {
-                    if (pwrite(fd, directory->page_names[i], PAGE_NAME_SIZE, sizeof(directory_header_t) + PAGE_NAME_SIZE * i) != PAGE_NAME_SIZE) {
+                    unsigned short encoded_page_name[PAGE_NAME_SIZE] = { 0 };
+                    pack_memory((unsigned char*)directory->page_names[i], (unsigned short*)encoded_page_name, PAGE_NAME_SIZE);
+                    if (pwrite(fd, encoded_page_name, PAGE_NAME_SIZE * sizeof(unsigned short), offset) != PAGE_NAME_SIZE * sizeof(unsigned short)) {
                         status = -1;
                     }
+
+                    offset += PAGE_NAME_SIZE * sizeof(unsigned short);
                 }
 
                 fsync(fd);
@@ -84,8 +94,13 @@ directory_t* DRM_load_directory(char* name) {
             // Read header from file
             directory_header_t* header = (directory_header_t*)malloc_s(sizeof(directory_header_t));
             if (header) {
+                int offset = 0;
                 memset_s(header, 0, sizeof(directory_header_t));
-                pread(fd, header, sizeof(directory_header_t), 0);
+
+                unsigned short encoded_header[sizeof(directory_header_t)] = { 0 };
+                pread(fd, encoded_header, sizeof(directory_header_t) * sizeof(unsigned short), offset);
+                unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(directory_header_t));
+                offset += sizeof(directory_header_t) * sizeof(unsigned short);
 
                 // Check directory magic
                 if (header->magic != DIRECTORY_MAGIC) {
@@ -99,8 +114,12 @@ directory_t* DRM_load_directory(char* name) {
                     if (!directory) free_s(header);
                     else {
                         memset_s(directory, 0, sizeof(directory_t));
-                        for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
-                            pread(fd, directory->page_names[i], PAGE_NAME_SIZE, sizeof(directory_header_t) + PAGE_NAME_SIZE * i);
+                        for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
+                            unsigned short encoded_page_name[PAGE_NAME_SIZE] = { 0 };
+                            pread(fd, encoded_page_name, PAGE_NAME_SIZE * sizeof(unsigned short), offset);
+                            unpack_memory((unsigned short*)encoded_page_name, (unsigned char*)directory->page_names[i], PAGE_NAME_SIZE);
+                            offset += PAGE_NAME_SIZE * sizeof(unsigned short);
+                        }
 
                         // Close file directory
                         close(fd);

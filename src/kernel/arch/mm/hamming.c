@@ -61,11 +61,11 @@ int _set_byte(unsigned short* ptr, int offset, unsigned char byte) {
 }
 
 void* unpack_memory(unsigned short* src, unsigned char* dst, size_t len) {
-    for (int i = 0; i < len; i++) dst[i] = _get_byte(src, i);
+    for (size_t i = 0; i < len; i++) dst[i] = _get_byte(src, i);
     return (void*)dst;
 }
 
 void* pack_memory(unsigned char* src, unsigned short* dst, size_t len) {
-    for (int i = 0; i < len; i++) _set_byte(dst, i, src[i]);
+    for (size_t i = 0; i < len; i++) _set_byte(dst, i, src[i]);
     return (void*)dst;
 }

@@ -55,20 +55,31 @@ int TBM_save_table(table_t* table) {
             if (fd < 0) { print_error("Can't save or create table [%s] file", save_path); }
             else {
                 // Write header
+                int offset = 0;
                 status = 1;
                 table->header->checksum = TBM_get_checksum(table);
-                if (pwrite(fd, table->header, sizeof(table_header_t), 0) != sizeof(table_header_t)) status = -2;
-                for (int i = 0; i < table->header->column_count; i++)
-                    if (pwrite(fd, table->columns[i], sizeof(table_column_t), sizeof(table_header_t) + sizeof(table_column_t) * i) != sizeof(table_column_t)) {
+
+                unsigned short encoded_header[sizeof(table_header_t)] = { 0 };
+                pack_memory((unsigned char*)table->header, (unsigned short*)encoded_header, sizeof(table_header_t));
+                if (pwrite(fd, encoded_header, sizeof(table_header_t) * sizeof(unsigned short), offset) != sizeof(table_header_t) * sizeof(unsigned short)) status = -2;
+                offset += sizeof(table_header_t) * sizeof(unsigned short);
+                
+                for (int i = 0; i < table->header->column_count; i++) {
+                    unsigned short encoded_column[sizeof(table_column_t)] = { 0 };
+                    pack_memory((unsigned char*)table->columns[i], (unsigned short*)encoded_column, sizeof(table_column_t));
+                    if (pwrite(fd, encoded_column, sizeof(table_column_t) * sizeof(unsigned short), offset) != sizeof(table_column_t) * sizeof(unsigned short)) {
                         status = -3;
                     }
 
-                for (int i = 0; i < table->header->dir_count; i++)
-                    if (pwrite(
-                        fd, table->dir_names[i], DIRECTORY_NAME_SIZE, sizeof(table_header_t) + sizeof(table_column_t) * table->header->column_count + DIRECTORY_NAME_SIZE * i
-                    ) != DIRECTORY_NAME_SIZE) {
-                        status = -5;
-                    }
+                    offset += sizeof(table_column_t) * sizeof(unsigned short);
+                }
+
+                for (int i = 0; i < table->header->dir_count; i++) {
+                    unsigned short encoded_directory_name[sizeof(table_header_t)] = { 0 };
+                    pack_memory((unsigned char*)table->dir_names[i], (unsigned short*)encoded_directory_name, DIRECTORY_NAME_SIZE);
+                    if (pwrite(fd, encoded_directory_name, DIRECTORY_NAME_SIZE * sizeof(unsigned short), offset) != DIRECTORY_NAME_SIZE * sizeof(unsigned short)) status = -5;
+                    offset += DIRECTORY_NAME_SIZE * sizeof(unsigned short);
+                }
 
                 fsync(fd);
                 close(fd);
@@ -102,7 +113,11 @@ table_t* TBM_load_table(char* name) {
             //       We just return error code.
             table_header_t* header = (table_header_t*)malloc_s(sizeof(table_header_t));
             if (header) {
-                pread(fd, header, sizeof(table_header_t), 0);
+                int offset = 0;
+                unsigned short encoded_header[sizeof(table_header_t)] = { 0 };
+                pread(fd, encoded_header, sizeof(table_header_t) * sizeof(unsigned short), offset);
+                unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(table_header_t));
+                offset += sizeof(table_header_t) * sizeof(unsigned short);
                 if (header->magic != TABLE_MAGIC) {
                     print_error("Table file wrong magic for [%s]", load_path);
                     SOFT_FREE(header);
@@ -127,7 +142,10 @@ table_t* TBM_load_table(char* name) {
                             }
 
                             memset_s(columns[i], 0, sizeof(table_column_t));
-                            pread(fd, columns[i], sizeof(table_column_t), sizeof(table_header_t) + sizeof(table_column_t) * i);
+                            unsigned short encoded_column[sizeof(table_column_t)] = { 0 };
+                            pread(fd, encoded_column, sizeof(table_column_t) * sizeof(unsigned short), offset);
+                            unpack_memory((unsigned short*)encoded_header, (unsigned char*)columns[i], sizeof(table_column_t));
+                            offset += sizeof(table_column_t) * sizeof(unsigned short);
                         }
 
                         for (int i = 0; i < header->column_count; i++)
@@ -135,9 +153,10 @@ table_t* TBM_load_table(char* name) {
 
                         // Read directory names from file, that linked to this directory.
                         for (int i = 0; i < header->dir_count; i++) {
-                            pread(
-                                fd, table->dir_names[i], DIRECTORY_NAME_SIZE, sizeof(table_header_t) + sizeof(table_column_t) * header->column_count + DIRECTORY_NAME_SIZE * i
-                            );
+                            unsigned short encoded_directory_name[DIRECTORY_NAME_SIZE] = { 0 };
+                            pread(fd, encoded_directory_name, DIRECTORY_NAME_SIZE * sizeof(unsigned short), offset);
+                            unpack_memory((unsigned short*)encoded_directory_name, (unsigned char*)table->dir_names[i], DIRECTORY_NAME_SIZE);
+                            offset += DIRECTORY_NAME_SIZE * sizeof(unsigned short);
                         }
 
                         close(fd);

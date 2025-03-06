@@ -64,10 +64,10 @@ int PGM_save_page(page_t* page) {
                 status = 1;
                 page->header->checksum = page_cheksum;
 
-                page_header_t encoded_header;
-                pack_memory((unsigned char*)page->header, (unsigned short*)&encoded_header, sizeof(page_header_t));
-                if (pwrite(fd, &encoded_header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
-                if (pwrite(fd, page->content, eof * sizeof(unsigned short), sizeof(page_header_t)) != (ssize_t)(eof * sizeof(unsigned short))) status = -3;
+                unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
+                pack_memory((unsigned char*)page->header, (unsigned short*)encoded_header, sizeof(page_header_t));
+                if (pwrite(fd, &encoded_header, sizeof(page_header_t) * sizeof(unsigned short), 0) != sizeof(page_header_t) * sizeof(unsigned short)) status = -2;
+                if (pwrite(fd, page->content, eof * sizeof(unsigned short), sizeof(page_header_t) * sizeof(unsigned short)) != (ssize_t)(eof * sizeof(unsigned short))) status = -3;
 
                 fsync(fd);
                 close(fd);
@@ -100,9 +100,9 @@ page_t* PGM_load_page(char* base_path, char* name) {
             if (header) {
                 memset_s(header, 0, sizeof(page_header_t));
 
-                page_header_t decoded_header;
-                pread(fd, &decoded_header, sizeof(page_header_t), 0);
-                unpack_memory((unsigned short*)&decoded_header, (unsigned char*)header, sizeof(page_header_t));
+                unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
+                pread(fd, encoded_header, sizeof(page_header_t) * sizeof(unsigned short), 0);
+                unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(page_header_t));
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
@@ -116,7 +116,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
                     else {
                         unsigned short encoded_pm = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
                         for (int i = 0; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encoded_pm;
-                        pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t));
+                        pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t) * sizeof(unsigned short));
                         close(fd);
 
                         page->lock   = THR_create_lock();

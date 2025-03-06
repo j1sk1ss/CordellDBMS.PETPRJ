@@ -60,11 +60,16 @@ int DB_save_database(database_t* database) {
         if (fd < 0) { print_error("Can`t create or open file: [%s]", save_path); }
         else {
             status = 1;
-            if (pwrite(fd, database->header, sizeof(database_header_t), 0) != sizeof(database_header_t)) status = -2;
-            for (int i = 0; i < database->header->table_count; i++)
-                if (pwrite(fd, database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i) != 1) {
+            unsigned short encoded_header[sizeof(database_header_t)] = { 0 };
+            pack_memory((unsigned char*)database->header, (unsigned short*)encoded_header, sizeof(database_header_t));
+            if (pwrite(fd, encoded_header, sizeof(database_header_t) * sizeof(unsigned short), 0) != sizeof(database_header_t)) status = -2;
+            for (int i = 0; i < database->header->table_count; i++) {
+                unsigned short encoded_table_name[TABLE_NAME_SIZE] = { 0 };
+                pack_memory((unsigned char*)database->table_names[i], (unsigned short*)encoded_table_name, TABLE_NAME_SIZE);
+                if (pwrite(fd, encoded_table_name, TABLE_NAME_SIZE * sizeof(unsigned short), (sizeof(database_header_t)  * sizeof(unsigned short)) + TABLE_NAME_SIZE * i) != TABLE_NAME_SIZE) {
                     status = -3;
                 }
+            }
 
             fsync(fd);
             close(fd);
@@ -87,13 +92,18 @@ database_t* DB_load_database(char* name) {
         else {
             loaded_database = DB_create_database(NULL);
             if (loaded_database) {
-                pread(fd, loaded_database->header, sizeof(database_header_t), 0);
+                unsigned short encoded_header[sizeof(database_header_t)] = { 0 };
+                pread(fd, encoded_header, sizeof(database_header_t) * sizeof(unsigned short), 0);
+                unpack_memory((unsigned short*)encoded_header, (unsigned char*)loaded_database->header, sizeof(database_header_t));
                 if (loaded_database->header->magic != DATABASE_MAGIC) {
                     print_error("Database file wrong magic for [%s]", load_path);
                     DB_free_database(loaded_database);
                 } else {
-                    for (int i = 0; i < loaded_database->header->table_count; i++)
-                        pread(fd, loaded_database->table_names[i], TABLE_NAME_SIZE, sizeof(database_header_t) + TABLE_NAME_SIZE * i);
+                    for (int i = 0; i < loaded_database->header->table_count; i++) {
+                        unsigned short encoded_table_name[TABLE_NAME_SIZE] = { 0 };
+                        pread(fd, encoded_table_name, TABLE_NAME_SIZE * sizeof(unsigned short), (sizeof(database_header_t)  * sizeof(unsigned short)) + TABLE_NAME_SIZE * i);
+                        unpack_memory((unsigned short*)encoded_table_name, (unsigned char*)loaded_database->table_names[i], TABLE_NAME_SIZE);
+                    }
                 }
             }
 

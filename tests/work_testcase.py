@@ -277,8 +277,10 @@ if __name__ == "__main__":
                 _global_test()
             except AssertionError as ex:
                 print("Test failed! Text:", str(ex))
+            except Exception as ex:
+                print("Unhundled exception! Text: ", str(ex))
             finally:
-                _delete_files("/Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds", ["db", "pg", "dr", "tb"])
+                _delete_files("/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds", ["db", "pg", "dr", "tb"])
             
             input("\nPress any key to continue...")
     except KeyboardInterrupt:
