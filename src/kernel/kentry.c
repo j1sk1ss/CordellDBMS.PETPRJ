@@ -49,52 +49,54 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         return comparison;
     }
 
-    static int _evaluate_expression(
-        table_t* table, unsigned char* row_data, char* commands[], int current_command, int argc, int* out_limit
+    static int _create_expression(
+        char* commands[], int current_command, int argc, expression_t* expression
     ) {
-        typedef struct {
-            char* column_name;
-            char* expression;
-            char* value;
-        } condition_t;
-
-        condition_t conditions[MAX_STATEMENTS];
-        char* operators[MAX_STATEMENTS] = { NULL };
-        int condition_count = 0;
-        int operator_count = 0;
-        *out_limit = -1;
+        expression->condition_count = 0;
+        expression->operator_count = 0;
+        expression->limit = -1;
+        expression->offset = 0;
 
         while (1) {
             char* operator = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             if (!operator) break;
 
             if (strcmp(operator, COLUMN) == 0) {
-                conditions[condition_count].column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
-                conditions[condition_count].expression = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
-                conditions[condition_count].value = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
-                condition_count++;
+                expression->conditions[expression->condition_count].column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
+                expression->conditions[expression->condition_count].expression = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
+                expression->conditions[expression->condition_count].value = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
+                expression->condition_count++;
             } else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
-                operators[operator_count++] = operator;
+                expression->operators[expression->operator_count++] = operator;
+            } else if (strcmp(operator, OFFSET) == 0) {
+                expression->offset = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
             } else if (strcmp(operator, LIMIT) == 0) {
-                *out_limit = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
+                expression->limit = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
             }
             else break;
-        }
+        }  
+        
+        return 1;
+    }
 
+    static int _evaluate_expression(
+        table_t* table, unsigned char* row_data, expression_t* expression
+    ) {
         int results[MAX_STATEMENTS] = { 0 };
         #pragma omp parallel for schedule(dynamic, 2)
-        for (int i = 0; i < condition_count; i++) {
+        for (int i = 0; i < expression->condition_count; i++) {
             table_columns_info_t col_info;
-            TBM_get_column_info(table, conditions[i].column_name, &col_info);
+            TBM_get_column_info(table, expression->conditions[i].column_name, &col_info);
             results[i] = _compare_data(
-                conditions[i].expression, (char*)(row_data + col_info.offset), col_info.size, conditions[i].value, strlen(conditions[i].value)
+                expression->conditions[i].expression, (char*)(row_data + col_info.offset), 
+                col_info.size, expression->conditions[i].value, strlen(expression->conditions[i].value)
             );
         }
 
         int match = results[0];
-        for (int i = 0; i < operator_count; i++) {
-            if (strcmp(operators[i], AND) == 0) match &= results[i + 1];
-            else if (strcmp(operators[i], OR) == 0) match |= results[i + 1];
+        for (int i = 0; i < expression->operator_count; i++) {
+            if (strcmp(expression->operators[i], AND) == 0) match &= results[i + 1];
+            else if (strcmp(expression->operators[i], OR) == 0) match |= results[i + 1];
         }
 
         return match;
@@ -382,7 +384,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 */
 #ifndef NO_GET_EXPRESSION_COMMAND
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
-                    index = 0;
+                    
+                    expression_t exp;
+                    _create_expression(commands, command_index, argc, &exp);
+                    index = exp.offset;
                     int get_data = 0;
                     unsigned char* row_data = (unsigned char*)" ";
 
@@ -390,7 +395,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         row_data = DB_get_row(database, table_name, index++, access);
                         if (!row_data) break;
                         
-                        int limit = 0;
                         unsigned char tag = *row_data;
                         if (tag == '\0') {
                             free(row_data);
@@ -398,8 +402,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
 
                         if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && get_data++ >= limit) {
+                            if (_evaluate_expression(table, row_data, &exp)) {
+                                if (exp.limit != -1 && get_data++ >= exp.limit) {
                                     free(row_data);
                                     break;
                                 }
@@ -450,8 +454,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     table_t* table = _get_table(database, table_name);
                     if (!table) return answer;
-                    
-                    index = 0;
+                                        
+                    expression_t exp;
+                    _create_expression(commands, command_index, argc, &exp);
+                    index = exp.offset;
                     int updated_rows = 0;
                     unsigned char* row_data = (unsigned char*)" ";
 
@@ -459,7 +465,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         row_data = DB_get_row(database, table_name, index, access);
                         if (!row_data) break;
 
-                        int limit = 0;
                         unsigned char tag = *row_data;
                         if (tag == '\0') {
                             free(row_data);
@@ -467,8 +472,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
 
                         if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && updated_rows++ >= limit) {
+                            if (_evaluate_expression(table, row_data, &exp)) {
+                                if (exp.limit != -1 && updated_rows++ >= exp.limit) {
                                     free(row_data);
                                     break;
                                 }
@@ -539,7 +544,9 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     table_t* table = _get_table(database, table_name);
                     if (!table) return answer;
                     
-                    int index = 0;
+                    expression_t exp;
+                    _create_expression(commands, command_index, argc, &exp);
+                    int index = exp.offset;
                     int deleted_rows = 0;
                     unsigned char* row_data = (unsigned char*)" ";
 
@@ -547,7 +554,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         row_data = DB_get_row(database, table_name, index, access);
                         if (!row_data) break;
 
-                        int limit = 0;
                         unsigned char tag = *row_data;
                         if (tag == '\0') {
                             free(row_data);
@@ -555,8 +561,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
 
                         if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(table, row_data, commands, command_index, argc, &limit)) {
-                                if (limit != -1 && deleted_rows++ >= limit) {
+                            if (_evaluate_expression(table, row_data, &exp)) {
+                                if (exp.limit != -1 && deleted_rows++ >= exp.limit) {
                                     free(row_data);
                                     break;
                                 }

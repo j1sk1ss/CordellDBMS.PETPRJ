@@ -33,8 +33,8 @@ def _global_test() -> None:
         weight=Column('weight', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 4)
     )
 
-    def _by_exp_str_test(expression: list[Statement, LogicOperator], limit: int = 5) -> list:
-        rows: list | None = table.get_row_by_expression(expression=expression, limit=limit)
+    def _by_exp_str_test(expression: list[Statement, LogicOperator], offset: int = 0, limit: int = 5) -> list:
+        rows: list | None = table.get_row_by_expression(expression=expression, offset=offset, limit=limit)
         if isinstance(rows, list):
             return rows
         else:

@@ -72,8 +72,11 @@ class Table(DBobject):
         row: Row = Row(data=row_body)
         return row.parse_bytes_to_object(self._columns)
 
-    def get_row_by_expression(self, expression: list[Statement | LogicOperator], limit: int = -1) -> list | None:
-        stmt = Table._generate_stmt(base=f"{self._database} get row {self.name} by_exp", params=expression)        
+    def get_row_by_expression(self, expression: list[Statement | LogicOperator], offset: int = -1, limit: int = -1) -> list | None:
+        stmt = Table._generate_stmt(base=f"{self._database} get row {self.name} by_exp", params=expression)    
+        if offset != -1:
+            stmt += f" offset {offset}"
+                
         if limit != -1:
             stmt += f" limit {limit}"
         

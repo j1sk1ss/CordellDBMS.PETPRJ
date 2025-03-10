@@ -75,6 +75,7 @@
     #define VALUE           "value"
     #define EXPRESSION      "exp"
     #define ROW             "row"
+    #define OFFSET          "offset"
     #define LIMIT           "limit"
 
     #define BY_INDEX        "by_index"
@@ -127,6 +128,21 @@ typedef struct {
     unsigned short answer_size;
     unsigned char* answer_body;
 } kernel_answer_t;
+
+typedef struct {
+    char* column_name;
+    char* expression;
+    char* value;
+} condition_t;
+
+typedef struct {
+    condition_t conditions[MAX_STATEMENTS];
+    int condition_count;
+    char* operators[MAX_STATEMENTS];
+    int operator_count;
+    int offset;
+    int limit;
+} expression_t;
 
 
 /*
