@@ -98,11 +98,13 @@ page_t* PGM_load_page(char* base_path, char* name) {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc_s(sizeof(page_header_t));
             if (header) {
+                int offset = 0;
                 memset_s(header, 0, sizeof(page_header_t));
 
                 unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
-                pread(fd, encoded_header, sizeof(page_header_t) * sizeof(unsigned short), 0);
+                pread(fd, encoded_header, sizeof(page_header_t) * sizeof(unsigned short), offset);
                 unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(page_header_t));
+                offset += sizeof(page_header_t) * sizeof(unsigned short);
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
@@ -116,7 +118,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
                     else {
                         unsigned short encoded_pm = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
                         for (int i = 0; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encoded_pm;
-                        pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t) * sizeof(unsigned short));
+                        pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), offset);
                         close(fd);
 
                         page->lock   = THR_create_lock();
