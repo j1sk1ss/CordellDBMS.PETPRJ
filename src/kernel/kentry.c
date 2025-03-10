@@ -50,7 +50,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
     }
 
     static int _create_expression(
-        char* commands[], int current_command, int argc, expression_t* expression
+        table_t* table, char* commands[], int current_command, int argc, expression_t* expression
     ) {
         expression->condition_count = 0;
         expression->operator_count = 0;
@@ -62,7 +62,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
             if (!operator) break;
 
             if (strcmp(operator, COLUMN) == 0) {
-                expression->conditions[expression->condition_count].column_name = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
+                TBM_get_column_info(table, SAFE_GET_VALUE_PRE_INC(commands, argc, current_command), &expression->conditions[expression->condition_count].col_info);
                 expression->conditions[expression->condition_count].expression = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
                 expression->conditions[expression->condition_count].value = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
                 expression->condition_count++;
@@ -79,17 +79,13 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         return 1;
     }
 
-    static int _evaluate_expression(
-        table_t* table, unsigned char* row_data, expression_t* expression
-    ) {
+    static int _evaluate_expression(unsigned char* row_data, expression_t* expression) {
         int results[MAX_STATEMENTS] = { 0 };
         #pragma omp parallel for schedule(dynamic, 2)
         for (int i = 0; i < expression->condition_count; i++) {
-            table_columns_info_t col_info;
-            TBM_get_column_info(table, expression->conditions[i].column_name, &col_info);
             results[i] = _compare_data(
-                expression->conditions[i].expression, (char*)(row_data + col_info.offset), 
-                col_info.size, expression->conditions[i].value, strlen(expression->conditions[i].value)
+                expression->conditions[i].expression, (char*)(row_data + expression->conditions[i].col_info.offset), 
+                expression->conditions[i].col_info.size, expression->conditions[i].value, strlen(expression->conditions[i].value)
             );
         }
 
@@ -386,7 +382,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
                     
                     expression_t exp;
-                    _create_expression(commands, command_index, argc, &exp);
+                    _create_expression(table, commands, command_index, argc, &exp);
                     index = exp.offset;
                     int get_data = 0;
                     unsigned char* row_data = (unsigned char*)" ";
@@ -402,7 +398,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
 
                         if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(table, row_data, &exp)) {
+                            if (_evaluate_expression(row_data, &exp)) {
                                 if (exp.limit != -1 && get_data++ >= exp.limit) {
                                     free(row_data);
                                     break;
@@ -456,7 +452,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     if (!table) return answer;
                                         
                     expression_t exp;
-                    _create_expression(commands, command_index, argc, &exp);
+                    _create_expression(table, commands, command_index, argc, &exp);
                     index = exp.offset;
                     int updated_rows = 0;
                     unsigned char* row_data = (unsigned char*)" ";
@@ -472,7 +468,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
 
                         if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(table, row_data, &exp)) {
+                            if (_evaluate_expression(row_data, &exp)) {
                                 if (exp.limit != -1 && updated_rows++ >= exp.limit) {
                                     free(row_data);
                                     break;
@@ -545,7 +541,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     if (!table) return answer;
                     
                     expression_t exp;
-                    _create_expression(commands, command_index, argc, &exp);
+                    _create_expression(table, commands, command_index, argc, &exp);
                     int index = exp.offset;
                     int deleted_rows = 0;
                     unsigned char* row_data = (unsigned char*)" ";
@@ -561,7 +557,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         }
 
                         if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(table, row_data, &exp)) {
+                            if (_evaluate_expression(row_data, &exp)) {
                                 if (exp.limit != -1 && deleted_rows++ >= exp.limit) {
                                     free(row_data);
                                     break;

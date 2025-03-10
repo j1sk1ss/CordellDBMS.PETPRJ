@@ -130,7 +130,7 @@ typedef struct {
 } kernel_answer_t;
 
 typedef struct {
-    char* column_name;
+    table_columns_info_t col_info;
     char* expression;
     char* value;
 } condition_t;
