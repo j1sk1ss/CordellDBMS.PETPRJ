@@ -55,7 +55,7 @@ SPECIAL_LOGS ?= 1
 
 #########
 # Base flags
-CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body -Wno-unused-parameter
+CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter
 ifeq ($(PROD), 1)
     CC = musl-gcc
     CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0
