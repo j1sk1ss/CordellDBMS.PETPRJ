@@ -34,8 +34,8 @@ static int _flush_index(int index) {
     GCT[index].free = NULL;
     GCT[index].save = NULL;
     GCT[index].type = ANY_CACHE;
-    free(GCT[index].base_path);
-    GCT[index].base_path = NULL;
+    free(GCT[index].parent_name);
+    GCT[index].parent_name = NULL;
 
     return 1;
 }
@@ -46,13 +46,13 @@ int CHC_init() {
         GCT[i].save = NULL;
         GCT[i].type = ANY_CACHE;
         GCT[i].pointer = NULL;
-        GCT[i].base_path = NULL;
+        GCT[i].parent_name = NULL;
     }
 
     return 1;
 }
 
-int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, void* free, void* save) {
+int CHC_add_entry(void* entry, char* name, char* parent_name, unsigned char type, void* free, void* save) {
     if (entry == NULL) return -2;
     ((cache_body_t*)entry)->is_cached = 0;
 
@@ -94,10 +94,10 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
 
     ((cache_body_t*)entry)->is_cached = 1;
 
-    if (base_path != NULL) {
-        GCT[current].base_path = (char*)malloc(strlen(base_path));
-        if (!GCT[current].base_path) return -5;
-        strcpy(GCT[current].base_path, base_path);
+    if (parent_name != NULL) {
+        GCT[current].parent_name = (char*)malloc(strlen(parent_name));
+        if (!GCT[current].parent_name) return -5;
+        strcpy(GCT[current].parent_name, parent_name);
     }
 
     GCT[current].pointer = entry;
@@ -111,16 +111,16 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
     return 1;
 }
 
-void* CHC_find_entry(char* name, char* base_path, unsigned char type) {
+void* CHC_find_entry(char* name, char* parent_name, unsigned char type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
         if (
             strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && 
             (GCT[i].type == type || type == ANY_CACHE)
         ) {
-            if (!GCT[i].base_path && !base_path) return GCT[i].pointer;
+            if (!GCT[i].parent_name && !parent_name) return GCT[i].pointer;
             else {
-                if (strcmp(GCT[i].base_path, base_path) == 0) return GCT[i].pointer;
+                if (strcmp(GCT[i].parent_name, parent_name) == 0) return GCT[i].pointer;
             }
         }
     }

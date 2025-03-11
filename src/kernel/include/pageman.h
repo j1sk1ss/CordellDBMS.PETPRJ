@@ -52,7 +52,7 @@
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL pages
-// #define PAGE_BASE_PATH  ENV_GET("PAGE_BASE_PATH", "")
+#define PAGE_BASE_PATH  ENV_GET("PAGE_BASE_PATH", "")
 
 
 #pragma region [Page memory]
@@ -79,10 +79,7 @@
         // Magic namber for check
         // If number nq magic, we know that this file broken
         unsigned char magic;
-
-        // Page filename
-        // With this name we can save pages / compare pages
-        char name[PAGE_NAME_SIZE];
+        int offset;
 
         // Table checksum
         unsigned int checksum;
@@ -98,7 +95,7 @@
 
         // Page content
         unsigned char content[PAGE_CONTENT_SIZE];
-        char* base_path;
+        char* directory_name;
     } page_t;
 
 
@@ -219,14 +216,13 @@
     Create page
 
     Params:
-    - name - page name
     - buffer - page content
     - data_size - data size
 
     P.S. Function always pad content to fit default page size
          If buffer_size higher then default page-size, it will trunc
     */
-    page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size);
+    page_t* PGM_create_page(unsigned char* __restrict buffer, size_t data_size);
 
     /*
     Same function with create page, but here you can avoid name and buffer input.
@@ -271,7 +267,11 @@
     Return NULL if magic wrong
     Return pointer to page struct
     */
-    page_t* PGM_load_page(char* base_path, char* name);
+    page_t* PGM_load_page(char* directory_name, int offset);
+
+    /*
+    */
+    int PGM_delete_page(page_t* page);
 
     /*
     In difference with PGM_free_page, PGM_flush_page will free page in case, when

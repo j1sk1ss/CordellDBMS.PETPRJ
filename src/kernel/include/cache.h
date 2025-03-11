@@ -46,7 +46,7 @@ typedef struct {
 
 typedef struct {
     char name[ENTRY_NAME_SIZE];
-    char* base_path;
+    char* parent_name;
 
     unsigned char type;
     void* pointer;
@@ -80,7 +80,7 @@ Return -2 if entry is NULL.
 Return -1 if by some reason, function can't lock entry.
 Return 1 if add was success.
 */
-int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, void* free, void* save);
+int CHC_add_entry(void* entry, char* name, char* parent_name, unsigned char type, void* free, void* save);
 
 /*
 Cache find entry find entry in GCT by provided name and type.
@@ -93,7 +93,7 @@ Params:
 Return NULL if entry wasn't found.
 Return pointer to entry, if entry was found.
 */
-void* CHC_find_entry(char* name, char* base_path, unsigned char type);
+void* CHC_find_entry(char* name, char* parent_name, unsigned char type);
 
 /*
 Save and load entries from GCT.

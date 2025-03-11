@@ -79,7 +79,6 @@ unsigned int str2hash(const char* str) {
 char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size) {
     char** temp_names = (char**)malloc(sizeof(char*) * count);
     if (!temp_names) return NULL;
-
     for (size_t i = 0; i < count; i++) {
         temp_names[i] = (char*)malloc(row_size);
         if (!temp_names[i]) {

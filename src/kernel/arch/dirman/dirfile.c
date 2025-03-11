@@ -48,12 +48,10 @@ int DRM_save_directory(directory_t* directory) {
             else {
                 status = 1;
                 directory->header->checksum = DRM_get_checksum(directory);
-                if (pwrite(fd, directory->header, sizeof(directory_header_t), 0) != sizeof(directory_header_t)) status = -1;
-                for (int i = 0; i < directory->header->page_count; i++) {
-                    if (pwrite(fd, directory->page_names[i], PAGE_NAME_SIZE, sizeof(directory_header_t) + PAGE_NAME_SIZE * i) != PAGE_NAME_SIZE) {
-                        status = -1;
-                    }
-                }
+                int offset = 0;
+                if (pwrite(fd, directory->header, sizeof(directory_header_t), offset) != sizeof(directory_header_t)) status = -1;
+                offset += sizeof(directory_header_t);
+                if (pwrite(fd, directory->page_offsets, PAGES_PER_DIRECTORY * sizeof(int), offset) != PAGES_PER_DIRECTORY * sizeof(int))
 
                 fsync(fd);
                 close(fd);
@@ -102,8 +100,7 @@ directory_t* DRM_load_directory(char* name) {
                     if (!directory) free(header);
                     else {
                         memset(directory, 0, sizeof(directory_t));
-                        for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++)
-                            pread(fd, directory->page_names[i], PAGE_NAME_SIZE, sizeof(directory_header_t) + PAGE_NAME_SIZE * i);
+                        pread(fd, directory->page_offsets, PAGES_PER_DIRECTORY * sizeof(int), sizeof(directory_header_t));
 
                         // Close file directory
                         close(fd);
@@ -132,12 +129,11 @@ int DRM_delete_directory(directory_t* directory, int full) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < directory->header->page_count; i++) {
+                page_t* page = PGM_load_page(directory->header->name, i); 
                 print_io(
-                    "Page [%s] was deleted and flushed with results [%i | %i]",
-                    directory->page_names[i], CHC_flush_entry(
-                        PGM_load_page(directory->header->name, directory->page_names[i]), PAGE_CACHE
-                    ), delete_file(directory->page_names[i], directory->header->name, PAGE_EXTENSION)
+                    "Page [%i] was deleted and flushed with result [%i]", directory->page_offsets[i], PGM_delete_page(page)
                 );
+                if (CHC_flush_entry(page, PAGE_CACHE) == -2) PGM_free_page(page);
             }
         }
 
@@ -177,6 +173,6 @@ unsigned int DRM_get_checksum(directory_t* directory) {
         checksum = crc32(checksum, (const unsigned char*)directory->header, sizeof(directory_header_t));
 
     directory->header->checksum = prev_checksum;
-    checksum = crc32(checksum, (const unsigned char*)directory->page_names, sizeof(directory->page_names));
+    checksum = crc32(checksum, (const unsigned char*)directory->page_offsets, sizeof(directory->page_offsets));
     return checksum;
 }

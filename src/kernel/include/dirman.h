@@ -56,7 +56,7 @@
 #define DIRECTORY_NAME_SIZE 6
 #define DIRECTORY_MAGIC     0xCC
 
-#define PAGES_PER_DIRECTORY 50
+#define PAGES_PER_DIRECTORY 0xFF
 #define DIRECTORY_OFFSET    PAGES_PER_DIRECTORY * PAGE_CONTENT_SIZE
 
 
@@ -75,6 +75,7 @@
 
         // Page count in directory
         unsigned char page_count;
+        unsigned char page_insert_position;
 
         // Directory checksum
         unsigned int checksum;
@@ -90,7 +91,7 @@
         unsigned char append_offset;
 
         // Page file names
-        char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
+        int page_offsets[PAGES_PER_DIRECTORY];
     } directory_t;
 
 
