@@ -17,8 +17,8 @@ page_t* PGM_create_page(unsigned char* __restrict buffer, size_t data_size) {
     page->lock = THR_create_lock();
 
     page->header = header;
+    memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
     if (buffer != NULL) memcpy(page->content, buffer, data_size);
-    for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
     return page;
 }
 
@@ -31,7 +31,6 @@ page_t* PGM_create_empty_page(char* directory_name) {
     }
 
     strcpy(page->directory_name, directory_name);
-    SOFT_FREE(directory_name);
     return page;
 }
 
@@ -46,7 +45,7 @@ int PGM_save_page(page_t* page) {
         {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
-            get_load_path(page->directory_name, PAGE_NAME_SIZE, save_path, PAGE_BASE_PATH, PAGE_EXTENSION);
+            get_load_path(page->directory_name, strlen(page->directory_name), save_path, PAGE_BASE_PATH, PAGE_EXTENSION);
 
             // Open or create file
             int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -70,7 +69,7 @@ int PGM_save_page(page_t* page) {
 
 page_t* PGM_load_page(char* directory_name, int offset) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(directory_name, PAGE_NAME_SIZE, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
+    if (get_load_path(directory_name, strlen(directory_name), load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Name should be provided!");
         return NULL;
     }
@@ -140,7 +139,7 @@ page_t* PGM_load_page(char* directory_name, int offset) {
 int PGM_delete_page(page_t* page) {
     int status = 1;
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
-    if (get_load_path(page->directory_name, PAGE_NAME_SIZE, load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
+    if (get_load_path(page->directory_name, strlen(page->directory_name), load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {
         print_error("Name should be provided!");
         return -1;
     }

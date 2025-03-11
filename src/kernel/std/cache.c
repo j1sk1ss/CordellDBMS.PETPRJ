@@ -34,8 +34,8 @@ static int _flush_index(int index) {
     GCT[index].free = NULL;
     GCT[index].save = NULL;
     GCT[index].type = ANY_CACHE;
-    free(GCT[index].parent_name);
-    GCT[index].parent_name = NULL;
+    free(GCT[index].file_name);
+    GCT[index].file_name = NULL;
 
     return 1;
 }
@@ -46,7 +46,7 @@ int CHC_init() {
         GCT[i].save = NULL;
         GCT[i].type = ANY_CACHE;
         GCT[i].pointer = NULL;
-        GCT[i].parent_name = NULL;
+        GCT[i].file_name = NULL;
     }
 
     return 1;
@@ -95,9 +95,9 @@ int CHC_add_entry(void* entry, char* name, char* parent_name, unsigned char type
     ((cache_body_t*)entry)->is_cached = 1;
 
     if (parent_name != NULL) {
-        GCT[current].parent_name = (char*)malloc(strlen(parent_name));
-        if (!GCT[current].parent_name) return -5;
-        strcpy(GCT[current].parent_name, parent_name);
+        GCT[current].file_name = (char*)malloc(strlen(parent_name));
+        if (!GCT[current].file_name) return -5;
+        strcpy(GCT[current].file_name, parent_name);
     }
 
     GCT[current].pointer = entry;
@@ -118,9 +118,9 @@ void* CHC_find_entry(char* name, char* parent_name, unsigned char type) {
             strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && 
             (GCT[i].type == type || type == ANY_CACHE)
         ) {
-            if (!GCT[i].parent_name && !parent_name) return GCT[i].pointer;
+            if (!GCT[i].file_name && !parent_name) return GCT[i].pointer;
             else {
-                if (strcmp(GCT[i].parent_name, parent_name) == 0) return GCT[i].pointer;
+                if (strcmp(GCT[i].file_name, parent_name) == 0) return GCT[i].pointer;
             }
         }
     }

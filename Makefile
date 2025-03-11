@@ -60,7 +60,7 @@ ifeq ($(PROD), 1)
     CC = musl-gcc
     CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0
 else
-    CC = gcc-14
+    CC = gcc
 endif
 
 ########

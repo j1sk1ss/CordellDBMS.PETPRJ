@@ -46,7 +46,7 @@ typedef struct {
 
 typedef struct {
     char name[ENTRY_NAME_SIZE];
-    char* parent_name;
+    char* file_name;
 
     unsigned char type;
     void* pointer;
