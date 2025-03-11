@@ -60,7 +60,8 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
     PGM_insert_content(new_page, 0, data, data_lenght);
 
     // We link page to directory
-    new_page->header->offset = directory->header->page_insert_position++; // TODO
+    new_page->header->offset = directory->header->page_insert_position;
+    directory->header->page_insert_position++;
     _link_page2dir(directory, new_page);
 
     char page_entry_name[PAGE_NAME_SIZE];
@@ -234,8 +235,8 @@ int DRM_cleanup_pages(directory_t* directory) {
                 int free_space = PGM_get_free_space(page, PAGE_START);
                 if (free_space == PAGE_CONTENT_SIZE) {
                     _unlink_page_from_directory(directory, page->header->offset);
-                    if (CHC_flush_entry(page, PAGE_CACHE) == -2) PGM_free_page(page);
                     print_debug("Page [%i] was deleted with result [%i]", page->header->offset, PGM_delete_page(page));
+                    if (CHC_flush_entry(page, PAGE_CACHE) == -2) PGM_free_page(page);
                     continue;
                 }
                 else {

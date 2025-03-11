@@ -26,7 +26,6 @@ page_t* PGM_create_empty_page(char* directory_name) {
     page_t* page = PGM_create_page(NULL, 0);
     page->directory_name = (char*)malloc(strlen(directory_name) + 1);
     if (!page->directory_name) {
-        SOFT_FREE(directory_name);
         return NULL;
     }
 
@@ -48,13 +47,13 @@ int PGM_save_page(page_t* page) {
             get_load_path(page->directory_name, strlen(page->directory_name), save_path, PAGE_BASE_PATH, PAGE_EXTENSION);
 
             // Open or create file
-            int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            int fd = open(save_path, O_WRONLY | O_CREAT, 0644);
             if (fd < 0) { print_error("Can't save or create [%s] file", save_path); }
             else {
                 // Write data to disk
                 status = 1;
                 page->header->checksum = page_cheksum;
-                int offset = page->header->offset * (sizeof(page_header_t) + PAGE_CONTENT_SIZE);
+                off_t offset = page->header->offset * (sizeof(page_header_t) + PAGE_CONTENT_SIZE);
                 if (pwrite(fd, page->header, sizeof(page_header_t), offset) != sizeof(page_header_t)) status = -2;
                 if (pwrite(fd, page->content, PAGE_CONTENT_SIZE, offset + sizeof(page_header_t)) != PAGE_CONTENT_SIZE) status = -3;
 
@@ -78,7 +77,7 @@ page_t* PGM_load_page(char* directory_name, int offset) {
     sprintf(page_entry_name, "%d", offset);
     page_t* loaded_page = (page_t*)CHC_find_entry(page_entry_name, directory_name, PAGE_CACHE);
     if (loaded_page != NULL) {
-        print_io("Loading page [%s] from GCT", load_path);
+        print_io("Loading page [%s] from GCT (%s)", page_entry_name, load_path);
         return loaded_page;
     }
 
@@ -86,15 +85,16 @@ page_t* PGM_load_page(char* directory_name, int offset) {
     {
         // Open file page
         int fd = open(load_path, O_RDONLY);
-        print_io("Loading page [%s]", load_path);
+        print_io("Loading page [%s] (%s)", page_entry_name, load_path);
         if (fd < 0) { print_error("Page not found! Path: [%s]", load_path); }
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc(sizeof(page_header_t));
             if (header) {
+                off_t file_offset = offset * (sizeof(page_header_t) + PAGE_CONTENT_SIZE);
                 memset(header, 0, sizeof(page_header_t));
-                pread(fd, header, sizeof(page_header_t), offset);
-                offset += sizeof(page_header_t);
+                pread(fd, header, sizeof(page_header_t), file_offset);
+                file_offset += sizeof(page_header_t);
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
@@ -107,7 +107,7 @@ page_t* PGM_load_page(char* directory_name, int offset) {
                     if (!page) free(header);
                     else {
                         memset(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
-                        pread(fd, page->content, PAGE_CONTENT_SIZE, offset);
+                        pread(fd, page->content, PAGE_CONTENT_SIZE, file_offset);
                         close(fd);
 
                         page->lock   = THR_create_lock();
@@ -117,8 +117,7 @@ page_t* PGM_load_page(char* directory_name, int offset) {
                         char entry_page_name[PAGE_NAME_SIZE];
                         sprintf(entry_page_name, "%d", offset);
                         CHC_add_entry(
-                            loaded_page, entry_page_name, directory_name, 
-                            PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
+                            loaded_page, entry_page_name, directory_name, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
                         );
                     }
                 }
@@ -137,6 +136,8 @@ page_t* PGM_load_page(char* directory_name, int offset) {
 }
 
 int PGM_delete_page(page_t* page) {
+    if (!page) return -1;
+    
     int status = 1;
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     if (get_load_path(page->directory_name, strlen(page->directory_name), load_path, PAGE_BASE_PATH, PAGE_EXTENSION) == -1) {

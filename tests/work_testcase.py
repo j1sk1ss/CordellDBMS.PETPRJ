@@ -15,7 +15,7 @@ from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator,
 def _global_test() -> None:
     start_test_time: float = time.perf_counter()
 
-    ROWS: int = 1000
+    ROWS: int = 100000
     connection: Connection = Connection(
         base_addr='0.0.0.0',
         port=7777,
@@ -278,8 +278,7 @@ if __name__ == "__main__":
             except AssertionError as ex:
                 print("Test failed! Text:", str(ex))
             finally:
-                pass
-                # _delete_files("/Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds", ["db", "pg", "dr", "tb"])
+                _delete_files("/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds", ["db", "pg", "dr", "tb"])
             
             input("\nPress any key to continue...")
     except KeyboardInterrupt:

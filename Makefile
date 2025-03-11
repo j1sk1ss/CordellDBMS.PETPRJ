@@ -1,15 +1,15 @@
 # Enable optimisation flags and use minimalistic libs.
 # 1 - Compiler optimisation with only error logs.
 # 0 - Full debug with debug flags and debug logs.
-PROD ?= 0
+PROD ?= 1
 # Enable Pthreads (Without it will support only one session at server)
 # 1 - Pthreads enabled.
-PTHREADS ?= 1
+PTHREADS ?= 0
 # Enable OpenMP flag
 # 1 - OpenMP enabled.
-OMP ?= 1
+OMP ?= 0
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
-MAX_OPT ?= 0
+MAX_OPT ?= 1
 # Include std libs with -static
 INCLUDE_LIBS ?= 0
 # User check at start. Will give max access to any session.
