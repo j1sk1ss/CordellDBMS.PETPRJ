@@ -74,8 +74,7 @@
         char name[DIRECTORY_NAME_SIZE];
 
         // Page count in directory
-        unsigned char page_count;
-        unsigned char page_insert_position;
+        unsigned short page_count;
 
         // Directory checksum
         unsigned int checksum;

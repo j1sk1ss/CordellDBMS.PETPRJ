@@ -60,8 +60,22 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
     PGM_insert_content(new_page, 0, data, data_lenght);
 
     // We link page to directory
-    new_page->header->offset = directory->header->page_insert_position;
-    directory->header->page_insert_position++;
+    int offset = 0;
+    for (offset = 0; offset < PAGES_PER_DIRECTORY; offset++) {
+        int occupied = 0;
+        for (int i = 0; i < directory->header->page_count; i++) {
+            if (directory->page_offsets[i] == offset) {
+                occupied = 1;
+                break;
+            }
+        }
+
+        if (!occupied) {
+            break;
+        }
+    }
+
+    new_page->header->offset = offset;
     _link_page2dir(directory, new_page);
 
     char page_entry_name[PAGE_NAME_SIZE];

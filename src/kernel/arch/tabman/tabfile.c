@@ -42,8 +42,10 @@ int TBM_save_table(table_t* table) {
     int status = -1;
     #pragma omp critical (table_save)
     {
+        unsigned int table_checksum = 0;
         #ifndef NO_TABLE_SAVE_OPTIMIZATION
-        if (TBM_get_checksum(table) != table->header->checksum)
+        table_checksum = TBM_get_checksum(table);
+        if (table_checksum != table->header->checksum)
         #endif
         {
             // We generate default path
@@ -56,7 +58,7 @@ int TBM_save_table(table_t* table) {
             else {
                 // Write header
                 status = 1;
-                table->header->checksum = TBM_get_checksum(table);
+                table->header->checksum = table_checksum;
                 if (pwrite(fd, table->header, sizeof(table_header_t), 0) != sizeof(table_header_t)) status = -2;
                 for (int i = 0; i < table->header->column_count; i++)
                     if (pwrite(fd, table->columns[i], sizeof(table_column_t), sizeof(table_header_t) + sizeof(table_column_t) * i) != sizeof(table_column_t)) {

@@ -37,8 +37,9 @@ int PGM_save_page(page_t* page) {
     int status = -1;
     #pragma omp critical (page_save)
     {
-        unsigned int page_cheksum = PGM_get_checksum(page);
+        unsigned int page_cheksum = 0;
         #ifndef NO_PAGE_SAVE_OPTIMIZATION
+        page_cheksum = PGM_get_checksum(page);
         if (page_cheksum != page->header->checksum)
         #endif
         {

@@ -15,7 +15,7 @@ from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator,
 def _global_test() -> None:
     start_test_time: float = time.perf_counter()
 
-    ROWS: int = 100000
+    ROWS: int = 200000
     connection: Connection = Connection(
         base_addr='0.0.0.0',
         port=7777,
@@ -78,6 +78,7 @@ def _global_test() -> None:
 
     database.sync()
     _test_data_test()
+    return
 
     random_index: int = random.randint(1, ROWS - 2)
     start_time = time.perf_counter()

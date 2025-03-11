@@ -36,8 +36,10 @@ int DRM_save_directory(directory_t* directory) {
     int status = -1;
     #pragma omp critical (directory_save)
     {
+        unsigned int current_checksum = 0;
         #ifndef NO_DIRECTORY_SAVE_OPTIMIZATION
-        if (DRM_get_checksum(directory) != directory->header->checksum)
+        current_checksum = DRM_get_checksum(directory);
+        if (current_checksum != directory->header->checksum)
         #endif
         {
             char save_path[DEFAULT_PATH_SIZE];
@@ -47,7 +49,7 @@ int DRM_save_directory(directory_t* directory) {
             if (fd < 0) { print_error("Can`t create file: [%s]", save_path); }
             else {
                 status = 1;
-                directory->header->checksum = DRM_get_checksum(directory);
+                directory->header->checksum = current_checksum;
                 int offset = 0;
                 if (pwrite(fd, directory->header, sizeof(directory_header_t), offset) != sizeof(directory_header_t)) status = -1;
                 offset += sizeof(directory_header_t);

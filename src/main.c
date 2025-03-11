@@ -248,7 +248,7 @@ int main() {
 
     print_info("DB server started on %s:%d", inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
 
-    while (1) {
+    //while (1) {
         int client_socket_fd   = -1;
         int client_address_len = -1;
 
@@ -256,7 +256,7 @@ int main() {
         client_socket_fd   = accept(server_socket, (struct sockaddr*)&client_address, (socklen_t*)&client_address_len);
         if (client_socket_fd < 0) {
             print_error("accept() call failed. Code: %i", client_socket_fd);
-            continue;
+            return 1;//continue;
         }
 
         int* client_socket_fd_ptr = (int*)malloc(sizeof(int) * 3);
@@ -276,7 +276,7 @@ int main() {
         if (THR_create_thread(_handle_client, client_socket_fd_ptr) != 1) {
             print_error("Error while server try to create thread for [%i] session", session);
         }
-    }
+    //}
 
     _cleanup();
 #endif
