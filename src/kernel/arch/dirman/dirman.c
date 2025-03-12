@@ -41,9 +41,9 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 
         if (page->append_offset >= 0 && PAGE_CONTENT_SIZE - page->append_offset >= data_lenght) {
             if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-                PGM_insert_content(page, index, data, data_lenght);
+                PGM_insert_content(page, page->append_offset, data, data_lenght);
+                page->append_offset += data_lenght;
                 THR_release_lock(&page->lock, omp_get_thread_num());
-
                 PGM_flush_page(page);
                 return 1;
             }
