@@ -23,7 +23,7 @@ Z * 4112 bytes (for page_t)
 2 index - tables
 */
 static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
-static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 55, 5 };
+static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
 
 
 static int _flush_index(int index) {

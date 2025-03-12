@@ -28,7 +28,7 @@
 #include "threading.h"
 
 
-#define ENTRY_COUNT     64
+#define ENTRY_COUNT     8
 #define ENTRY_NAME_SIZE 8
 
 #define CACHE_TYPES_COUNT   3

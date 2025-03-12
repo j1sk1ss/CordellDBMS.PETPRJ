@@ -35,8 +35,11 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
     for (int i = directory->append_offset; i < directory->header->page_count; i++) {
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
         if (!page) continue;
-        int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
-        if (index >= 0) {
+        if (page->append_offset < 0) {
+            page->append_offset = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
+        }
+
+        if (page->append_offset >= 0 && PAGE_CONTENT_SIZE - page->append_offset >= data_lenght) {
             if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
                 PGM_insert_content(page, index, data, data_lenght);
                 THR_release_lock(&page->lock, omp_get_thread_num());
