@@ -4,10 +4,10 @@
 PROD ?= 0
 # Enable Pthreads (Without it will support only one session at server)
 # 1 - Pthreads enabled.
-PTHREADS ?= 1
+PTHREADS ?= 0
 # Enable OpenMP flag
 # 1 - OpenMP enabled.
-OMP ?= 1
+OMP ?= 0
 # Enable max optimisation (Disable enviroment vars and exec info (traceback support))
 MAX_OPT ?= 0
 # Include std libs with -static
@@ -19,7 +19,7 @@ USERS ?= 1
 # Disable server side code. Instead server, kernel take char* command.
 SERVER ?= 1 # NO_SERVER
 # Enable profiler
-DEBUG_PROFILER ?= 0
+DEBUG_PROFILER ?= 1
 
 # Kernel commands setup.
 # Log to .log file
@@ -45,22 +45,28 @@ DISABLE_CHECK_SIGNATURE ?= 0
 
 # Logger flags
 ERROR_LOGS ?= 1
-WARN_LOGS ?= 0
+WARN_LOGS ?= 1
 INFO_LOGS ?= 1
 DEBUG_LOGS ?= 0
-IO_LOGS ?= 0
-MEM_LOGS ?= 1
+IO_LOGS ?= 1
+MEM_LOGS ?= 0
 LOGGING_LOGS ?= 0
 SPECIAL_LOGS ?= 0
 
+# DEEP IO SAVING
+DISABLE_TABLE_CHECKSUM ?= 1
+DISABLE_DIRECTORY_CHECKSUM ?= 1
+DISABLE_PAGE_CHECKSUM ?= 1
+
 #########
 # Base flags
+DEBUG_FLAGS = 
 CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body -Wno-unused-parameter
 ifeq ($(PROD), 1)
     CC = musl-gcc
     CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0
 else
-    CC = gcc-14
+    CC = gcc
 endif
 
 ########
@@ -99,10 +105,6 @@ endif
 
 ########
 # Settings flags
-ifeq ($(DEBUG_PROFILER), 1)
-    CFLAGS += -pg
-endif
-
 ifeq ($(FILE_LOGGING), 1)
     CFLAGS += -DLOG_TO_FILE
 endif
@@ -151,12 +153,28 @@ ifeq ($(MAX_OPT), 1)
     CFLAGS += -DNO_TRACE -DNO_ENV -DNO_VERSION_COMMAND
 endif
 
+ifeq ($(DISABLE_TABLE_CHECKSUM), 1)
+    CFLAGS += -DNO_TABLE_SAVE_OPTIMIZATION
+endif
+
+ifeq ($(DISABLE_DIRECTORY_CHECKSUM), 1)
+    CFLAGS += -DNO_DIRECTORY_SAVE_OPTIMIZATION
+endif
+
+ifeq ($(DISABLE_PAGE_CHECKSUM), 1)
+    CFLAGS += -DNO_PAGE_SAVE_OPTIMIZATION
+endif
+
 ifeq ($(OMP), 1)
     CFLAGS += -fopenmp
 endif
 
 ifeq ($(INCLUDE_LIBS), 1)
     CFLAGS += -static
+endif
+
+ifeq ($(DEBUG_PROFILER), 1)
+    DEBUG_FLAGS += -g -pg -fno-omit-frame-pointer
 endif
 
 #############################
@@ -195,7 +213,7 @@ endif
 
 	
 $(OUTPUT): $(SOURCES)
-	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES)
+	$(CC) $(CFLAGS) -o $(OUTPUT) $(SOURCES) $(DEBUG_FLAGS)
 
 clean:
 	rm -f $(OUTPUT)

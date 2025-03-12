@@ -23,7 +23,7 @@ Z * 4112 bytes (for page_t)
 2 index - tables
 */
 static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
-static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
+static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 55, 5 };
 
 
 static int _flush_index(int index) {
@@ -114,10 +114,7 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
 void* CHC_find_entry(char* name, char* base_path, unsigned char type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (
-            strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && 
-            (GCT[i].type == type || type == ANY_CACHE)
-        ) {
+        if (strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && (GCT[i].type == type || type == ANY_CACHE)) {
             if (!GCT[i].base_path && !base_path) return GCT[i].pointer;
             else {
                 if (strcmp(GCT[i].base_path, base_path) == 0) return GCT[i].pointer;

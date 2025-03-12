@@ -46,18 +46,23 @@ int PGM_get_free_space(page_t* page, int offset) {
 }
 
 int PGM_get_fit_free_space(page_t* page, int offset, int size) {
-    int index = 0;
-    while (page->content[index] != PAGE_EMPTY) {
-        if (++index > PAGE_CONTENT_SIZE) return -1;
-    }
+    if (!page) return -1;
+    unsigned char* first_empty = (unsigned char*)memchr(page->content, PAGE_EMPTY, PAGE_CONTENT_SIZE);
+    if (!first_empty) return -1;
 
+    int index = first_empty - page->content;
     if (offset == -1) return index;
-    for (int i = MAX(offset, index); i < PAGE_CONTENT_SIZE; i++) {
+
+    int start_index = MAX(offset, index);
+    int free_index = -2, current_size = 0;
+    for (int i = start_index; i < PAGE_CONTENT_SIZE; i++) {
         if (page->content[i] == PAGE_EMPTY) {
-            int free_index = i;
-            for (int current_size = 0; i < PAGE_CONTENT_SIZE && page->content[i] == PAGE_EMPTY; i++, current_size++) {
-                if (current_size >= size) return free_index;
-            }
+            if (free_index == -2) free_index = i;
+            if (++current_size >= size) return free_index;
+        } 
+        else {
+            free_index = -2;
+            current_size = 0;
         }
     }
 
