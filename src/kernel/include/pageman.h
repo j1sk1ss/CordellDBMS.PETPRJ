@@ -95,7 +95,7 @@
 
         // Page header with all special information
         page_header_t* header;
-        unsigned short append_offset;
+        short append_offset;
 
         // Page content
         unsigned char content[PAGE_CONTENT_SIZE];

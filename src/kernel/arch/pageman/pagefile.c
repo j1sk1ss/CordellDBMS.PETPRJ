@@ -16,6 +16,7 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
     header->magic = PAGE_MAGIC;
     strncpy(header->name, name, PAGE_NAME_SIZE);
     page->lock = THR_create_lock();
+    page->append_offset = -1;
 
     page->header = header;
     if (buffer != NULL) memcpy(page->content, buffer, data_size);
@@ -121,6 +122,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
                         page->lock   = THR_create_lock();
                         page->header = header;
                         loaded_page  = page;
+                        page->append_offset = -1;
 
                         CHC_add_entry(
                             loaded_page, loaded_page->header->name, base_path, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page

@@ -47,10 +47,10 @@ DISABLE_CHECK_SIGNATURE ?= 0
 ERROR_LOGS ?= 1
 WARN_LOGS ?= 1
 INFO_LOGS ?= 1
-DEBUG_LOGS ?= 0
-IO_LOGS ?= 1
+DEBUG_LOGS ?= 1
+IO_LOGS ?= 0
 MEM_LOGS ?= 0
-LOGGING_LOGS ?= 0
+LOGGING_LOGS ?= 1
 SPECIAL_LOGS ?= 0
 
 # DEEP IO SAVING
@@ -61,7 +61,7 @@ DISABLE_PAGE_CHECKSUM ?= 1
 #########
 # Base flags
 DEBUG_FLAGS = 
-CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-format-overflow -Wno-empty-body -Wno-unused-parameter
+CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter
 ifeq ($(PROD), 1)
     CC = musl-gcc
     CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0
