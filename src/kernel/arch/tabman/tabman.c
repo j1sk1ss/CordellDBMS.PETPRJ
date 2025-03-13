@@ -81,41 +81,41 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
 
 int TBM_get_content(table_t* __restrict table, int offset,  unsigned char* __restrict buffer, size_t size) {
     // Data for DRM
-    directory_t* directory = NULL;
+    int status = 0;
     int content2get_size = (int)size;
     unsigned char* output_content_pointer = buffer;
 
     // Iterate from all directories in table
-    int current_index = 0;
-    for (int i = 0; i < table->header->dir_count && content2get_size > 0; i++) {
+    int start_directory = offset / (DIRECTORY_OFFSET);
+    int directory_offset = offset % (DIRECTORY_OFFSET);
+    for (int i = start_directory; i < table->header->dir_count && content2get_size > 0; i++) {
         // Load directory to memory
-        directory = DRM_load_directory(table->dir_names[i]);
+        directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (!directory) continue;
-        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
-            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
-        }
-        else {
-            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-                // Get data from directory
-                // After getting data, copy it to allocated output
-                int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
-                DRM_get_content(directory, MAX(offset - current_index, 0), output_content_pointer, current_size);
-                THR_release_lock(&directory->lock, omp_get_thread_num());
-                
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            // Get data from directory
+            // After getting data, copy it to allocated output
+            int current_size = MIN(directory->header->page_count * PAGE_CONTENT_SIZE, content2get_size);
+            if (DRM_get_content(directory, directory_offset, output_content_pointer, current_size)) {
                 // Set offset to 0, because we go to next directory
                 // Update size of getcontent
-                offset = 0;
-                current_index = 0;
-
                 content2get_size -= current_size;
                 output_content_pointer += current_size;
+
+                directory_offset = 0;
+                status = 1;
             }
+            else {
+                directory_offset -= directory->header->page_count * PAGE_CONTENT_SIZE;
+            }
+
+            THR_release_lock(&directory->lock, omp_get_thread_num());
         }
 
         DRM_flush_directory(directory);
     }
 
-    return 1;
+    return status;
 }
 
 int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
@@ -123,26 +123,24 @@ int TBM_insert_content(table_t* __restrict table, int offset, unsigned char* __r
     unsigned char* data_pointer = data;
     int size4insert = (int)data_size;
 
-    int current_index = 0;
-    for (int i = 0; i < table->header->dir_count && size4insert > 0; i++) {
+    int current_index = offset / (DIRECTORY_OFFSET);
+    int page_offset = offset % (DIRECTORY_OFFSET);
+    for (int i = current_index; i < table->header->dir_count && size4insert > 0; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (!directory) return -1;
-        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
-            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
-        }
-        else {
-            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-                int result = DRM_insert_content(directory, MAX(offset - current_index, 0), data_pointer, size4insert);
-                THR_release_lock(&directory->lock, omp_get_thread_num());
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            int result = DRM_insert_content(directory, page_offset, data_pointer, size4insert);
+            THR_release_lock(&directory->lock, omp_get_thread_num());
 
-                if (result == -1) return -1;
-                else if (result == 1 || result == 2) size4insert = 0;
-                else {
-                    data_pointer += size4insert - result;
-                    size4insert = result;
-                }
+            if (result == -1) return -1;
+            else if (result == 1 || result == 2) size4insert = 0;
+            else {
+                data_pointer += size4insert - result;
+                size4insert = result;
             }
+
+            page_offset = 0;
         }
 
         DRM_flush_directory(directory);
@@ -157,28 +155,24 @@ int TBM_delete_content(table_t* table, int offset, size_t size) {
 #ifndef NO_DELETE_COMMAND
     int size4delete = (int)size;
 
-    int current_index = 0;
-    int deleted_data = 0;
-    for (int i = 0; i < table->header->dir_count && size4delete > 0; i++) {
+    int current_index = offset / (DIRECTORY_OFFSET);
+    int page_offset   = offset % (DIRECTORY_OFFSET);
+    int deleted_data  = 0;
+    for (int i = current_index; i < table->header->dir_count && size4delete > 0; i++) {
         // Load directory to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (!directory) return -1;
-        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
-            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            int result = DRM_delete_content(directory, page_offset, size4delete);
+            table->append_offset = MIN(table->append_offset, i);
+
+            page_offset = 0;
+            size4delete -= result;
+            deleted_data += result;
+
+            THR_release_lock(&directory->lock, omp_get_thread_num());
         }
-        else {
-            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-                int result = DRM_delete_content(directory, MAX(offset - current_index, 0), size4delete);
-                table->append_offset = MIN(table->append_offset, i);
-
-                offset = 0;
-                size4delete -= result;
-                deleted_data += result;
-
-                THR_release_lock(&directory->lock, omp_get_thread_num());
-            }
-        }
-
+        
         DRM_flush_directory(directory);
     }
 
@@ -207,7 +201,8 @@ int TBM_cleanup_dirs(table_t* table) {
             if (directory->header->page_count == 0) {
                 _unlink_dir_from_table(table, directory->header->name);
                 if (CHC_flush_entry(directory, DIRECTORY_CACHE) == -2) DRM_flush_directory(directory);
-                print_debug("Directory [%s] was deleted with result [%i]", temp_names[i], remove(dir_path));
+                int del_res = remove(dir_path);
+                print_debug("Directory [%s] was deleted with result [%i]", temp_names[i], del_res);
                 continue;
             }
             else {
@@ -227,40 +222,38 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
     unsigned char* data_pointer = data;
     size_t temp_data_size = data_size;
     int target_global_index = -1;
-    int current_index = 0;
+    int current_index = offset / (DIRECTORY_OFFSET);
+    int page_offset = offset % (DIRECTORY_OFFSET);
  
-    for (int i = 0; i < table->header->dir_count && temp_data_size > 0; i++) {
+    for (int i = current_index; i < table->header->dir_count && temp_data_size > 0; i++) {
         // We load current page to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (!directory) return -2;
-        if (current_index + directory->header->page_count * PAGE_CONTENT_SIZE <= offset) {
-            current_index += directory->header->page_count * PAGE_CONTENT_SIZE;
-        }
-        else {
-            // We search part of data in this directory, save index and unload directory.
-            int current_size = MIN((directory->header->page_count * PAGE_CONTENT_SIZE) - MAX(offset - current_index, 0), (int)temp_data_size);
-            if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-                int result = DRM_find_content(directory, MAX(offset - current_index, 0), data_pointer, current_size);
-                THR_release_lock(&directory->lock, omp_get_thread_num());
+        // We search part of data in this directory, save index and unload directory.
+        int current_size = MIN((directory->header->page_count * PAGE_CONTENT_SIZE) - page_offset, (int)temp_data_size);
+        if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+            int result = DRM_find_content(directory, page_offset, data_pointer, current_size);
+            THR_release_lock(&directory->lock, omp_get_thread_num());
 
-                // If TGI is -1, we know that we start seacrhing from start.
-                // Save current TGI of find part of data.
-                if (target_global_index == -1) target_global_index = result;
-                if (result == -1) {
-                    // We don`t find any entry of data part.
-                    // This indicates, that we don`t find any data.
-                    // Restore size4search and datapointer, we go to start
-                    temp_data_size = data_size;
-                    data_pointer = data;
-                } 
-                else {
-                    // Move pointer to next position
-                    temp_data_size -= current_size;
-                    data_pointer += current_size;
-                }
+            // If TGI is -1, we know that we start seacrhing from start.
+            // Save current TGI of find part of data.
+            if (target_global_index == -1) target_global_index = result;
+            if (result == -1) {
+                // We don`t find any entry of data part.
+                // This indicates, that we don`t find any data.
+                // Restore size4search and datapointer, we go to start
+                temp_data_size = data_size;
+                data_pointer = data;
+            } 
+            else {
+                // Move pointer to next position
+                temp_data_size -= current_size;
+                data_pointer += current_size;
             }
-        }
 
+            page_offset = 0;
+        }
+        
         DRM_flush_directory(directory);
     }
 

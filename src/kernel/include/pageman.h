@@ -171,19 +171,6 @@
     int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size);
 
     /*
-    Function that set PE symbol in content in page. Main idea:
-    1) We find last not PAGE_EMPTY symbol.
-    2) Go to the end of page, and if we don`t get any not PAGE_EMPTY symbol, save start index.
-
-    Params:
-    - page - page pointer.
-    - offset - offset in page.
-
-    Return index of PAGE_END symbol in page.
-    */
-    int PGM_get_page_occupie_size(page_t* page, int offset);
-
-    /*
     Return value in bytes of free page space
     Note: Will return only block of free space. For examle if in page we have situation like below:
     NFREE -> SMALL FREE -> NFREE -> LARGE FREE -> ...

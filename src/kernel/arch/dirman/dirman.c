@@ -52,7 +52,7 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
         PGM_flush_page(page);
     }
 
-    if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) return (int)data_lenght;
+    if (directory->header->page_count + 1 > PAGES_PER_DIRECTORY) return (int)data_lenght;
 
     // We allocate memory for page structure with all needed data
     page_t* new_page = PGM_create_empty_page(directory->header->name);
@@ -71,10 +71,10 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 }
 
 int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char* __restrict buffer, size_t data_lenght) {
+    int status = 0;
     unsigned char* content_pointer = buffer;
     int start_page = offset / PAGE_CONTENT_SIZE;
     int page_offset = offset % PAGE_CONTENT_SIZE;
-
     for (int i = start_page; i < directory->header->page_count && data_lenght > 0; i++) {
         // We load current page
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
@@ -89,6 +89,7 @@ int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char
             page_offset = 0;
             data_lenght -= current_size;
             content_pointer += current_size;
+            status = 1;
 
             THR_release_lock(&page->lock, omp_get_thread_num());
         }
@@ -96,7 +97,7 @@ int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char
         PGM_flush_page(page);
     }
 
-    return 1;
+    return status;
 }
 
 int DRM_insert_content(
@@ -236,7 +237,8 @@ int DRM_cleanup_pages(directory_t* directory) {
                 if (free_space == PAGE_CONTENT_SIZE) {
                     _unlink_page_from_directory(directory, page->header->name);
                     if (CHC_flush_entry(page, PAGE_CACHE) == -2) PGM_free_page(page);
-                    print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
+                    int del_res = remove(page_path);
+                    print_debug("Page [%s] was deleted with result [%i]", page_path, del_res);
                     continue;
                 }
                 else {

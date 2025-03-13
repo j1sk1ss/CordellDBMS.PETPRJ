@@ -62,16 +62,11 @@ int PGM_save_page(page_t* page) {
             else {
                 // Write data to disk
                 status = 1;
-                int eof = PGM_get_page_occupie_size(page, PAGE_START);
-
                 page->header->checksum = page_cheksum;
                 if (pwrite(fd, page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
-                if (pwrite(fd, page->content, eof, sizeof(page_header_t)) != (ssize_t)eof) status = -3;
-
+                if (pwrite(fd, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t)) != PAGE_CONTENT_SIZE) status = -3;
                 fsync(fd);
                 close(fd);
-                
-                page->content[eof] = PAGE_EMPTY;
             }
         }
     }
