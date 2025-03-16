@@ -199,9 +199,10 @@ int TBM_cleanup_dirs(table_t* table) {
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
             DRM_cleanup_pages(directory);
             if (directory->header->page_count == 0) {
+                int del_res = rmdir(directory->header->name);
                 _unlink_dir_from_table(table, directory->header->name);
                 if (CHC_flush_entry(directory, DIRECTORY_CACHE) == -2) DRM_flush_directory(directory);
-                int del_res = remove(dir_path);
+                del_res = remove(dir_path);
                 print_debug("Directory [%s] was deleted with result [%i]", temp_names[i], del_res);
                 continue;
             }
