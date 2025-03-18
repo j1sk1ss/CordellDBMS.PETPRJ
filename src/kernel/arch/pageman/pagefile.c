@@ -16,6 +16,7 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
     header->magic = PAGE_MAGIC;
     strncpy_s(header->name, name, PAGE_NAME_SIZE);
     page->lock = THR_create_lock();
+    page->append_offset = -1;
 
     page->header = header;
     if (buffer != NULL) memcpy_s(page->content, buffer, data_size);
@@ -44,8 +45,9 @@ int PGM_save_page(page_t* page) {
     int status = -1;
     #pragma omp critical (page_save)
     {
-        unsigned int page_cheksum = PGM_get_checksum(page);
+        unsigned int page_cheksum = 0;
         #ifndef NO_PAGE_SAVE_OPTIMIZATION
+        page_cheksum = PGM_get_checksum(page);
         if (page_cheksum != page->header->checksum)
         #endif
         {
@@ -58,16 +60,12 @@ int PGM_save_page(page_t* page) {
             int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if (fd < 0) { print_error("Can't save or create [%s] file", save_path); }
             else {
-                // Write data to disk
-                int eof = PGM_get_page_occupie_size(page, PAGE_START);
-
                 status = 1;
                 page->header->checksum = page_cheksum;
-
                 unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
                 pack_memory((unsigned char*)page->header, (unsigned short*)encoded_header, sizeof(page_header_t));
                 if (pwrite(fd, &encoded_header, sizeof(page_header_t) * sizeof(unsigned short), 0) != sizeof(page_header_t) * sizeof(unsigned short)) status = -2;
-                if (pwrite(fd, page->content, eof * sizeof(unsigned short), sizeof(page_header_t) * sizeof(unsigned short)) != (ssize_t)(eof * sizeof(unsigned short))) status = -3;
+                if (pwrite(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t) * sizeof(unsigned short)) != (ssize_t)(PAGE_CONTENT_SIZE * sizeof(unsigned short))) status = -3;
 
                 fsync(fd);
                 close(fd);
@@ -124,6 +122,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
                         page->lock   = THR_create_lock();
                         page->header = header;
                         loaded_page  = page;
+                        page->append_offset = -1;
 
                         CHC_add_entry(
                             loaded_page, loaded_page->header->name, base_path, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page

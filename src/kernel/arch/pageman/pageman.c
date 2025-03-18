@@ -77,25 +77,3 @@ int PGM_get_fit_free_space(page_t* page, int offset, int size) {
 
     return -2;
 }
-
-int PGM_get_page_occupie_size(page_t* page, int offset) {
-    int eof = 0;
-    for (int i = offset; i < PAGE_CONTENT_SIZE; i++) {
-        if (decode_hamming_15_11(page->content[i]) != PAGE_EMPTY) continue;
-        int current_eof = i;
-        for (int j = current_eof; j < PAGE_CONTENT_SIZE; j++) {
-            if (decode_hamming_15_11(page->content[j]) != PAGE_EMPTY) {
-                current_eof = -1;
-                i = j;
-                break;
-            }
-        }
-
-        if (current_eof >= 0) {
-            eof = current_eof;
-            break;
-        }
-    }
-
-    return MAX(MIN(eof, PAGE_CONTENT_SIZE), 0);
-}

@@ -42,8 +42,10 @@ int TBM_save_table(table_t* table) {
     int status = -1;
     #pragma omp critical (table_save)
     {
+        unsigned int table_checksum = 0;
         #ifndef NO_TABLE_SAVE_OPTIMIZATION
-        if (TBM_get_checksum(table) != table->header->checksum)
+        table_checksum = TBM_get_checksum(table);
+        if (table_checksum != table->header->checksum)
         #endif
         {
             // We generate default path

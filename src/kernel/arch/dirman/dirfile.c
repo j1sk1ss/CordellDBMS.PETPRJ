@@ -36,8 +36,10 @@ int DRM_save_directory(directory_t* directory) {
     int status = -1;
     #pragma omp critical (directory_save)
     {
+        unsigned int directory_checksum = 0;
         #ifndef NO_DIRECTORY_SAVE_OPTIMIZATION
-        if (DRM_get_checksum(directory) != directory->header->checksum)
+        directory_checksum = DRM_get_checksum(directory);
+        if (directory_checksum != directory->header->checksum)
         #endif
         {
             char save_path[DEFAULT_PATH_SIZE];

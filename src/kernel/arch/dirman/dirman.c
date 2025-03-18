@@ -27,7 +27,6 @@ static int _unlink_page_from_directory(directory_t* __restrict directory, char* 
     return status;
 }
 
-
 #pragma region [CRUD]
 
 int DRM_append_content(directory_t* __restrict directory, unsigned char* __restrict data, size_t data_lenght) {
@@ -35,12 +34,15 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
     for (int i = directory->append_offset; i < directory->header->page_count; i++) {
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
         if (!page) continue;
-        int index = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
-        if (index >= 0) {
-            if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-                PGM_insert_content(page, index, data, data_lenght);
-                THR_release_lock(&page->lock, omp_get_thread_num());
+        if (page->append_offset == -1) {
+            page->append_offset = PGM_get_fit_free_space(page, PAGE_START, data_lenght);
+        }
 
+        if (page->append_offset >= 0 && PAGE_CONTENT_SIZE - page->append_offset >= (int)data_lenght) {
+            if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+                PGM_insert_content(page, page->append_offset, data, data_lenght);
+                page->append_offset += data_lenght;
+                THR_release_lock(&page->lock, omp_get_thread_num());
                 PGM_flush_page(page);
                 return 1;
             }
@@ -49,8 +51,7 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
         PGM_flush_page(page);
     }
 
-    if (directory->header->page_count + 1 >= PAGES_PER_DIRECTORY) return (int)data_lenght;
-
+    if (directory->header->page_count + 1 > PAGES_PER_DIRECTORY) return (int)data_lenght;
     // We allocate memory for page structure with all needed data
     page_t* new_page = PGM_create_empty_page(directory->header->name);
     if (new_page == NULL) return -2;
@@ -68,10 +69,10 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
 }
 
 int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char* __restrict buffer, size_t data_lenght) {
+    int status = 0;
     unsigned char* content_pointer = buffer;
-    int start_page = offset / PAGE_CONTENT_SIZE;
+    int start_page  = offset / PAGE_CONTENT_SIZE;
     int page_offset = offset % PAGE_CONTENT_SIZE;
-
     for (int i = start_page; i < directory->header->page_count && data_lenght > 0; i++) {
         // We load current page
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
@@ -86,6 +87,7 @@ int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char
             page_offset = 0;
             data_lenght -= current_size;
             content_pointer += current_size;
+            status = 1;
 
             THR_release_lock(&page->lock, omp_get_thread_num());
         }
@@ -93,17 +95,14 @@ int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char
         PGM_flush_page(page);
     }
 
-    return 1;
+    return status;
 }
 
-int DRM_insert_content(
-    directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_lenght
-) {
+int DRM_insert_content(directory_t* __restrict directory, int offset, unsigned char* __restrict data, size_t data_lenght) {
 #ifndef NO_UPDATE_COMMAND
+    unsigned char* data_pointer = data;
     int page_offset  = offset / PAGE_CONTENT_SIZE;
     int index_offset = offset % PAGE_CONTENT_SIZE;
-
-    unsigned char* data_pointer = data;
     for (int i = page_offset; i < directory->header->page_count && data_lenght > 0; i++) {
         // We load current page to memory
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
@@ -131,21 +130,20 @@ int DRM_insert_content(
 
 int DRM_delete_content(directory_t* directory, int offset, size_t data_size) {
 #ifndef NO_DELETE_COMMAND
-    int page_offset   = offset / PAGE_CONTENT_SIZE;
-    int current_index = offset % PAGE_CONTENT_SIZE;
-
     int deleted_data = 0;
-    for (int i = page_offset; i < directory->header->page_count && data_size > 0; i++) {
+    int start_page  = offset / PAGE_CONTENT_SIZE;
+    int page_offset = offset % PAGE_CONTENT_SIZE;
+    for (int i = start_page; i < directory->header->page_count && data_size > 0; i++) {
         // We load current page
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
         if (!page) return -1;
         if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
-            int result = PGM_delete_content(page, current_index, data_size);
+            int result = PGM_delete_content(page, page_offset, data_size);
             directory->append_offset = MIN(directory->append_offset, i);
 
             // We reload local index and update size2delete
-            current_index = 0;
-            data_size -= result;
+            page_offset = 0;
+            data_size  -= result;
             deleted_data += result;
 
             THR_release_lock(&page->lock, omp_get_thread_num());
@@ -182,12 +180,9 @@ int DRM_find_content(
             int result = PGM_find_content(page, current_index, data_pointer, current_size);
             THR_release_lock(&page->lock, omp_get_thread_num());
 
-            // If TGI is -1, we know that we start seacrhing from start.
+            // If TGI is -1, we know that we start searching from start.
             // Save current TGI of find part of data.
-            if (target_global_index == -1) {
-                target_global_index = result + page_offset * PAGE_CONTENT_SIZE;
-            }
-
+            if (target_global_index == -1) target_global_index = result + page_offset * PAGE_CONTENT_SIZE;
             if (result == -1) {
                 // We don`t find any entry of data part.
                 // This indicates, that we don`t find any data.
@@ -232,8 +227,9 @@ int DRM_cleanup_pages(directory_t* directory) {
                 int free_space = PGM_get_free_space(page, PAGE_START);
                 if (free_space == PAGE_CONTENT_SIZE) {
                     _unlink_page_from_directory(directory, page->header->name);
-                    if (CHC_flush_entry(page, PAGE_CACHE) == -2) PGM_flush_page(page);
-                    print_debug("Page [%s] was deleted with result [%i]", page_path, remove(page_path));
+                    if (CHC_flush_entry(page, PAGE_CACHE) == -2) PGM_free_page(page);
+                    int del_res = remove(page_path);
+                    print_debug("Page [%s] was deleted with result [%i]", page_path, del_res);
                     continue;
                 }
                 else {
@@ -246,6 +242,7 @@ int DRM_cleanup_pages(directory_t* directory) {
     }
 
     ARRAY_SOFT_FREE(temp_names, temp_count);
-#endif
     return 1;
+#endif
+    return -2;
 }

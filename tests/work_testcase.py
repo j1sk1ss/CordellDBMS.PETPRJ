@@ -15,7 +15,7 @@ from cdbms_api.db_objects.objects.table.table import Expressions, LogicOperator,
 def _global_test() -> None:
     start_test_time: float = time.perf_counter()
 
-    ROWS: int = 10000
+    ROWS: int = 100000
     connection: Connection = Connection(
         base_addr='0.0.0.0',
         port=7777,
@@ -33,8 +33,8 @@ def _global_test() -> None:
         weight=Column('weight', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 4)
     )
 
-    def _by_exp_str_test(expression: list[Statement, LogicOperator], limit: int = 5) -> list:
-        rows: list | None = table.get_row_by_expression(expression=expression, limit=limit)
+    def _by_exp_str_test(expression: list[Statement | LogicOperator], offset: int = 0, limit: int = 5) -> list:
+        rows: list | None = table.get_row_by_expression(expression=expression, offset=offset, limit=limit)
         if isinstance(rows, list):
             return rows
         else:
@@ -280,7 +280,8 @@ if __name__ == "__main__":
             except Exception as ex:
                 print("Unhundled exception! Text: ", str(ex))
             finally:
-                _delete_files("/home/j1sk1ss/Desktop/CordellDBMS.PETPRJ/builds", ["db", "pg", "dr", "tb"])
+                pass
+                _delete_files("/Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds", ["db", "pg", "dr", "tb"])
             
             input("\nPress any key to continue...")
     except KeyboardInterrupt:
