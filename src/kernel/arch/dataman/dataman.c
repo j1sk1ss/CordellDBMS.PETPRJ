@@ -75,9 +75,9 @@ int DB_append_row(
             GET_COLUMN_TYPE(table->columns[i]->type) == COLUMN_AUTO_INCREMENT && 
             GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_INT
         ) {
-            unsigned char* previous_data = DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), access);
+            unsigned char* previous_data = (unsigned char*)malloc(table->row_size);
             if (previous_data != NULL) {
-                if (*previous_data != '\n') {
+                if (DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), access, previous_data, table->row_size)) {
                     char number_buffer[128] = { 0 };
                     strncpy(number_buffer, (char*)(previous_data + column_offset), table->columns[i]->size);
 
@@ -118,22 +118,20 @@ int DB_append_row(
     return result;
 }
 
-unsigned char* DB_get_row(
-    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access
+int DB_get_row(
+    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access, 
+    unsigned char* buffer, size_t buffer_size
 ) {
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
-    if (table == NULL) return NULL;
+    if (table == NULL) return 0;
 
-    unsigned char* data = (unsigned char*)malloc(table->row_size);
-    if (!data) return NULL;
-    memset(data, 0, table->row_size);
+    int get_result = TBM_get_content(table, _get_global_offset(table->row_size, row), buffer, buffer_size);
+    if (get_result) {
+        TBM_invoke_modules(table, buffer, COLUMN_MODULE_POSTLOAD);
+    }
 
-    int get_result = TBM_get_content(table, _get_global_offset(table->row_size, row), data, table->row_size);
-    TBM_invoke_modules(table, data, COLUMN_MODULE_POSTLOAD);
     TBM_flush_table(table);
-
-    if (!get_result) data[0] = '\0';
-    return data;
+    return get_result;
 }
 
 int DB_insert_row(

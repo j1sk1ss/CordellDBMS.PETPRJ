@@ -98,6 +98,67 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         return match;
     }
 
+    static int __delete_logic(
+        database_t* database, char* table_name, int index, unsigned char* data, 
+        size_t data_size, unsigned char access, kernel_answer_t* answer
+    ) {
+        answer->answer_code = DB_insert_row(database, table_name, index, data, data_size, access);
+        return 1;
+    }
+
+    static int __insert_logic(
+        database_t* database, char* table_name, int index, unsigned char* data,
+        size_t data_size, unsigned char access, kernel_answer_t* answer
+    ) {
+        answer->answer_code = DB_delete_row(database, table_name, index, access);
+        return 1;
+    }
+
+    static int __get_logic(
+        database_t* database, char* table_name, int index, unsigned char* data, 
+        size_t data_size, unsigned char access, kernel_answer_t* answer
+    ) {
+        int data_start = answer->answer_size;
+        answer->answer_size += data_size;
+        answer->answer_body = (unsigned char*)realloc(answer->answer_body, answer->answer_size);
+        memcpy(answer->answer_body + data_start, data, data_size);
+        return 1;
+    }
+
+    static int _process_table(
+        database_t* database, table_t* table, kernel_answer_t* answer, expression_t* exp, unsigned char access, 
+        int (*logic)(database_t*, char*, int, unsigned char*, size_t, unsigned char, kernel_answer_t*)
+    ) {
+        int index = exp->offset;
+        int processed_rows = 0;
+        while (1) {
+            unsigned char* row_data = (unsigned char*)malloc(table->row_size);
+            if (!row_data) return -1;
+
+            int get_result = DB_get_row(database, table->header->name, index, access, row_data, table->row_size);
+            if (!get_result) {
+                free(row_data);
+                break;
+            }
+            
+            if (*row_data != PAGE_EMPTY) {
+                if (_evaluate_expression(row_data, exp)) {
+                    if (exp->limit != -1 && processed_rows++ >= exp->limit) {
+                        free(row_data);
+                        break;
+                    }
+                    
+                    logic(database, table->header->name, index, row_data, table->row_size, access, answer);
+                }
+            }
+            
+            index++;
+            free(row_data);
+        }
+
+        return 1;
+    }
+
 #pragma endregion
 
 
@@ -364,61 +425,31 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 */
                 command_index++;
                 if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
-                    index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
-                    answer_data = DB_get_row(database, table_name, index, access);
-                    if (!answer_data) {
+                    int index = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
+                    answer->answer_body = (unsigned char*)malloc(table->row_size);
+                    if (!answer->answer_body) {
+                        return answer;
+                    }
+
+                    if (!DB_get_row(database, table_name, index, access, answer->answer_body, table->row_size)) {
                         print_error("Something goes wrong! Params: [%.*s] [%s] [%i] [%i]", DATABASE_NAME_SIZE, database->header->name, table_name, index, access);
                         answer->answer_code = 8;
                         return answer;
                     }
 
-                    answer_size = table->row_size;
+                    answer->answer_size = table->row_size;
+                    answer->answer_code = (char)index;
                 }
                 /*
                 Note: will get line of rows, that equals expression.
                 Command syntax: get row table <table_name> by_exp column <column_name> <</>/!=/=/eq/neq> <value> <or/and> ... limit <limit>
                 */
-#ifndef NO_GET_EXPRESSION_COMMAND
-                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {
-                    
+                else if (strcmp(SAFE_GET_VALUE_S(commands, argc, command_index), BY_EXPRESSION) == 0) {      
                     expression_t exp;
                     _create_expression(table, commands, command_index, argc, &exp);
-                    index = exp.offset;
-                    int get_data = 0;
-                    unsigned char* row_data = (unsigned char*)" ";
-
-                    while (1) {
-                        row_data = DB_get_row(database, table_name, index++, access);
-                        if (!row_data) break;
-                        
-                        unsigned char tag = *row_data;
-                        if (tag == '\0') {
-                            free(row_data);
-                            break;
-                        }
-
-                        if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(row_data, &exp)) {
-                                if (exp.limit != -1 && get_data++ >= exp.limit) {
-                                    free(row_data);
-                                    break;
-                                }
-
-                                int data_start = answer_size;
-                                answer_size += table->row_size;
-                                answer_data = (unsigned char*)realloc(answer_data, answer_size);
-                                memcpy(answer_data + data_start, row_data, table->row_size);
-                            }
-                        }
-                        
-                        free(row_data);
-                    }
+                    _process_table(database, table, answer, &exp, access, __get_logic);
                 }
-#endif
 
-                answer->answer_body = answer_data;
-                answer->answer_code = index;
-                answer->answer_size = answer_size;
                 TBM_flush_table(table);
             }
         }
@@ -453,34 +484,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                                         
                     expression_t exp;
                     _create_expression(table, commands, command_index, argc, &exp);
-                    index = exp.offset;
-                    int updated_rows = 0;
-                    unsigned char* row_data = (unsigned char*)" ";
-
-                    while (1) {
-                        row_data = DB_get_row(database, table_name, index, access);
-                        if (!row_data) break;
-
-                        unsigned char tag = *row_data;
-                        if (tag == '\0') {
-                            free(row_data);
-                            break;
-                        }
-
-                        if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(row_data, &exp)) {
-                                if (exp.limit != -1 && updated_rows++ >= exp.limit) {
-                                    free(row_data);
-                                    break;
-                                }
-                                
-                                answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen(data), access);
-                            }
-                        }
-                        
-                        index++;
-                        free(row_data);
-                    }
+                    _process_table(database, table, answer, &exp, access, __insert_logic);
                 }
             }
         }
@@ -542,34 +546,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                     
                     expression_t exp;
                     _create_expression(table, commands, command_index, argc, &exp);
-                    int index = exp.offset;
-                    int deleted_rows = 0;
-                    unsigned char* row_data = (unsigned char*)" ";
-
-                    while (1) {
-                        row_data = DB_get_row(database, table_name, index, access);
-                        if (!row_data) break;
-
-                        unsigned char tag = *row_data;
-                        if (tag == '\0') {
-                            free(row_data);
-                            break;
-                        }
-
-                        if (tag != PAGE_EMPTY) {
-                            if (_evaluate_expression(row_data, &exp)) {
-                                if (exp.limit != -1 && deleted_rows++ >= exp.limit) {
-                                    free(row_data);
-                                    break;
-                                }
-
-                                answer->answer_code = DB_delete_row(database, table_name, index, access);
-                            }
-                        }
-                        
-                        index++;
-                        free(row_data);
-                    }
+                    _process_table(database, table, answer, &exp, access, __delete_logic);
                 }
             }
 

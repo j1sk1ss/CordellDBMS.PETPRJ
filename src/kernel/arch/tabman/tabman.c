@@ -86,7 +86,7 @@ int TBM_get_content(table_t* __restrict table, int offset,  unsigned char* __res
     unsigned char* output_content_pointer = buffer;
 
     // Iterate from all directories in table
-    int start_directory = offset / (DIRECTORY_OFFSET);
+    int start_directory  = offset / (DIRECTORY_OFFSET);
     int directory_offset = offset % (DIRECTORY_OFFSET);
     for (int i = start_directory; i < table->header->dir_count && content2get_size > 0; i++) {
         // Load directory to memory
