@@ -80,7 +80,6 @@ int TBM_append_content(table_t* __restrict table, unsigned char* __restrict data
 }
 
 int TBM_get_content(table_t* __restrict table, int offset,  unsigned char* __restrict buffer, size_t size) {
-    // Data for DRM
     int status = 0;
     int content2get_size = (int)size;
     unsigned char* output_content_pointer = buffer;
@@ -215,36 +214,38 @@ int TBM_cleanup_dirs(table_t* table) {
     }
 
     ARRAY_SOFT_FREE(temp_names, temp_count);
-#endif
     return 1;
+#endif
+    return -2;
 }
 
 int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __restrict data, size_t data_size) {
     unsigned char* data_pointer = data;
     size_t temp_data_size = data_size;
     int target_global_index = -1;
-    int current_index = offset / (DIRECTORY_OFFSET);
-    int page_offset = offset % (DIRECTORY_OFFSET);
- 
-    for (int i = current_index; i < table->header->dir_count && temp_data_size > 0; i++) {
+
+    int start_directory  = offset / (DIRECTORY_OFFSET);
+    int directory_offset = offset % (DIRECTORY_OFFSET);
+    for (int i = start_directory; i < table->header->dir_count && temp_data_size > 0; i++) {
         // We load current page to memory
         directory_t* directory = DRM_load_directory(table->dir_names[i]);
         if (!directory) return -2;
         // We search part of data in this directory, save index and unload directory.
-        int current_size = MIN((directory->header->page_count * PAGE_CONTENT_SIZE) - page_offset, (int)temp_data_size);
+        int current_size = MIN((directory->header->page_count * PAGE_CONTENT_SIZE) - directory_offset, (int)temp_data_size);
         if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
-            int result = DRM_find_content(directory, page_offset, data_pointer, current_size);
+            int result = DRM_find_content(directory, directory_offset, data_pointer, current_size);
             THR_release_lock(&directory->lock, omp_get_thread_num());
 
             // If TGI is -1, we know that we start seacrhing from start.
             // Save current TGI of find part of data.
-            if (target_global_index == -1) target_global_index = result;
+            if (target_global_index == -1) target_global_index = result + i * DIRECTORY_OFFSET;
             if (result == -1) {
                 // We don`t find any entry of data part.
                 // This indicates, that we don`t find any data.
                 // Restore size4search and datapointer, we go to start
                 temp_data_size = data_size;
                 data_pointer = data;
+                target_global_index = -1;
             } 
             else {
                 // Move pointer to next position
@@ -252,13 +253,12 @@ int TBM_find_content(table_t* __restrict table, int offset, unsigned char* __res
                 data_pointer += current_size;
             }
 
-            page_offset = 0;
+            directory_offset = 0;
         }
         
         DRM_flush_directory(directory);
     }
 
-    if (target_global_index != -1) target_global_index += current_index;
     return target_global_index;
 }
 

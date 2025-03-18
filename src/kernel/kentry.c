@@ -6,7 +6,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
 
 #pragma region [Private]
 
-    static int _flush_tables() {
+    static inline int _flush_tables() {
         CHC_free();
         return 1;
     }
@@ -49,9 +49,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         return comparison;
     }
 
-    static int _create_expression(
-        table_t* table, char* commands[], int current_command, int argc, expression_t* expression
-    ) {
+    static int _create_expression(table_t* table, char* commands[], int current_command, int argc, expression_t* expression) {
         expression->condition_count = 0;
         expression->operator_count = 0;
         expression->limit = -1;
@@ -60,17 +58,19 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         while (1) {
             char* operator = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
             if (!operator) break;
-
             if (strcmp(operator, COLUMN) == 0) {
                 TBM_get_column_info(table, SAFE_GET_VALUE_PRE_INC(commands, argc, current_command), &expression->conditions[expression->condition_count].col_info);
                 expression->conditions[expression->condition_count].expression = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
                 expression->conditions[expression->condition_count].value = SAFE_GET_VALUE_PRE_INC(commands, argc, current_command);
                 expression->condition_count++;
-            } else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
+            } 
+            else if (strcmp(operator, OR) == 0 || strcmp(operator, AND) == 0) {
                 expression->operators[expression->operator_count++] = operator;
-            } else if (strcmp(operator, OFFSET) == 0) {
+            } 
+            else if (strcmp(operator, OFFSET) == 0) {
                 expression->offset = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
-            } else if (strcmp(operator, LIMIT) == 0) {
+            } 
+            else if (strcmp(operator, LIMIT) == 0) {
                 expression->limit = atoi(SAFE_GET_VALUE_PRE_INC_S(commands, argc, current_command));
             }
             else break;
@@ -169,7 +169,6 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
     int current_start = 1;
     char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
-
     while (1) {
         if (_connections[connection] == NULL) {
             _connections[connection] = DB_load_database(db_name);
@@ -350,13 +349,13 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                                     strncpy(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
                                     strncpy(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
-                                    print_log(
+                                    print_debug(
                                         "Module [%s] registered with [%s] querry", columns[k]->module_name, columns[column_count]->module_querry
                                     );
                                 }
                             }
 
-                            print_log("%i) Column [%s] with args: [%i], created success!", k, column_stack[j], columns[k]->type);
+                            print_debug("%i) Column [%s] with args: [%i], created success!", k, column_stack[j], columns[k]->type);
                         }
                     }
                 }
