@@ -50,8 +50,8 @@ INFO_LOGS ?= 1
 DEBUG_LOGS ?= 1
 IO_LOGS ?= 0
 MEM_LOGS ?= 0
-LOGGING_LOGS ?= 1
-SPECIAL_LOGS ?= 0
+LOGGING_LOGS ?= 0
+SPECIAL_LOGS ?= 1
 
 # DEEP IO SAVING
 DISABLE_TABLE_CHECKSUM ?= 1
@@ -61,12 +61,12 @@ DISABLE_PAGE_CHECKSUM ?= 1
 #########
 # Base flags
 DEBUG_FLAGS = 
-CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter
+CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-overflow
 ifeq ($(PROD), 1)
     CC = musl-gcc
     CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0
 else
-    CC = gcc
+    CC = gcc-14
 endif
 
 ########

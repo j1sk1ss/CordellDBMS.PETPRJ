@@ -33,7 +33,7 @@ def _global_test() -> None:
         weight=Column('weight', ColumnDataType.INT, [ColumnType.NOT_PRIMARY, ColumnType.WHITOUT_AUTO], 4)
     )
 
-    def _by_exp_str_test(expression: list[Statement, LogicOperator], offset: int = 0, limit: int = 5) -> list:
+    def _by_exp_str_test(expression: list[Statement | LogicOperator], offset: int = 0, limit: int = 5) -> list:
         rows: list | None = table.get_row_by_expression(expression=expression, offset=offset, limit=limit)
         if isinstance(rows, list):
             return rows
@@ -278,6 +278,7 @@ if __name__ == "__main__":
             except AssertionError as ex:
                 print("Test failed! Text:", str(ex))
             finally:
+                pass
                 _delete_files("/Users/nikolaj/Documents/Repositories/CordellDBMS.EXMPL/builds", ["db", "pg", "dr", "tb"])
             
             input("\nPress any key to continue...")

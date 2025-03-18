@@ -96,13 +96,18 @@ we use cache in pages (lowest level) and table cache at the highest level.
             2) find data row function.
             For additional info check docs.
     - access - User access level.
+    - buffer - Destination place for data from table.
+    - size - Size of content.
 
     Return -3 if access denied.
     Return -2 if table nfound.
     Return -1 if something goes wrong.
     Return pointer to data.
     */
-    unsigned char* DB_get_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access);
+    int DB_get_row(
+        database_t* __restrict database, char* __restrict table_name, int row, unsigned char access, 
+        unsigned char* buffer, size_t buffer_size
+    );
 
     /*
     Append row function append data to provided table. If table not provided, it will return fail status.
