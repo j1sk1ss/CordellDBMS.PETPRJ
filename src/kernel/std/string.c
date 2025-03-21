@@ -278,23 +278,21 @@ int strcmp_s(char* firstStr, char* secondStr) {
 }
 
 int atoi_s(char *str) {
-	int neg = 1;
-	int num = 0;
-	int i   = 0;
+    int neg = 1;
+    long long num = 0;
+    size_t i = 0;
 
-	while (str[i] <= ' ')
-		i++;
+    while (*str == ' ') str++;
+    if (*str == '-' || *str == '+') {
+        neg = *str == '-' ? -1 : 1;
+        str++;
+    }
 
-	if (str[i] == '-' || str[i] == '+') {
-		if (str[i] == '-') 
-			neg *= -1;
-
-		i++;
-	}
-
-	while (str[i] >= '0' && str[i] <= '9') {
+	while (*str >= '0' && *str <= '9' && *str) {
 		num = num * 10 + (str[i] - 48);
-		i++;
+        if (neg == 1 && num > INT_MAX) return INT_MAX;
+        if (neg == -1 && -num < INT_MIN) return INT_MIN;
+		str++;
 	}
     
 	return (num * neg);
