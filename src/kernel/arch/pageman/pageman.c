@@ -34,16 +34,12 @@ int PGM_delete_content(page_t* page, int offset, size_t length) {
 
 int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_size) {
     if (offset >= PAGE_CONTENT_SIZE) return -2;
-    for (int i = offset; i <= PAGE_CONTENT_SIZE - (int)data_size; i++) {
-        int found = 1;
-        for (int j = i, k = 0; j < PAGE_CONTENT_SIZE && k < (int)data_size; j++, k++) {
-            if (decode_hamming_15_11(page->content[j]) != data[k]) {
-                found = -1;
-                break;
-            }
-        } 
-        
-        if (found) return 1;
+
+    int data_index = 0;
+    for (int i = offset; i < PAGE_CONTENT_SIZE - (int)data_size; i++) {
+        if (data_index >= data_size) return i - data_size;
+        if (data[data_index] == decode_hamming_15_11(page->content[i])) data_index++;
+        else data_index = 0;
     }
 
     return -1;
