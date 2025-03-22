@@ -47,6 +47,9 @@
 #define DEFAULT_PATH_SIZE   128
 #define DEFAULT_DELAY       999999999
 
+#define INT_MIN     (-2147483647 - 1)
+#define INT_MAX       2147483647
+
 #define SALT    "CordellDBMS_SHA"
 #define MAGIC   8
 
