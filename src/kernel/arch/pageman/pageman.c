@@ -37,7 +37,7 @@ int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restr
 
     int data_index = 0;
     for (int i = offset; i < PAGE_CONTENT_SIZE - (int)data_size; i++) {
-        if (data_index >= data_size) return i - data_size;
+        if (data_index >= (int)data_size) return i - data_size;
         if (data[data_index] == decode_hamming_15_11(page->content[i])) data_index++;
         else data_index = 0;
     }
