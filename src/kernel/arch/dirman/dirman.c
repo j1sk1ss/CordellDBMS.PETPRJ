@@ -39,10 +39,10 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
         }
 
         if (page->append_offset >= 0 && PAGE_CONTENT_SIZE - page->append_offset >= (int)data_lenght) {
-            if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+            if (THR_require_lock(&page->lock, get_thread_num()) == 1) {
                 PGM_insert_content(page, page->append_offset, data, data_lenght);
                 page->append_offset += data_lenght;
-                THR_release_lock(&page->lock, omp_get_thread_num());
+                THR_release_lock(&page->lock, get_thread_num());
                 PGM_flush_page(page);
                 return 1;
             }
@@ -77,7 +77,7 @@ int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char
         // We load current page
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
         if (!page) continue;
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+        if (THR_require_lock(&page->lock, get_thread_num()) == 1) {
             // We work with page
             int current_size = MIN(PAGE_CONTENT_SIZE - page_offset, (int)data_lenght);
             PGM_get_content(page, page_offset, content_pointer, current_size);
@@ -89,7 +89,7 @@ int DRM_get_content(directory_t* __restrict directory, int offset, unsigned char
             content_pointer += current_size;
             status = 1;
 
-            THR_release_lock(&page->lock, omp_get_thread_num());
+            THR_release_lock(&page->lock, get_thread_num());
         }
 
         PGM_flush_page(page);
@@ -109,9 +109,9 @@ int DRM_insert_content(directory_t* __restrict directory, int offset, unsigned c
         if (!page) return -1;
 
         // We insert current part of content with local offset
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) { 
+        if (THR_require_lock(&page->lock, get_thread_num()) == 1) { 
             int result = PGM_insert_content(page, index_offset, data_pointer, (int)data_lenght);
-            THR_release_lock(&page->lock, omp_get_thread_num());
+            THR_release_lock(&page->lock, get_thread_num());
 
             // We reload local index and update size2delete
             index_offset = 0;
@@ -137,7 +137,7 @@ int DRM_delete_content(directory_t* directory, int offset, size_t data_size) {
         // We load current page
         page_t* page = PGM_load_page(directory->header->name, directory->page_names[i]);
         if (!page) return -1;
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+        if (THR_require_lock(&page->lock, get_thread_num()) == 1) {
             int result = PGM_delete_content(page, page_offset, data_size);
             directory->append_offset = MIN(directory->append_offset, i);
 
@@ -146,7 +146,7 @@ int DRM_delete_content(directory_t* directory, int offset, size_t data_size) {
             data_size  -= result;
             deleted_data += result;
 
-            THR_release_lock(&page->lock, omp_get_thread_num());
+            THR_release_lock(&page->lock, get_thread_num());
         }
 
         PGM_flush_page(page);
@@ -176,9 +176,9 @@ int DRM_find_content(
 
         // We search part of data in this page, save index and unload page.
         int current_size = MIN(PAGE_CONTENT_SIZE - current_index, (int)temp_data_size);
-        if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+        if (THR_require_lock(&page->lock, get_thread_num()) == 1) {
             int result = PGM_find_content(page, current_index, data_pointer, current_size);
-            THR_release_lock(&page->lock, omp_get_thread_num());
+            THR_release_lock(&page->lock, get_thread_num());
 
             // If TGI is -1, we know that we start searching from start.
             // Save current TGI of find part of data.
@@ -221,7 +221,7 @@ int DRM_cleanup_pages(directory_t* directory) {
 
         page_t* page = PGM_load_page(directory->header->name, temp_names[i]);
         if (page) {
-            if (THR_require_lock(&page->lock, omp_get_thread_num()) == 1) {
+            if (THR_require_lock(&page->lock, get_thread_num()) == 1) {
                 // If page, after delete operation, full empty, we delete page.
                 // Also we realise page pointer in RAM.
                 int free_space = PGM_get_free_space(page, PAGE_START);
@@ -233,7 +233,7 @@ int DRM_cleanup_pages(directory_t* directory) {
                     continue;
                 }
                 else {
-                    THR_release_lock(&page->lock, omp_get_thread_num());
+                    THR_release_lock(&page->lock, get_thread_num());
                 }
             }
 

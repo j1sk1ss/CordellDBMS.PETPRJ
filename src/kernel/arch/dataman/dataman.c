@@ -153,9 +153,9 @@ int DB_insert_row(
     }
 
     TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
+    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
         result = TBM_insert_content(table, _get_global_offset(table->row_size, row), data, data_size);
-        THR_release_lock(&table->lock, omp_get_thread_num());
+        THR_release_lock(&table->lock, get_thread_num());
     }
 
     TBM_flush_table(table);
@@ -170,9 +170,9 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
     if (table == NULL) return -1;
 
     int result = -1;
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
+    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
         result = TBM_delete_content(table, _get_global_offset(table->row_size, row), table->row_size);
-        THR_release_lock(&table->lock, omp_get_thread_num());
+        THR_release_lock(&table->lock, get_thread_num());
     }
 
     table->header->row_count = MAX(table->header->row_count - 1, 0);
@@ -208,7 +208,7 @@ int DB_find_data_row(
     TBM_get_column_info(table, column, &col_info);
 
     int answer = -1;
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
+    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
         while (1) {
             int global_offset = TBM_find_content(table, offset, data, data_size);
             TBM_flush_table(table);
@@ -229,7 +229,7 @@ int DB_find_data_row(
             offset = global_offset + data_size;
         }
 
-        THR_release_lock(&table->lock, omp_get_thread_num());
+        THR_release_lock(&table->lock, get_thread_num());
     }
 
     return answer;

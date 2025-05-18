@@ -63,7 +63,7 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
     if (GCT_TYPES[type] >= GCT_TYPES_MAX[type]) should_replace = 1;
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer != NULL) {
-            if (THR_test_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) == UNLOCKED) {
+            if (THR_test_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) == UNLOCKED) {
                 if (GCT[i].type == type && should_replace == 1) {
                     occup_current = i;
                     break;
@@ -81,7 +81,7 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
     else return -4;
 
     if (GCT[current].pointer != NULL) {
-        if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, omp_get_thread_num()) != -1) {
+        if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, get_thread_num()) != -1) {
             #pragma omp critical (gct_types_decreese)
             GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
             GCT[current].save(GCT[current].pointer);
@@ -131,9 +131,9 @@ void* CHC_find_entry(char* name, char* base_path, unsigned char type) {
 int CHC_sync() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) == 1) {
+        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) == 1) {
             GCT[i].save(GCT[i].pointer);
-            THR_release_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num());
+            THR_release_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num());
         }
         else {
             return -1;
@@ -146,7 +146,7 @@ int CHC_sync() {
 int CHC_free() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, omp_get_thread_num()) != -1) _flush_index(i);
+        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) != -1) _flush_index(i);
         else {
             return -1;
         }

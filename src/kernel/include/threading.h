@@ -25,7 +25,7 @@
 #define NO_OWNER  0xFF
 
 #ifndef _OPENMP
-  #define omp_get_thread_num() 0
+  #define get_thread_num() 0
   #define omp_set_num_threads(num)
 #else
   #include <omp.h>

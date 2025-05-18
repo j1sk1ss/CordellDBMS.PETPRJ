@@ -146,7 +146,7 @@ directory_t* DRM_load_directory(char* name) {
 int DRM_delete_directory(directory_t* directory, int full) {
 #ifndef NO_DELETE_COMMAND
     if (directory == NULL) return -1;
-    if (THR_require_lock(&directory->lock, omp_get_thread_num()) == 1) {
+    if (THR_require_lock(&directory->lock, get_thread_num()) == 1) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < directory->header->page_count; i++) {

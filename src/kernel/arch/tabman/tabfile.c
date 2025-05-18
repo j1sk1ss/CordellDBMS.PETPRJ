@@ -188,7 +188,7 @@ table_t* TBM_load_table(char* name) {
 int TBM_delete_table(table_t* table, int full) {
 #ifndef NO_DELETE_COMMAND
     if (table == NULL) return -1;
-    if (THR_require_lock(&table->lock, omp_get_thread_num()) == 1) {
+    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < table->header->dir_count; i++) {
