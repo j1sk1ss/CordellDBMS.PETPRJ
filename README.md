@@ -3,6 +3,8 @@
 I just want to create alternative of SQL like DBMS. For example my own PostgreSQL, but simpler and lighter. I want use this DBMS on embended systems like STM32F103C6T8 or Arduino NANO.</br>
 Also this project can be launched on Windows, MacOS (ARM / Intel), and Linux (Ubuntu, Debiand and Fedora tested).</br>
 
+arXiv pre-print with summary info about this project: [arXiv:2505.15953](https://arxiv.org/abs/2505.15953)
+
 **Testing:**
 -----------------------------------------------------
 ### Size of executable file
