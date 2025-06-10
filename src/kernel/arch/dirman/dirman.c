@@ -1,6 +1,5 @@
 #include "../../include/dirman.h"
 
-
 static int _link_page2dir(directory_t* __restrict directory, page_t* __restrict page) {
     #pragma omp critical (link_page2dir)
     strncpy_s(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);
@@ -39,7 +38,7 @@ int DRM_append_content(directory_t* __restrict directory, unsigned char* __restr
         }
 
         if (page->append_offset >= 0 && PAGE_CONTENT_SIZE - page->append_offset >= (int)data_lenght) {
-            if (THR_require_lock(&page->lock, get_thread_num()) == 1) {
+            if (THR_require_write(&page->lock, get_thread_num())) {
                 PGM_insert_content(page, page->append_offset, data, data_lenght);
                 page->append_offset += data_lenght;
                 THR_release_lock(&page->lock, get_thread_num());

@@ -31,26 +31,14 @@
 #ifndef PAGEMAN_H_
 #define PAGEMAN_H_
 
-#include <fcntl.h>
-
-#ifndef _WIN32
-    #include <unistd.h>
-    #include <libgen.h>
-#else
-    #include <io.h>
-#endif
-
-#include "threading.h"
-#include "logging.h"
+#include "nifat32/nifat32.h"
 #include "common.h"
 #include "cache.h"
-
 
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL pages
 // #define PAGE_BASE_PATH  ENV_GET("PAGE_BASE_PATH", "")
-
 
 #pragma region [Page memory]
 
@@ -81,12 +69,12 @@
         char name[PAGE_NAME_SIZE];
 
         // Table checksum
-        unsigned int checksum;
-    } page_header_t;
+        checksum_t checksum;
+    } __attribute__((packed)) page_header_t;
 
     typedef struct {
         // Lock page flags
-        unsigned short lock;
+        lock_t lock;
         unsigned char is_cached;
 
         // Page header with all special information
@@ -96,7 +84,7 @@
         // Page content
         unsigned short content[PAGE_CONTENT_SIZE];
         char* base_path;
-    } page_t;
+    } __attribute__((packed)) page_t;
 
 
 #pragma region [Content]

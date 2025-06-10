@@ -28,14 +28,13 @@
     #include <unistd.h>
 #endif
 
-#include "logging.h"
+#include "nifat32/nifat32.h"
 #include "common.h"
 #include "tabman.h"
 #include "cache.h"
 
 
 #define TABLES_PER_DATABASE     0xFF
-
 #define DATABASE_EXTENSION      ENV_GET("DATABASE_EXTENSION", "db")
 // Set here default path for save.
 // Important Note ! : This path is main for ALL databases
@@ -52,7 +51,6 @@ we use cache in pages (lowest level) and table cache at the highest level.
 */
 #define DATABASE_TABLE_CACHE_SIZE   10
 
-
 // We have *.db bin file, where at start placed header
 //=======================================================
 // HEADER (MAGIC | NAME) -> | TABLE_NAMES -> ... -> end |
@@ -67,7 +65,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
         // Table count in database
         unsigned char table_count;
-    } database_header_t;
+    } __attribute__((packed)) database_header_t;
 
     typedef struct {
         // Database header
@@ -75,8 +73,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
         // Database linked tables
         char table_names[TABLES_PER_DATABASE][TABLE_NAME_SIZE];
-    } database_t;
-
+    } __attribute__((packed)) database_t;
 
 #pragma region [Table]
 

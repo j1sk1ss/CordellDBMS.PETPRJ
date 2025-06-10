@@ -19,8 +19,7 @@
 #define COMMON_H_
 
 #include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdio.h>s
 
 #ifdef _WIN32
   typedef intptr_t ssize_t;
@@ -34,6 +33,7 @@
   #include <sys/stat.h>
 #endif
 
+#include "nifat32/nifat32.h"
 #include "mm.h"
 #include "cache.h"
 

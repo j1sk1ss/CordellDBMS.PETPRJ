@@ -1,12 +1,11 @@
 #include "../../include/dataman.h"
 
-
 static int _unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
     int status = 0;
     #pragma omp critical (unlink_table_from_database)
     {
         for (int i = 0; i < database->header->table_count; i++) {
-            if (strncmp_s(database->table_names[i], name, TABLE_NAME_SIZE) == 0) {
+            if (!strncmp_s(database->table_names[i], name, TABLE_NAME_SIZE)) {
                 for (int j = i; j < database->header->table_count - 1; j++) {
                     strncpy_s(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
                 }
@@ -33,8 +32,7 @@ static table_t* _get_table_access(
     database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)
 ) {
     table_t* table = DB_get_table(database, table_name);
-    if (table == NULL) return NULL;
-
+    if (!table) return NULL;
     if (check_access(access, table->header->access) == -1) {
         TBM_flush_table(table);
         return NULL;
@@ -50,7 +48,7 @@ int DB_append_row(
     unsigned char* __restrict data, size_t data_size, unsigned char access
 ) {
     table_t* table = _get_table_access(database, table_name, access, check_write_access);
-    if (table == NULL) return -4;
+    if (!table) return -4;
     if (table->row_size > data_size) {
         TBM_flush_table(table);
         return -5;
@@ -75,7 +73,7 @@ int DB_append_row(
             GET_COLUMN_TYPE(table->columns[i]->type) == COLUMN_AUTO_INCREMENT && 
             GET_COLUMN_DATA_TYPE(table->columns[i]->type) == COLUMN_TYPE_INT
         ) {
-            unsigned char* previous_data = (unsigned char*)malloc(table->row_size);
+            unsigned char* previous_data = (unsigned char*)malloc_s(table->row_size);
             if (previous_data != NULL) {
                 if (DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), access, previous_data, table->row_size)) {
                     char number_buffer[128] = { 0 };
@@ -153,9 +151,9 @@ int DB_insert_row(
     }
 
     TBM_invoke_modules(table, data, COLUMN_MODULE_PRELOAD);
-    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
+    if (THR_require_write(&table->lock, get_thread_num())) {
         result = TBM_insert_content(table, _get_global_offset(table->row_size, row), data, data_size);
-        THR_release_lock(&table->lock, get_thread_num());
+        THR_release_write(&table->lock, get_thread_num());
     }
 
     TBM_flush_table(table);
@@ -170,9 +168,9 @@ int DB_delete_row(database_t* __restrict database, char* __restrict table_name, 
     if (table == NULL) return -1;
 
     int result = -1;
-    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
+    if (THR_require_write(&table->lock, get_thread_num())) {
         result = TBM_delete_content(table, _get_global_offset(table->row_size, row), table->row_size);
-        THR_release_lock(&table->lock, get_thread_num());
+        THR_release_write(&table->lock, get_thread_num());
     }
 
     table->header->row_count = MAX(table->header->row_count - 1, 0);
@@ -208,7 +206,7 @@ int DB_find_data_row(
     TBM_get_column_info(table, column, &col_info);
 
     int answer = -1;
-    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
+    if (THR_require_read(&table->lock)) {
         while (1) {
             int global_offset = TBM_find_content(table, offset, data, data_size);
             TBM_flush_table(table);
@@ -229,7 +227,7 @@ int DB_find_data_row(
             offset = global_offset + data_size;
         }
 
-        THR_release_lock(&table->lock, get_thread_num());
+        THR_release_read(&table->lock);
     }
 
     return answer;
@@ -249,14 +247,14 @@ table_t* DB_get_table(database_t* __restrict database, char* __restrict table_na
     }
 
     // If table not in database, we return NULL
-    if (table == NULL) print_warn("Table [%s] not in [%.*s] database!", table_name, DATABASE_NAME_SIZE, database->header->name);
+    if (!table) print_warn("Table [%s] not in [%.*s] database!", table_name, DATABASE_NAME_SIZE, database->header->name);
     return table;
 }
 
 int DB_delete_table(database_t* __restrict database, char* __restrict table_name, int full) {
 #ifndef NO_DELETE_COMMAND
     table_t* table = DB_get_table(database, table_name);
-    if (table == NULL) return -1;
+    if (!table) return -1;
 
     _unlink_table_from_database(database, table_name);
     return TBM_delete_table(table, full);
@@ -266,7 +264,6 @@ int DB_delete_table(database_t* __restrict database, char* __restrict table_name
 
 int DB_link_table2database(database_t* __restrict database, table_t* __restrict table) {
     if (database->header->table_count + 1 >= TABLES_PER_DATABASE) return -1;
-
     #pragma omp critical (link_table2database)
     strncpy_s(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
     return 1;

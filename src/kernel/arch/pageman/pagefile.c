@@ -1,6 +1,5 @@
 #include "../../include/pageman.h"
 
-
 page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
     page_t* page = (page_t*)malloc_s(sizeof(page_t));
     page_header_t* header = (page_header_t*)malloc_s(sizeof(page_header_t));
@@ -15,7 +14,7 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
 
     header->magic = PAGE_MAGIC;
     strncpy_s(header->name, name, PAGE_NAME_SIZE);
-    page->lock = THR_create_lock();
+    page->lock = NULL_LOCK;
     page->append_offset = -1;
 
     page->header = header;
@@ -54,21 +53,28 @@ int PGM_save_page(page_t* page) {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             get_load_path(page->header->name, PAGE_NAME_SIZE, save_path, page->base_path, PAGE_EXTENSION);
-            mkdir(page->base_path, 0777);
-
+            char save_path83[DEFAULT_PATH_SIZE] = { 0 };
+            path_to_fatnames(save_path, save_path83);
+            
             // Open or create file
-            int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd < 0) { print_error("Can't save or create [%s] file", save_path); }
+            ci_t ci = NIFAT32_open_content(save_path83, MODE(CR_MODE, FILE_MODE));
+            if (ci < 0) { print_error("Can't save or create [%s] file", save_path); }
             else {
                 status = 1;
                 page->header->checksum = page_cheksum;
                 unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
                 pack_memory((unsigned char*)page->header, (unsigned short*)encoded_header, sizeof(page_header_t));
-                if (pwrite(fd, &encoded_header, sizeof(page_header_t) * sizeof(unsigned short), 0) != sizeof(page_header_t) * sizeof(unsigned short)) status = -2;
-                if (pwrite(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t) * sizeof(unsigned short)) != (ssize_t)(PAGE_CONTENT_SIZE * sizeof(unsigned short))) status = -3;
+                
+                if (NIFAT32_write_buffer2content(
+                    ci, 0, (const_buffer_t)&encoded_header, sizeof(page_header_t) * sizeof(unsigned short)
+                ) != sizeof(page_header_t) * sizeof(unsigned short)) status = -2;
 
-                fsync(fd);
-                close(fd);
+                if (NIFAT32_write_buffer2content(
+                    ci, sizeof(page_header_t) * sizeof(unsigned short), 
+                    (const_buffer_t)page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short)
+                ) != (ssize_t)(PAGE_CONTENT_SIZE * sizeof(unsigned short))) status = -3;
+
+                NIFAT32_close_content(ci);
             }
         }
     }
@@ -79,6 +85,8 @@ int PGM_save_page(page_t* page) {
 page_t* PGM_load_page(char* base_path, char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path(name, PAGE_NAME_SIZE, load_path, base_path, PAGE_EXTENSION);
+    char load_path83[DEFAULT_PATH_SIZE] = { 0 };
+    path_to_fatnames(load_path, load_path83);
 
     page_t* loaded_page = (page_t*)CHC_find_entry(name, base_path, PAGE_CACHE);
     if (loaded_page != NULL) {
@@ -89,9 +97,9 @@ page_t* PGM_load_page(char* base_path, char* name) {
     #pragma omp critical (page_load)
     {
         // Open file page
-        int fd = open(load_path, O_RDONLY);
+        ci_t ci = NIFAT32_open_content(load_path83, DF_MODE);
         print_io("Loading page [%s]", load_path);
-        if (fd < 0) { print_error("Page not found! Path: [%s]", load_path); }
+        if (ci < 0) { print_error("Page not found! Path: [%s]", load_path); }
         else {
             // Read header from file
             page_header_t* header = (page_header_t*)malloc_s(sizeof(page_header_t));
@@ -100,7 +108,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
                 memset_s(header, 0, sizeof(page_header_t));
 
                 unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
-                pread(fd, encoded_header, sizeof(page_header_t) * sizeof(unsigned short), offset);
+                NIFAT32_read_content2buffer(ci, offset, (buffer_t)encoded_header, sizeof(page_header_t) * sizeof(unsigned short));
                 unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(page_header_t));
                 offset += sizeof(page_header_t) * sizeof(unsigned short);
 
@@ -108,24 +116,26 @@ page_t* PGM_load_page(char* base_path, char* name) {
                 if (header->magic != PAGE_MAGIC) {
                     print_error("Page file wrong magic for [%s]", load_path);
                     free_s(header);
-                    close(fd);
-                } else {
+                    NIFAT32_close_content(ci);
+                } 
+                else {
                     // Allocate memory for page structure
                     page_t* page = (page_t*)malloc_s(sizeof(page_t));
                     if (!page) free_s(header);
                     else {
                         unsigned short encoded_pm = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
                         for (int i = 0; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encoded_pm;
-                        pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), offset);
-                        close(fd);
+                        NIFAT32_read_content2buffer(ci, offset, (buffer_t)page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short));
+                        NIFAT32_close_content(ci);
 
-                        page->lock   = THR_create_lock();
+                        page->lock = NULL_LOCK;
                         page->header = header;
                         loaded_page  = page;
                         page->append_offset = -1;
 
                         CHC_add_entry(
-                            loaded_page, loaded_page->header->name, base_path, PAGE_CACHE, (void*)PGM_free_page, (void*)PGM_save_page
+                            loaded_page, loaded_page->header->name, base_path, PAGE_CACHE, 
+                            (void*)PGM_free_page, (void*)PGM_save_page
                         );
                     }
                 }
@@ -145,7 +155,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
 
 int PGM_flush_page(page_t* page) {
     if (!page) return -2;
-    if (page->is_cached == 1) return -1;
+    if (page->is_cached) return -1;
     PGM_save_page(page);
     return PGM_free_page(page);
 }
@@ -164,10 +174,11 @@ unsigned int PGM_get_checksum(page_t* page) {
     page->header->checksum = 0;
 
     unsigned int _checksum = 0;
-    if (page->header != NULL)
-        _checksum = checksum(_checksum, (const unsigned char*)page->header, sizeof(page_header_t));
+    if (page->header) {
+        _checksum = crc32(0, (const unsigned char*)page->header, sizeof(page_header_t));
+    }
 
     page->header->checksum = prev_checksum;
-    _checksum = checksum(_checksum, (const unsigned char*)page->content, sizeof(page->content));
+    _checksum = crc32(_checksum, (const unsigned char*)page->content, sizeof(page->content));
     return _checksum;
 }

@@ -36,13 +36,11 @@
     #include <unistd.h>
 #endif
 
-#include "threading.h"
-#include "logging.h"
+#include "nifat32/nifat32.h"
 #include "common.h"
 #include "dirman.h"
 #include "module.h"
 #include "cache.h"
-
 
 #define TABLE_MAGIC             0xAA
 #define TABLE_NAME_SIZE         8
@@ -145,7 +143,6 @@
 
 #pragma endregion
 
-
 // We have *.tb bin file, where at start placed header
 //========================================================================================================================================
 // HEADER (MAGIC | NAME | ACCESS | COLUMN_COUNT | DIR_COUNT) -> | COLUMNS (MAGIC | TYPE | NAME) -> | LINKS -> | DIR_NAMES -> dyn. -> end |
@@ -157,7 +154,7 @@
     typedef struct {
         int size;
         int offset;
-    } table_columns_info_t;
+    } __attribute__((packed)) table_columns_info_t;
 
     typedef struct {
         // Column magic byte
@@ -188,7 +185,7 @@
         unsigned char module_params;
         char module_name[MODULE_NAME_SIZE];
         char module_querry[COLUMN_MODULE_SIZE];
-    } table_column_t;
+    } __attribute__((packed)) table_column_t;
 
     typedef struct {
         // Table magic
@@ -222,12 +219,12 @@
         unsigned char dir_count;
 
         // Table checksum
-        unsigned int checksum;
-    } table_header_t;
+        checksum_t checksum;
+    } __attribute__((packed)) table_header_t;
 
     typedef struct {
         // Lock table flag
-        unsigned short lock;
+        lock_t lock;
         unsigned char is_cached;
 
         // Table header
@@ -240,8 +237,7 @@
 
         // Table directories
         char dir_names[DIRECTORIES_PER_TABLE][DIRECTORY_NAME_SIZE];
-    } table_t;
-
+    } __attribute__((packed)) table_t;
 
 #pragma region [Directories]
 

@@ -31,16 +31,10 @@
 #ifndef DIRMAN_H_
 #define DIRMAN_H_
 
-#ifndef _WIN32
-    #include <unistd.h>
-#endif
-
+#include "nifat32/nifat32.h"
 #include "cache.h"
 #include "common.h"
-#include "logging.h"
 #include "pageman.h"
-#include "threading.h"
-
 
 #define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
 // Set here default path for save.
@@ -54,7 +48,6 @@
 
 #define PAGES_PER_DIRECTORY 100
 #define DIRECTORY_OFFSET    PAGES_PER_DIRECTORY * PAGE_CONTENT_SIZE
-
 
 // We have *.dr bin file, where at start placed header
 //====================================================================================================================
@@ -73,12 +66,12 @@
         unsigned char page_count;
 
         // Directory checksum
-        unsigned int checksum;
-    } directory_header_t;
+        checksum_t checksum;
+    } __attribute__((packed)) directory_header_t;
 
     typedef struct {
         // Lock directory flag
-        unsigned short lock;
+        lock_t lock;
         unsigned char is_cached;
 
         // Directory header
@@ -87,8 +80,7 @@
 
         // Page file names
         char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];
-    } directory_t;
-
+    } __attribute__((packed)) directory_t;
 
 #pragma region [Pages]
 

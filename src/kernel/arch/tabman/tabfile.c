@@ -1,6 +1,5 @@
 #include "../../include/tabman.h"
 
-
 table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access) {
 #ifndef NO_CREATE_COMMAND
     int row_size = 0;
@@ -31,7 +30,7 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     table->columns  = columns;
     table->row_size = row_size;
     
-    table->lock = THR_create_lock();
+    table->lock = NULL_LOCK;
     table->header = header;
     return table;
 #endif
@@ -51,25 +50,30 @@ int TBM_save_table(table_t* table) {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             get_load_path(table->header->name, TABLE_NAME_SIZE, save_path, TABLE_BASE_PATH, TABLE_EXTENSION);
+            char save_path83[DEFAULT_PATH_SIZE] = { 0 };
+            path_to_fatnames(save_path, save_path83);
 
             // Open or create file
-            int fd = open(save_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd < 0) { print_error("Can't save or create table [%s] file", save_path); }
+            ci_t ci = NIFAT32_open_content(save_path83, MODE(CR_MODE, FILE_MODE));
+            if (ci < 0) { print_error("Can't save or create table [%s] file", save_path); }
             else {
-                // Write header
                 int offset = 0;
                 status = 1;
                 table->header->checksum = TBM_get_checksum(table);
 
                 unsigned short encoded_header[sizeof(table_header_t)] = { 0 };
                 pack_memory((unsigned char*)table->header, (unsigned short*)encoded_header, sizeof(table_header_t));
-                if (pwrite(fd, encoded_header, sizeof(table_header_t) * sizeof(unsigned short), offset) != sizeof(table_header_t) * sizeof(unsigned short)) status = -2;
+                if (NIFAT32_write_buffer2content(
+                    ci, offset, (const_buffer_t)encoded_header, sizeof(table_header_t) * sizeof(unsigned short)
+                ) != sizeof(table_header_t) * sizeof(unsigned short)) status = -2;
                 offset += sizeof(table_header_t) * sizeof(unsigned short);
                 
                 for (int i = 0; i < table->header->column_count; i++) {
                     unsigned short encoded_column[sizeof(table_column_t)] = { 0 };
                     pack_memory((unsigned char*)table->columns[i], (unsigned short*)encoded_column, sizeof(table_column_t));
-                    if (pwrite(fd, encoded_column, sizeof(table_column_t) * sizeof(unsigned short), offset) != sizeof(table_column_t) * sizeof(unsigned short)) {
+                    if (NIFAT32_write_buffer2content(
+                        ci, offset, (const_buffer_t)encoded_column, sizeof(table_column_t) * sizeof(unsigned short)
+                    ) != sizeof(table_column_t) * sizeof(unsigned short)) {
                         status = -3;
                     }
 
@@ -79,12 +83,13 @@ int TBM_save_table(table_t* table) {
                 for (int i = 0; i < table->header->dir_count; i++) {
                     unsigned short encoded_directory_name[sizeof(table_header_t)] = { 0 };
                     pack_memory((unsigned char*)table->dir_names[i], (unsigned short*)encoded_directory_name, DIRECTORY_NAME_SIZE);
-                    if (pwrite(fd, encoded_directory_name, DIRECTORY_NAME_SIZE * sizeof(unsigned short), offset) != DIRECTORY_NAME_SIZE * sizeof(unsigned short)) status = -5;
+                    if (NIFAT32_write_buffer2content(
+                        ci, offset, (const_buffer_t)encoded_directory_name, DIRECTORY_NAME_SIZE * sizeof(unsigned short)
+                    ) != DIRECTORY_NAME_SIZE * sizeof(unsigned short)) status = -5;
                     offset += DIRECTORY_NAME_SIZE * sizeof(unsigned short);
                 }
 
-                fsync(fd);
-                close(fd);
+                NIFAT32_close_content(ci);
             }
         }
     }
@@ -95,6 +100,8 @@ int TBM_save_table(table_t* table) {
 table_t* TBM_load_table(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path(name, TABLE_NAME_SIZE, load_path, TABLE_BASE_PATH, TABLE_EXTENSION);
+    char load_path83[DEFAULT_PATH_SIZE] = { 0 };
+    path_to_fatnames(load_path, load_path83);
 
     // If path is not NULL, we use function for getting file name
     table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_BASE_PATH, TABLE_CACHE);
@@ -106,9 +113,9 @@ table_t* TBM_load_table(char* name) {
     int table_load_break = 0;
     #pragma omp critical (table_load)
     {
-        int fd = open(load_path, O_RDONLY);
+        ci_t ci = NIFAT32_open_content(load_path83, DF_MODE);
         print_io("Loading table [%s] from disk", load_path);
-        if (fd < 0) { print_error("Can't open table [%s]", load_path); }
+        if (ci < 0) { print_error("Can't open table [%s]", load_path); }
         else {
             // Read header of table from file.
             // Note: If magic is wrong, we can say, that this file isn`t table.
@@ -117,14 +124,15 @@ table_t* TBM_load_table(char* name) {
             if (header) {
                 int offset = 0;
                 unsigned short encoded_header[sizeof(table_header_t)] = { 0 };
-                pread(fd, encoded_header, sizeof(table_header_t) * sizeof(unsigned short), offset);
+                NIFAT32_read_content2buffer(ci, offset, (buffer_t)encoded_header, sizeof(table_header_t) * sizeof(unsigned short));
                 unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(table_header_t));
                 offset += sizeof(table_header_t) * sizeof(unsigned short);
                 if (header->magic != TABLE_MAGIC) {
                     print_error("Table file wrong magic for [%s]", load_path);
                     SOFT_FREE(header);
-                    close(fd);
-                } else {
+                    NIFAT32_close_content(ci);
+                } 
+                else {
                     // Read columns from file.
                     table_t* table = (table_t*)malloc_s(sizeof(table_t));
                     table_column_t** columns = (table_column_t**)malloc_s(header->column_count * sizeof(table_column_t*));
@@ -132,10 +140,10 @@ table_t* TBM_load_table(char* name) {
                         SOFT_FREE(header);
                         SOFT_FREE(table);
                         ARRAY_SOFT_FREE(columns, header->column_count);
-                    } else {
+                    } 
+                    else {
                         memset_s(table, 0, sizeof(table_t));
                         memset_s(columns, 0, header->column_count * sizeof(table_column_t*));
-
                         for (int i = 0; i < header->column_count; i++) {
                             columns[i] = (table_column_t*)malloc_s(sizeof(table_column_t));
                             if (!columns[i]) { 
@@ -145,29 +153,33 @@ table_t* TBM_load_table(char* name) {
 
                             memset_s(columns[i], 0, sizeof(table_column_t));
                             unsigned short encoded_column[sizeof(table_column_t)] = { 0 };
-                            pread(fd, encoded_column, sizeof(table_column_t) * sizeof(unsigned short), offset);
+                            NIFAT32_read_content2buffer(ci, offset, (buffer_t)encoded_column, sizeof(table_column_t) * sizeof(unsigned short));
                             unpack_memory((unsigned short*)encoded_header, (unsigned char*)columns[i], sizeof(table_column_t));
                             offset += sizeof(table_column_t) * sizeof(unsigned short);
                         }
 
-                        for (int i = 0; i < header->column_count; i++)
+                        for (int i = 0; i < header->column_count; i++) {
                             table->row_size += columns[i]->size;
+                        }
 
                         // Read directory names from file, that linked to this directory.
                         for (int i = 0; i < header->dir_count; i++) {
                             unsigned short encoded_directory_name[DIRECTORY_NAME_SIZE] = { 0 };
-                            pread(fd, encoded_directory_name, DIRECTORY_NAME_SIZE * sizeof(unsigned short), offset);
+                            NIFAT32_read_content2buffer(ci, offset, (buffer_t)encoded_directory_name, DIRECTORY_NAME_SIZE * sizeof(unsigned short));
                             unpack_memory((unsigned short*)encoded_directory_name, (unsigned char*)table->dir_names[i], DIRECTORY_NAME_SIZE);
                             offset += DIRECTORY_NAME_SIZE * sizeof(unsigned short);
                         }
 
-                        close(fd);
+                        NIFAT32_close_content(ci);
 
                         table->columns = columns;
-                        table->lock = THR_create_lock();
-
+                        table->lock = NULL_LOCK;
                         table->header = header;
-                        CHC_add_entry(table, table->header->name, TABLE_BASE_PATH, TABLE_CACHE, (void*)TBM_free_table, (void*)TBM_save_table);
+                        CHC_add_entry(
+                            table, table->header->name, TABLE_BASE_PATH, TABLE_CACHE, 
+                            (void*)TBM_free_table, (void*)TBM_save_table
+                        );
+
                         loaded_table = table;
                     }
                 }
@@ -188,7 +200,7 @@ table_t* TBM_load_table(char* name) {
 int TBM_delete_table(table_t* table, int full) {
 #ifndef NO_DELETE_COMMAND
     if (table == NULL) return -1;
-    if (THR_require_lock(&table->lock, get_thread_num()) == 1) {
+    if (THR_require_write(&table->lock, get_thread_num())) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)
             for (int i = 0; i < table->header->dir_count; i++) {
@@ -229,14 +241,14 @@ unsigned int TBM_get_checksum(table_t* table) {
     table->header->checksum = 0;
 
     unsigned int _checksum = 0;
-    if (table->header != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->header, sizeof(table_header_t));
+    if (table->header != NULL) _checksum = crc32(0, (const unsigned char*)table->header, sizeof(table_header_t));
     if (table->columns != NULL) {
         for (unsigned short i = 0; i < table->header->column_count; i++) {
-            if (table->columns[i] != NULL) _checksum = checksum(_checksum, (const unsigned char*)table->columns[i], sizeof(table_column_t));
+            if (table->columns[i] != NULL) _checksum = crc32(_checksum, (const unsigned char*)table->columns[i], sizeof(table_column_t));
         }
     }
 
     table->header->checksum = prev_checksum;
-    _checksum = checksum(_checksum, (const unsigned char*)table->dir_names, sizeof(table->dir_names));
+    _checksum = crc32(_checksum, (const unsigned char*)table->dir_names, sizeof(table->dir_names));
     return _checksum;
 }

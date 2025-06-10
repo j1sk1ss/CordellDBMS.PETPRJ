@@ -1,6 +1,5 @@
 #include "../include/common.h"
 
-
 inline int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension) {
     sprintf(buffer, "%s/%.*s.%s", base_path, name_size, name, extension);
     return 1;
@@ -51,7 +50,11 @@ int file_exists(const char* path, char* base_path, const char* filename) {
 int delete_file(const char* filename, const char* basepath, const char* extension) {
     char delete_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path((char*)filename, strlen_s(filename), (char*)delete_path, (char*)basepath, (char*)extension);
-    return remove(delete_path);
+    char delete_path83[DEFAULT_PATH_SIZE] = { 0 };
+    path_to_fatnames(delete_path, delete_path83);
+
+    ci_t ci = NIFAT32_open_content(delete_path83, DF_MODE);
+    return ci >= 0 ? NIFAT32_delete_content(ci) : 0;
 }
 
 #ifdef _WIN32

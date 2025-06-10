@@ -1,12 +1,11 @@
 #include "../../include/pageman.h"
 
-
 #pragma region [CRUD]
 
 int PGM_get_content(page_t* __restrict page, int offset, unsigned char* __restrict buffer, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
     for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) {
-        buffer[j] = (unsigned char)decode_hamming_15_11(page->content[i]);
+        buffer[j] = (unsigned char)decode_hamming_15_11(page->content[i]); /* TODO */
     }
 
     return end_index - offset;
@@ -15,7 +14,7 @@ int PGM_get_content(page_t* __restrict page, int offset, unsigned char* __restri
 int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
     for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) {
-        page->content[i] = encode_hamming_15_11((unsigned short)data[j]);
+        page->content[i] = encode_hamming_15_11((unsigned short)data[j]); /* TODO */
     }
 
     return end_index - offset;
@@ -25,7 +24,7 @@ int PGM_delete_content(page_t* page, int offset, size_t length) {
 #ifndef NO_DELETE_COMMAND
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)length + offset);
     for (int i = offset; i < end_index; i++) page->content[i] = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
-    return end_index - offset;
+    return end_index - offset; /* TODO */
 #endif
     return 1;
 }
@@ -38,7 +37,7 @@ int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restr
     int data_index = 0;
     for (int i = offset; i < PAGE_CONTENT_SIZE - (int)data_size; i++) {
         if (data_index >= (int)data_size) return i - data_size;
-        if (data[data_index] == decode_hamming_15_11(page->content[i])) data_index++;
+        if (data[data_index] == decode_hamming_15_11(page->content[i])) data_index++; /* TODO */
         else data_index = 0;
     }
 
@@ -48,7 +47,7 @@ int PGM_find_content(page_t* __restrict page, int offset, unsigned char* __restr
 int PGM_get_free_space(page_t* page, int offset) {
     int count = 0;
     for (int i = offset; i < PAGE_CONTENT_SIZE; i++) {
-        if (decode_hamming_15_11(page->content[i]) == PAGE_EMPTY) count++;
+        if (decode_hamming_15_11(page->content[i]) == PAGE_EMPTY) count++; /* TODO */
         else if (offset != -1) break;
     }
 
