@@ -55,7 +55,6 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
 }
 
 #ifdef _WIN32
-
     intptr_t pwrite(int fd, const void* buf, size_t count, long long int offset) {
         HANDLE hFile = (HANDLE)(intptr_t)_get_osfhandle(fd);
         if (hFile == INVALID_HANDLE_VALUE) return -1;
@@ -90,5 +89,4 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
         if (!FlushFileBuffers(hFile)) return -1;
         return 0;
     }
-
 #endif
