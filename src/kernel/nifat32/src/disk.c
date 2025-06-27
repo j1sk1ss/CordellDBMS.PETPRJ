@@ -1,6 +1,6 @@
 #include "../include/disk.h"
 
-static io_t _disk_io = {
+static disk_io_t _disk_io = {
     .read_sector  = NULL,
     .write_sector = NULL,
     .sector_size  = 512
@@ -165,6 +165,23 @@ int DSK_writeoff_sectors(sector_addr_t sa, sector_offset_t offset, const unsigne
     }
     else {
         print_error("Can't write-lock area sa=%u sc=%i", sa, sc);
+    }
+
+    return 0;
+}
+
+int DSK_copy_sectors(sector_addr_t src, sector_addr_t dst, int sc, unsigned char* buffer, int buff_size) {
+    if (_lock_area(dst, sc, WRITE_LOCK)) {
+        int copy_result = 0;
+        for (int i = 0; i < sc; i++) {
+            copy_result += _disk_io.read_sector(src, i, buffer, buff_size) + _disk_io.write_sector(dst, i, buffer, buff_size);
+        }
+
+        _unlock_area(dst, sc);
+        return copy_result;
+    }
+    else {
+        print_error("Can't read-lock area sa=%u sc=1", dst);
     }
 
     return 0;

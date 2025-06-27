@@ -50,13 +50,10 @@ int DB_save_database(database_t* database) {
     int status = -1;
     #pragma omp critical (save_database)
     {
-        // We generate default path
         char save_path[DEFAULT_PATH_SIZE] = { 0 };
         get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
-        char save_path83[DEFAULT_PATH_SIZE] = { 0 };
-        path_to_fatnames(save_path, save_path83);
 
-        ci_t ci = NIFAT32_open_content(save_path83, MODE(CR_MODE, FILE_MODE));
+        ci_t ci = NIFAT32_open_content(NO_RCI, save_path, MODE(CR_MODE, FILE_TARGET));
         if (ci < 0) { print_error("Can`t create or open file: [%s]", save_path); }
         else {
             status = 1;
@@ -86,13 +83,11 @@ int DB_save_database(database_t* database) {
 database_t* DB_load_database(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path(name, DATABASE_NAME_SIZE, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
-    char load_path83[DEFAULT_PATH_SIZE] = { 0 };
-    path_to_fatnames(load_path, load_path83);
 
     database_t* loaded_database = NULL;
     #pragma omp critical (load_database)
     {
-        ci_t ci = NIFAT32_open_content(load_path83, DF_MODE);
+        ci_t ci = NIFAT32_open_content(NO_RCI, load_path, DF_MODE);
         print_io("Loading database [%s]", load_path);
         if (ci < 0) { print_error("Database file not found! [%s]", load_path); }
         else {

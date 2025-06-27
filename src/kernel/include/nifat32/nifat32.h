@@ -1,7 +1,7 @@
 #ifndef NIFAT32_H_
 #define NIFAT32_H_
 
-#include <stddef.h>
+#include "null.h"
 #include "hamming.h"
 #include "threading.h"
 #include "checksum.h"
@@ -13,55 +13,57 @@
 #include "cluster.h"
 #include "disk.h"
 #include "str.h"
+#include "ecache.h"
 #include "entry.h"
 #include "ctable.h"
 
 /* Bpb taken from http://wiki.osdev.org/FAT */
 typedef struct fat_extBS_32 {
-	unsigned int   table_size_32;
-	unsigned short extended_flags;
-	unsigned short fat_version;
-	unsigned int   root_cluster;
-	unsigned short fat_info;
-	unsigned short backup_BS_sector;
-	unsigned char  reserved_0[12];
-	unsigned char  drive_number;
-	unsigned char  reserved_1;
-	unsigned char  boot_signature;
-	unsigned int   volume_id;
-	unsigned char  volume_label[11];
-	unsigned char  fat_type_label[8];
-	checksum_t     checksum;
+    unsigned int   table_size_32;
+    unsigned short extended_flags;
+    unsigned short fat_version;
+    unsigned int   root_cluster;
+    unsigned short fat_info;
+    unsigned short backup_BS_sector;
+    unsigned char  reserved_0[12];
+    unsigned char  drive_number;
+    unsigned char  reserved_1;
+    unsigned char  boot_signature;
+    unsigned int   volume_id;
+    unsigned char  volume_label[11];
+    unsigned char  fat_type_label[8];
+    checksum_t     checksum;
 } __attribute__((packed)) fat_extBS_32_t;
 
 typedef struct fat_BS {
-	unsigned char  bootjmp[3];
-	unsigned char  oem_name[8];
-	unsigned short bytes_per_sector;
-	unsigned char  sectors_per_cluster;
-	unsigned short reserved_sector_count;
-	unsigned char  table_count;
-	unsigned short root_entry_count;
-	unsigned short total_sectors_16;
-	unsigned char  media_type;
-	unsigned short table_size_16;
-	unsigned short sectors_per_track;
-	unsigned short head_side_count;
-	unsigned int   hidden_sector_count;
-	unsigned int   total_sectors_32;
-	fat_extBS_32_t extended_section;
-	checksum_t     checksum;
+    unsigned char  bootjmp[3];
+    unsigned char  oem_name[8];
+    unsigned short bytes_per_sector;
+    unsigned char  sectors_per_cluster;
+    unsigned short reserved_sector_count;
+    unsigned char  table_count;
+    unsigned short root_entry_count;
+    unsigned short total_sectors_16;
+    unsigned char  media_type;
+    unsigned short table_size_16;
+    unsigned short sectors_per_track;
+    unsigned short head_side_count;
+    unsigned int   hidden_sector_count;
+    unsigned int   total_sectors_32;
+    fat_extBS_32_t extended_section;
+    checksum_t     checksum;
 } __attribute__((packed)) fat_BS_t;
 
-/*
-https://en.wikipedia.org/wiki/Golden_ratio
-2^32 / φ, where φ = +-1.618
-*/
-#define HASH_CONST 2654435761U
-#define PRIME1     73856093U
-#define PRIME2     19349663U
-#define PRIME3     83492791U
-#define GET_BOOTSECTOR(number, total_sectors) ((((number) * PRIME1 + PRIME2) * PRIME3) % (total_sectors))
+#define CACHE    1
+#define NO_CACHE 0
+typedef struct {
+    char fat_cache;
+    int bs_num;
+    unsigned int ts;
+} nifat32_params;
+
+#define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
+#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
 
 /*
 Init function. 
@@ -69,13 +71,18 @@ Note: This function also init memory manager.
 Note 2: For noise-immunity purpuses for initialization of NIFAT32 we
 should know end count of sectors.
 Params:
-- bs_num - Bootsector number.
-- ts - Total sectors in filesystem.
+- params - NIFAT32 setup params.
 
 Return 1 if init success.
 Return 0 if init was interrupted by error.
 */
-int NIFAT32_init(int bs_num, unsigned int ts);
+int NIFAT32_init(nifat32_params* params);
+
+/*
+Unload sequence. Perform all cleanup tasks.
+Return 1.
+*/
+int NIFAT32_unload();
 
 /*
 Return 1 if content exists.
@@ -83,32 +90,43 @@ Return 0 if content not exists.
 */
 int NIFAT32_content_exists(const char* path);
 
-// Mode flags (bitmask)
-#define RW_MODE    0b00000001 /* Read-write mode */
-#define CR_MODE    0b00000010 /* Create everything mode */
-#define CR_RW_MODE 0b00000011 /* Create + read/write mode (combination of CR_MODE | RW_MODE) */
-#define DIR_MODE   0b00000100 /* Directory mode */
-#define FILE_MODE  0b00001000 /* File mode */
+/* Open mode flags */
+#define R_MODE     0b0001  // Read mode
+#define W_MODE     0b0010  // Write mode
+#define CR_MODE    0b0100  // Create mode
 
-// Macro to combine mode and target into a single byte
-// Assumes mode uses lower 4 bits and target uses upper 4 bits
-#define MODE(mode, target) ((target << 4) | (mode & 0x0F))
-#define DF_MODE MODE(0, 0) /* Default mode - do nothing special */
+/* Create target flags */
+#define NO_TARGET   0b0000
+#define FILE_TARGET 0b0001
+#define DIR_TARGET  0b0010
 
-// Macro to extract mode (lower 4 bits)
-#define GET_MODE(combined) (combined & 0x0F)
+/* Pack mode */
+#define MODE(mode, target) (((target & 0b1111) << 4) | (mode & 0b1111))
 
-// Macro to extract target (upper 4 bits)
-#define GET_MODE_TARGET(combined) ((combined >> 4) & 0x0F)
+/* Default mode (RW) */
+#define DF_MODE MODE((R_MODE | W_MODE), NO_TARGET)
+
+/* Unpack macro */
+#define GET_MODE(byte)        ((byte) & 0b1111)
+#define GET_MODE_TARGET(byte) (((byte) >> 4) & 0b1111)
+#define IS_READ_MODE(byte)    (GET_MODE(byte) & R_MODE)
+#define IS_WRITE_MODE(byte)   (GET_MODE(byte) & W_MODE)
+#define IS_CREATE_MODE(byte)  (GET_MODE(byte) & CR_MODE)
+
+#define NO_RCI -1
 /*
 Open content to content table.
 Params:
+- rci - Root content index. If we don't want to search in entire file system.
+        Note: By default use NO_RCI
 - path - Path to content (dir or file).
 - mode - Content open mode.
+         Note: If mode is CR_MODE, function will create all directories in path.
+         For last entry in path will use DIR_ or FILE_ MODE. 
 
 Return content index or negative error code.
 */
-ci_t NIFAT32_open_content(const char* path, unsigned char mode);
+ci_t NIFAT32_open_content(const ci_t rci, const char* path, unsigned char mode);
 
 /*
 Get summary info about content.
@@ -166,6 +184,28 @@ Return count of bytes that was written by function.
 int NIFAT32_write_buffer2content(const ci_t ci, cluster_offset_t offset, const_buffer_t data, int data_size);
 
 /*
+Trancate content will change occupied size of content.
+Note: Will save data in result clusters.
+Params:
+- ci - Target content index.
+- offset - Trancate offset in bytes.
+- size - Result size of file in bytes.
+
+Return 1 if operation success.
+Return 0 if simething goes wrong.
+*/
+int NIFAT32_truncate_content(const ci_t ci, cluster_offset_t offset, int size);
+
+/*
+Index content directory for improving search speed.
+- ci - Content index.
+
+Return 1 if index was success.
+Return 0 if something goes wrong.
+*/
+int NIFAT32_index_content(const ci_t ci);
+
+/*
 Close content from table and release all resources.
 Params:
 - ci - Content index.
@@ -182,15 +222,34 @@ Add content to target content index.
 Note: PUT_TO_ROOT will put content into the root directory.
 Params:
 - ci - Root content index. Should be directory.
+       Note: Can be PUT_TO_ROOT.
 - info - Pointer to info about new content.
 - reserve - Reserved cluster count for content. 
             Note: This option can be NO_RESERVE.
-			Note 2: Will reserve cluster chain for defragmentation prevent.
+            Note 2: Will reserve cluster chain for defragmentation prevent.
 
 Return 1 if operation was success.
 Return 0 if something goes wrong.
 */
 int NIFAT32_put_content(const ci_t ci, cinfo_t* info, int reserve);
+
+#define DEEP_COPY    0x01
+#define SHALLOW_COPY 0x02
+/*
+Copy content data to destination place.
+Note: deep parametr can set copy type: 
+- DEEP_COPY copy all data from source with new cluster creation in destination.
+- SHALLOW_COPY create link in dst to src data.
+Note 2: NIFAT32_copy_content will deallocate all previous data in dst.
+Params:
+- src - Source content index.
+- dst - Destination content index.
+- deep - Copy type.
+
+Return 1 if copy success.
+Return 0 if something goes wrong.
+*/
+int NIFAT32_copy_content(const ci_t src, const ci_t dst, char deep);
 
 /*
 Delete content by content index.

@@ -17,12 +17,13 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
-#include <stdio.h>
+#include "null.h"
 #include <stdarg.h>
-#include <time.h>
 
-#define fd_fprintf(fmt, ...)   fprintf(stdout, fmt, ##__VA_ARGS__)
-#define fd_vfprintf(fmt, args) vfprintf(stdout, fmt, args)
+typedef struct {
+    int (*fd_fprintf)(const char*, ...);
+    int (*fd_vfprintf)(const char*, va_list);
+} log_io_t;
 
 #ifdef ERROR_LOGS
     #define print_error(message, ...)   log_message("ERROR", __FILE__, __LINE__, message, ##__VA_ARGS__)
@@ -71,6 +72,20 @@
 #else
     #define print_spec(message, ...)
 #endif
+
+/*
+Logging init.
+Params:
+- fd_fprintf - fprintf function in your platform. Can be NULL (Will disable all logging).
+- fd_vfprintf - vfprintf function in your platform. Can be NULL.
+
+Return 1 if setup success.
+Return 0 if something goes wrong.
+*/
+int LOG_setup(
+    int (*fd_fprintf)(const char*, ...),
+    int (*fd_vfprintf)(const char*, va_list)
+);
 
 /*
 Create log message.

@@ -24,10 +24,8 @@ directory_t* DRM_create_empty_directory() {
     char directory_name[DIRECTORY_NAME_SIZE] = { 0 };
     char* unique_name = generate_unique_filename(DIRECTORY_BASE_PATH, DIRECTORY_NAME_SIZE, DIRECTORY_EXTENSION);
     if (!unique_name) return NULL;
-
     strncpy_s(directory_name, unique_name, DIRECTORY_NAME_SIZE);
     SOFT_FREE(unique_name);
-
     return DRM_create_directory(directory_name);
 }
 
@@ -43,10 +41,8 @@ int DRM_save_directory(directory_t* directory) {
         {
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             get_load_path(directory->header->name, DIRECTORY_NAME_SIZE, save_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
-            char save_path83[DEFAULT_PATH_SIZE] = { 0 };
-            path_to_fatnames(save_path, save_path83);
 
-            ci_t ci = NIFAT32_open_content(save_path83, MODE(CR_MODE, FILE_MODE));
+            ci_t ci = NIFAT32_open_content(NO_RCI, save_path, MODE(CR_MODE, FILE_TARGET));
             if (ci < 0) { print_error("Can`t create file: [%s]", save_path); }
             else {
                 int offset = 0;
@@ -83,8 +79,6 @@ int DRM_save_directory(directory_t* directory) {
 directory_t* DRM_load_directory(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path(name, DIRECTORY_NAME_SIZE, load_path, DIRECTORY_BASE_PATH, DIRECTORY_EXTENSION);
-    char load_path83[DEFAULT_PATH_SIZE] = { 0 };
-    path_to_fatnames(load_path, load_path83);
 
     directory_t* loaded_directory = (directory_t*)CHC_find_entry(name, DIRECTORY_BASE_PATH, DIRECTORY_CACHE);
     if (loaded_directory != NULL) {
@@ -94,12 +88,10 @@ directory_t* DRM_load_directory(char* name) {
 
     #pragma omp critical (directory_load)
     {
-        // Open file directory
-        ci_t ci = NIFAT32_open_content(load_path83, DF_MODE);
+        ci_t ci = NIFAT32_open_content(NO_RCI, load_path, DF_MODE);
         print_io("Loading directory [%s]", load_path);
         if (ci < 0) { print_error("Directory not found! Path: [%s]", load_path); }
         else {
-            // Read header from file
             directory_header_t* header = (directory_header_t*)malloc_s(sizeof(directory_header_t));
             if (header) {
                 int offset = 0;
@@ -151,7 +143,7 @@ directory_t* DRM_load_directory(char* name) {
 
 int DRM_delete_directory(directory_t* directory, int full) {
 #ifndef NO_DELETE_COMMAND
-    if (directory == NULL) return -1;
+    if (!directory) return -1;
     if (THR_require_write(&directory->lock, get_thread_num())) {
         if (full) {
             #pragma omp parallel for schedule(dynamic, 1)

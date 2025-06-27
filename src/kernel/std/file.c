@@ -2,6 +2,7 @@
 
 inline int get_load_path(char* name, int name_size, char* buffer, char* base_path, char* extension) {
     sprintf(buffer, "%s/%.*s.%s", base_path, name_size, name, extension);
+    path_to_83(buffer);
     return 1;
 }
 
@@ -53,7 +54,7 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
     char delete_path83[DEFAULT_PATH_SIZE] = { 0 };
     path_to_fatnames(delete_path, delete_path83);
 
-    ci_t ci = NIFAT32_open_content(delete_path83, DF_MODE);
+    ci_t ci = NIFAT32_open_content(NO_RCI, delete_path83, DF_MODE);
     return ci >= 0 ? NIFAT32_delete_content(ci) : 0;
 }
 

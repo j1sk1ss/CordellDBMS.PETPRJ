@@ -53,11 +53,9 @@ int PGM_save_page(page_t* page) {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             get_load_path(page->header->name, PAGE_NAME_SIZE, save_path, page->base_path, PAGE_EXTENSION);
-            char save_path83[DEFAULT_PATH_SIZE] = { 0 };
-            path_to_fatnames(save_path, save_path83);
             
             // Open or create file
-            ci_t ci = NIFAT32_open_content(save_path83, MODE(CR_MODE, FILE_MODE));
+            ci_t ci = NIFAT32_open_content(NO_RCI, save_path, MODE(CR_MODE, FILE_TARGET));
             if (ci < 0) { print_error("Can't save or create [%s] file", save_path); }
             else {
                 status = 1;
@@ -85,8 +83,6 @@ int PGM_save_page(page_t* page) {
 page_t* PGM_load_page(char* base_path, char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path(name, PAGE_NAME_SIZE, load_path, base_path, PAGE_EXTENSION);
-    char load_path83[DEFAULT_PATH_SIZE] = { 0 };
-    path_to_fatnames(load_path, load_path83);
 
     page_t* loaded_page = (page_t*)CHC_find_entry(name, base_path, PAGE_CACHE);
     if (loaded_page != NULL) {
@@ -97,7 +93,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
     #pragma omp critical (page_load)
     {
         // Open file page
-        ci_t ci = NIFAT32_open_content(load_path83, DF_MODE);
+        ci_t ci = NIFAT32_open_content(NO_RCI, load_path, DF_MODE);
         print_io("Loading page [%s]", load_path);
         if (ci < 0) { print_error("Page not found! Path: [%s]", load_path); }
         else {

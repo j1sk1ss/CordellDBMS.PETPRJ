@@ -77,6 +77,7 @@
         // Directory header
         directory_header_t* header;
         unsigned char append_offset;
+        ci_t dci; // Directory content index for indexing
 
         // Page file names
         char page_names[PAGES_PER_DIRECTORY][PAGE_NAME_SIZE];

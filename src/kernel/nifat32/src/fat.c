@@ -1,7 +1,7 @@
 #include "../include/fat.h"
 
 static cluster_val_t* _fat = NULL;
-int cache_fat_init(fat_data_t* fi) {
+int fat_cache_init(fat_data_t* fi) {
     _fat = (cluster_val_t*)malloc_s(fi->total_clusters * sizeof(cluster_val_t));
     if (!_fat) {
         print_error("malloc_s() error!");
@@ -9,6 +9,12 @@ int cache_fat_init(fat_data_t* fi) {
     }
 
     for (cluster_addr_t ca = 0; ca < fi->total_clusters; ca++) _fat[ca] = FAT_CLUSTER_BAD;
+    return 1;
+}
+
+int fat_cache_unload() {
+    if (_fat) free_s(_fat);
+    else return 0;
     return 1;
 }
 
@@ -29,6 +35,7 @@ static int __write_fat__(cluster_addr_t ca, cluster_status_t value, fat_data_t* 
 } 
 
 int write_fat(cluster_addr_t ca, cluster_status_t value, fat_data_t* fi) {
+    print_debug("write_fat(ca=%u, value=%u)", ca, value);
     if (ca < fi->ext_root_cluster || ca > fi->total_clusters) return 0;
     if (_fat) _fat[ca] = value;
     for (int i = 0; i < fi->fat_count; i++) __write_fat__(ca, value, fi, i);
@@ -79,7 +86,7 @@ cluster_val_t read_fat(cluster_addr_t ca, fat_data_t* fi) {
 
     _fat[ca] = table_value;
     if (wrong > 0) {
-        print_warn("FAT wrong value at ca=%u. Fix starting to val=%u...", ca, table_value);
+        print_warn("FAT wrong value at ca=%u. Fixing to val=%u...", ca, table_value);
         write_fat(ca, table_value, fi);
     }
 
@@ -96,7 +103,7 @@ int set_cluster_free(cluster_val_t cluster, fat_data_t* fi) {
 }
 
 int is_cluster_end(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_END ? 1 : 0;
+    return cluster == FAT_CLUSTER_END;
 }
 
 int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
@@ -104,7 +111,7 @@ int set_cluster_end(cluster_val_t cluster, fat_data_t* fi) {
 }
 
 int is_cluster_bad(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_BAD ? 1 : 0;
+    return cluster == FAT_CLUSTER_BAD;
 }
 
 int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
@@ -112,5 +119,5 @@ int set_cluster_bad(cluster_val_t cluster, fat_data_t* fi) {
 }
 
 int is_cluster_reserved(cluster_val_t cluster) {
-    return cluster == FAT_CLUSTER_RESERVED ? 1 : 0;
+    return cluster == FAT_CLUSTER_RESERVED;
 }

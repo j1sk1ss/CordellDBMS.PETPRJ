@@ -50,11 +50,9 @@ int TBM_save_table(table_t* table) {
             // We generate default path
             char save_path[DEFAULT_PATH_SIZE] = { 0 };
             get_load_path(table->header->name, TABLE_NAME_SIZE, save_path, TABLE_BASE_PATH, TABLE_EXTENSION);
-            char save_path83[DEFAULT_PATH_SIZE] = { 0 };
-            path_to_fatnames(save_path, save_path83);
 
             // Open or create file
-            ci_t ci = NIFAT32_open_content(save_path83, MODE(CR_MODE, FILE_MODE));
+            ci_t ci = NIFAT32_open_content(NO_RCI, save_path, MODE(CR_MODE, FILE_TARGET));
             if (ci < 0) { print_error("Can't save or create table [%s] file", save_path); }
             else {
                 int offset = 0;
@@ -100,8 +98,6 @@ int TBM_save_table(table_t* table) {
 table_t* TBM_load_table(char* name) {
     char load_path[DEFAULT_PATH_SIZE] = { 0 };
     get_load_path(name, TABLE_NAME_SIZE, load_path, TABLE_BASE_PATH, TABLE_EXTENSION);
-    char load_path83[DEFAULT_PATH_SIZE] = { 0 };
-    path_to_fatnames(load_path, load_path83);
 
     // If path is not NULL, we use function for getting file name
     table_t* loaded_table = (table_t*)CHC_find_entry(name, TABLE_BASE_PATH, TABLE_CACHE);
@@ -113,7 +109,7 @@ table_t* TBM_load_table(char* name) {
     int table_load_break = 0;
     #pragma omp critical (table_load)
     {
-        ci_t ci = NIFAT32_open_content(load_path83, DF_MODE);
+        ci_t ci = NIFAT32_open_content(NO_RCI, load_path, DF_MODE);
         print_io("Loading table [%s] from disk", load_path);
         if (ci < 0) { print_error("Can't open table [%s]", load_path); }
         else {
