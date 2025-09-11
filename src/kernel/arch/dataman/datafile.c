@@ -9,8 +9,8 @@ database_t* DB_create_database(char* name) {
         return NULL;
     }
 
-    memset_s(database, 0, sizeof(database_t));
-    memset_s(header, 0, sizeof(database_header_t));
+    str_memset(database, 0, sizeof(database_t));
+    str_memset(header, 0, sizeof(database_header_t));
 
     header->magic = DATABASE_MAGIC;
     if (name) strncpy_s(header->name, name, DATABASE_NAME_SIZE);

@@ -1,4 +1,4 @@
-#include "../../include/pageman.h"
+#include <pageman.h>
 
 page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
     page_t* page = (page_t*)malloc_s(sizeof(page_t));
@@ -9,16 +9,16 @@ page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer,
         return NULL;
     }
 
-    memset_s(page, 0, sizeof(page_t));
-    memset_s(header, 0, sizeof(page_header_t));
+    str_memset(page, 0, sizeof(page_t));
+    str_memset(header, 0, sizeof(page_header_t));
 
     header->magic = PAGE_MAGIC;
-    strncpy_s(header->name, name, PAGE_NAME_SIZE);
+    str_strncpy(header->name, name, PAGE_NAME_SIZE);
     page->lock = NULL_LOCK;
     page->append_offset = -1;
 
     page->header = header;
-    if (buffer != NULL) memcpy_s(page->content, buffer, data_size);
+    if (buffer != NULL) str_memset(page->content, buffer, data_size);
     for (int i = data_size + 1; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encode_hamming_15_11(PAGE_EMPTY);
     return page;
 }
@@ -28,13 +28,13 @@ page_t* PGM_create_empty_page(char* base_path) {
     if (!unique_name) return NULL;
 
     page_t* page = PGM_create_page(unique_name, NULL, 0);
-    page->base_path = (char*)malloc_s(strlen_s(base_path) + 1);
+    page->base_path = (char*)malloc_s(str_strlen(base_path) + 1);
     if (!page->base_path) {
         SOFT_FREE(unique_name);
         return NULL;
     }
 
-    strcpy_s(page->base_path, base_path);
+    str_strcpy(page->base_path, base_path);
     
     SOFT_FREE(unique_name);
     return page;
@@ -101,7 +101,7 @@ page_t* PGM_load_page(char* base_path, char* name) {
             page_header_t* header = (page_header_t*)malloc_s(sizeof(page_header_t));
             if (header) {
                 int offset = 0;
-                memset_s(header, 0, sizeof(page_header_t));
+                str_memset(header, 0, sizeof(page_header_t));
 
                 unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
                 NIFAT32_read_content2buffer(ci, offset, (buffer_t)encoded_header, sizeof(page_header_t) * sizeof(unsigned short));
@@ -139,13 +139,13 @@ page_t* PGM_load_page(char* base_path, char* name) {
         }
     }
 
-    loaded_page->base_path = (char*)malloc_s(strlen_s(base_path) + 1);
+    loaded_page->base_path = (char*)malloc_s(str_strlen(base_path) + 1);
     if (!loaded_page->base_path) {
         PGM_free_page(loaded_page);
         return NULL;
     }
 
-    strcpy_s(loaded_page->base_path, base_path);
+    str_strcpy(loaded_page->base_path, base_path);
     return loaded_page;
 }
 
@@ -171,10 +171,10 @@ unsigned int PGM_get_checksum(page_t* page) {
 
     unsigned int _checksum = 0;
     if (page->header) {
-        _checksum = crc32(0, (const unsigned char*)page->header, sizeof(page_header_t));
+        _checksum = murmur3_x86_32((const unsigned char*)page->header, sizeof(page_header_t), 0);
     }
 
     page->header->checksum = prev_checksum;
-    _checksum = crc32(_checksum, (const unsigned char*)page->content, sizeof(page->content));
+    _checksum = murmur3_x86_32((const unsigned char*)page->content, sizeof(page->content), 0);
     return _checksum;
 }

@@ -1,5 +1,8 @@
 #ifndef STR_H_
 #define STR_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "null.h"
 
@@ -23,7 +26,11 @@ char* str_strcat(char* dest, const char* src);
 /*
 ctype special functions.
 */
+int str_islower(int c);
 int str_toupper(int c);
 int str_uppercase(char* str);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

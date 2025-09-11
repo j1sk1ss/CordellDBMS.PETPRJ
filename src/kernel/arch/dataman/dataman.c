@@ -82,7 +82,7 @@ int DB_append_row(
                     char buffer[128] = { 0 };
                     sprintf(buffer, "%0*d", table->columns[i]->size, atoi_s(number_buffer) + 1);
 
-                    memcpy_s(current_data, buffer, table->columns[i]->size);
+                    str_memset(current_data, buffer, table->columns[i]->size);
                 }
 
                 free_s(previous_data);

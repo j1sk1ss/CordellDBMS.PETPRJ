@@ -14,116 +14,52 @@
  *  Credits: j1sk1ss
  */
 
-
 #ifndef THREADING_H_
 #define THREADING_H_
-
-#include "common.h"
-
-#define LOCKED    1
-#define UNLOCKED  0
-#define NO_OWNER  0xFF
-
-#ifndef _OPENMP
-  #define get_thread_num() 0
-  #define omp_set_num_threads(num)
-#else
-  #include <omp.h>
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#ifdef _WIN32
-  #include <winsock2.h>
-  #include <windows.h>
-  #define __thread
-#else
-  #ifndef NO_THREADS
-  #include <pthread.h>
-  #endif
+#define LOCKED       0xAB
+#define UNLOCKED     0x00
+#define NO_OWNER     0xFF
+#define LOCKED_WRITE 1
+
+#define REQUIRE_TIME 99999
+#define MAX_READERS  255
+
+#define OWNER_MASK        0x3FFF
+#define STATUS_MASK       0x0001
+#define LOCK_READERS_MASK 0x000000FF
+#define LOCK_WRITE_FLAG   0x00000100
+#define LOCK_OWNER_MASK   0xFFFF0000
+
+#define LOCK_IS_WRITE(lock)    (((lock) & STATUS_MASK) == LOCKED_WRITE)
+#define LOCK_GET_STATUS(lock)  (((lock) >> 8) & 0x1)
+#define LOCK_GET_READERS(lock) (((lock) >> 0) & 0xFF)
+#define LOCK_GET_OWNER(lock)   (((lock) & LOCK_OWNER_MASK) >> 16)
+
+#define LOCK_PACK(readers, is_write, owner) \
+    (((readers) & 0xFF) | ((is_write ? 1 : 0) << 8) | ((owner & 0xFFFF) << 16))
+
+#define NULL_LOCK LOCK_PACK(0, 0, NO_OWNER)
+
+/*
+This function is platform-specific. If NIFAT32 planned to work in thread context,
+re-define this function for getting thread uniq id.
+*/
+#define get_thread_num() 0
+#define sched_yield()
+
+typedef volatile unsigned int lock_t;
+typedef unsigned short owner_t;
+
+int THR_require_read(lock_t* lock);
+int THR_release_read(lock_t* lock);
+int THR_require_write(lock_t* lock, owner_t owner);
+int THR_release_write(lock_t* lock, owner_t owner);
+
+#ifdef __cplusplus
+}
 #endif
-
-
-/*
-Main idea, that lock status of object can be stored in one unsigned short object.
-In first 14 bits we store info about lock owner (or NO_OWNER) thread number:
-0b00000000000000XX
-In second 2 bits, lock state (LOCKED/UNLOCKED)
-0bXXXXXXXXXXXXXX00
-*/
-#define PACK_LOCK(status, owner) (((status) & 0x3) << 0) | (((owner) & (0xFFFC >> 2)) << 2)
-
-#define UNPACK_STATUS(lock) (((lock) >> 0) & 0x3)
-#define UNPACK_OWNER(lock)  (((lock) >> 2) & (0xFFFC >> 2))
-
-
-/*
-Cross-platform thread creation tool.
-Note: entry should had next sighnature: void* <name>(void* args)
-
-Params:
-- entry - Thread function entry-point.
-- args - Entry args for thread.
-
-Return 1 if thread create.
-Return -1 if thread can't be created.
-*/
-int THR_create_thread(void* (*entry)(void*), void* args);
-
-/*
-Kill thread by file descriptor.
-
-Params:
-- fd - Descriptor.
-
-Return 1 if kill success.
-*/
-int THR_kill_thread();
-
-/*
-Create empty lock with next params:
-Lock owner: NO_ONWER
-Lock status: UNLOCKED
-
-Return lock
-*/
-int THR_create_lock();
-
-/*
-Lock for working.
-Note: If we earn delay of lock try, we return -1.
-Note 2: Be sure, that lock not NULL.
-
-Params:
-- lock - pointer to object lock.
-- owner - thread, that want lock this table.
-
-Return -1 if we can`t require lock (for some reason)
-Return 1 if lock now locked.
-*/
-int THR_require_lock(unsigned short* lock, unsigned char owner);
-
-/*
-Check lock status of table.
-
-Params:
-- table - pointer to table.
-- owner - thread, that want test this table.
-
-Return lock status (LOCKED and UNLOCKED).
-*/
-int THR_test_lock(unsigned short* lock, unsigned char owner);
-
-/*
-Realise table for working.
-
-Params:
-- table - pointer to table.
-- owner - thread, that want release this table.
-
-Return -3 if table is NULL.
-Return -2 if this table has another owner.
-Return -1 if table was unlocked. (Nothing changed)
-Return 1 if table now unlocked.
-*/
-int THR_release_lock(unsigned short* lock, unsigned char owner);
-
 #endif

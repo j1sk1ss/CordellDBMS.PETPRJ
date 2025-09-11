@@ -1,4 +1,4 @@
-#include "../include/str.h"
+#include <str.h>
 
 void* str_memcpy(void* __restrict destination, const void* __restrict source, unsigned int num) {
     unsigned int num_dwords = num / 4;
@@ -99,12 +99,12 @@ char* str_strcat(char* dest, const char* src) {
     return dest;
 }
 
-static int _str_islower(int c) {
+int str_islower(int c) {
     return c >= 'a' && c <= 'z';
 }
 
 int str_toupper(int c) {
-    if (_str_islower(c)) return c - 'a' + 'A';
+    if (str_islower(c)) return c - 'a' + 'A';
     else return c;
 }
 
@@ -116,3 +116,5 @@ int str_uppercase(char* str) {
 
     return 1;
 }
+
+

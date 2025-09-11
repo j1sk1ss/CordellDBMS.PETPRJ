@@ -19,19 +19,7 @@
 #define COMMON_H_
 
 #include <time.h>
-#include <stdio.h>s
-
-#ifdef _WIN32
-  typedef intptr_t ssize_t;
-  #include <io.h>
-  #include <direct.h>
-  #include <winsock2.h>
-  #include <windows.h>
-
-  #define mkdir(path, mode) _mkdir(path)
-#else
-  #include <sys/stat.h>
-#endif
+#include <stdio.h>
 
 #include "nifat32/nifat32.h"
 #include "mm.h"
@@ -93,11 +81,6 @@ Get current time from time.h libraryю
 Return char* of current time in format: "%Y-%m-%d %H:%M:%S".
 */
 char* get_current_time();
-
-/*
-Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
-*/
-unsigned int checksum(unsigned int init, const unsigned char* buf, int len);
 
 #pragma region [File]
 
@@ -188,30 +171,6 @@ Return remove status code.
 */
 int delete_file(const char* filename, const char* basepath, const char* extension);
 
-#ifdef _WIN32
-
-  /*
-  Windows wrapper for pwrite.
-  */
-  intptr_t pwrite(int fd, const void* buf, size_t count, long long int offset);
-
-  /*
-  Windows wrapper for pread.
-  */
-  intptr_t pread(int fd, void* buf, size_t count, long long int offset);
-
-  /*
-  Windows wrapper for fsync.
-  */
-  int fsync(int fd);
-
-#endif
-
-  // TODO: Create wrappers for file_read, file_write and file_close function for future migrations.
-  // size_t file_read(void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
-  // size_t	file_write(const void* __restrict __ptr, size_t __size, size_t __nitems, FILE* __restrict __stream);
-  // int fclose(FILE* __restrict __stream);
-
 #pragma endregion
 
 #pragma region [String]
@@ -265,14 +224,7 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
   Return hash (unsigned int)
   */
   unsigned int str2hash(const char* str);
-
-  /*
-  Checksum generator. For avoiding of usage big sha lib, we use one little func instead.
-  Took from: https://github.com/gcc-mirror/gcc/blob/master/libiberty/crc32.c
-  Return checksum.
-  */
-  unsigned int crc32(unsigned int init, const unsigned char* buf, int len);
-
+  
   /*
   Copt char* array to new destination.
 
@@ -285,39 +237,6 @@ int delete_file(const char* filename, const char* basepath, const char* extensio
   */
   char** copy_array2array(void* source, size_t elem_size, size_t count, size_t row_size);
 
-  /*
-  Took from: https://github.com/appinha/42cursus-00-Libft/blob/master/libft/srcs/str/ft_strstr.c
-  string.c
-  */
-  size_t strlen_s(const char* str);
-  char* strncpy_s(char* dst, char* src, int n);
-  int strncmp_s(char* str1, const char* str2, size_t n);
-  char* strcpy_s(char* dst, char* src);
-  char* strstr_s(char* haystack, char* needle);
-  char* strpbrk_s(char* s, char* accept);
-  size_t strspn_s(char* s, char* accept);
-  char* strtok_s(char* string, char* delim);
-  char* strcat_s(char* dest, char* src);
-  char* strchr_s(char* str, char chr);
-  int strcmp_s(char* firstStr, char* secondStr);
-  int atoi_s(char *str);
-
 #pragma endregion
-
-/*
-memory.c
-*/
-void* memcpy_s(void* destination, void* source, size_t num);
-void* memset_s(void* pointer, unsigned char value, size_t num);
-int memcmp_s(void* firstPointer, void* secondPointer, size_t num);
-
-/*
-ctype.c
-*/
-int isdigit_s(int c);
-int isspace_s(int c);
-int islower_s(int c);
-int tolower_s(int c);
-int toupper_s(int c);
 
 #endif

@@ -34,6 +34,8 @@
 #include "nifat32/nifat32.h"
 #include "common.h"
 #include "cache.h"
+#include "checksum.h"
+#include "hamming.h"
 
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
 // Set here default path for save.

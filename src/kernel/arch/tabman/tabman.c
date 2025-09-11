@@ -13,7 +13,7 @@ static int _unlink_dir_from_table(table_t* table, const char* dir_name) {
         for (int i = 0; i < table->header->dir_count; i++) {
             if (strncmp_s(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
                 for (int j = i; j < table->header->dir_count - 1; j++) {
-                    memcpy_s(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
+                    str_memset(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
                 }
 
                 table->header->dir_count--;
@@ -284,13 +284,13 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __
                 return -2;
             }
 
-            memset_s(new_row, '0', dst->row_size);
+            str_memset(new_row, '0', dst->row_size);
             for (size_t i = 0; i < querry_size; i += 2) {
                 table_columns_info_t fquerry;
                 table_columns_info_t squerry;
                 TBM_get_column_info(dst, querry[i + 1], &fquerry);
                 TBM_get_column_info(src, querry[i], &squerry);
-                memcpy_s(new_row + fquerry.offset, data + squerry.offset, squerry.size);
+                str_memset(new_row + fquerry.offset, data + squerry.offset, squerry.size);
             }
 
             TBM_append_content(dst, new_row, dst->row_size);

@@ -13,7 +13,7 @@ static int _unlink_page_from_directory(directory_t* __restrict directory, char* 
         for (int i = 0; i < directory->header->page_count; i++) {
             if (strncmp_s(directory->page_names[i], page_name, PAGE_NAME_SIZE) == 0) {
                 for (int j = i; j < directory->header->page_count - 1; j++)
-                    memcpy_s(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
+                    str_memset(directory->page_names[j], directory->page_names[j + 1], PAGE_NAME_SIZE);
 
                 directory->header->page_count--;
                 directory->append_offset = MAX(directory->append_offset - 1, 0);

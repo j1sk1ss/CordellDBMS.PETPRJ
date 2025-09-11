@@ -1,5 +1,4 @@
-#include "../include/sighandler.h"
-
+#include <sighandler.h>
 
 void cleanup_handler() {
     cleanup_kernel();

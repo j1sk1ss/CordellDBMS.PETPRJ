@@ -1,4 +1,4 @@
-#include "../include/cache.h"
+#include <cache.h>
 
 /*
 Global Cache Table used for caching results of I/O operations.
@@ -24,7 +24,6 @@ Z * 4112 bytes (for page_t)
 */
 static int GCT_TYPES[CACHE_TYPES_COUNT] = { 0 };
 static int GCT_TYPES_MAX[CACHE_TYPES_COUNT] = { 4, 2, 2 };
-
 
 static int _flush_index(int index) {
     if (GCT[index].pointer == NULL) return -1;
@@ -95,9 +94,9 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
     ((cache_body_t*)entry)->is_cached = 1;
 
     if (base_path != NULL) {
-        GCT[current].base_path = (char*)malloc_s(strlen_s(base_path));
+        GCT[current].base_path = (char*)malloc_s(str_strlen(base_path));
         if (!GCT[current].base_path) return -5;
-        strcpy_s(GCT[current].base_path, base_path);
+        str_strcpy(GCT[current].base_path, base_path);
     }
 
     GCT[current].pointer = entry;

@@ -9,8 +9,8 @@ directory_t* DRM_create_directory(char* name) {
         return NULL;
     }
 
-    memset_s(directory, 0, sizeof(directory_t));
-    memset_s(header, 0, sizeof(directory_header_t));
+    str_memset(directory, 0, sizeof(directory_t));
+    str_memset(header, 0, sizeof(directory_header_t));
 
     strncpy_s(header->name, name, DIRECTORY_NAME_SIZE);
     header->magic = DIRECTORY_MAGIC;
@@ -95,7 +95,7 @@ directory_t* DRM_load_directory(char* name) {
             directory_header_t* header = (directory_header_t*)malloc_s(sizeof(directory_header_t));
             if (header) {
                 int offset = 0;
-                memset_s(header, 0, sizeof(directory_header_t));
+                str_memset(header, 0, sizeof(directory_header_t));
 
                 unsigned short encoded_header[sizeof(directory_header_t)] = { 0 };
                 NIFAT32_read_content2buffer(ci, offset, (const_buffer_t)encoded_header, sizeof(directory_header_t) * sizeof(unsigned short));
@@ -114,7 +114,7 @@ directory_t* DRM_load_directory(char* name) {
                     directory_t* directory = (directory_t*)malloc_s(sizeof(directory_t));
                     if (!directory) free_s(header);
                     else {
-                        memset_s(directory, 0, sizeof(directory_t));
+                        str_memset(directory, 0, sizeof(directory_t));
                         for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
                             unsigned short encoded_page_name[PAGE_NAME_SIZE] = { 0 };
                             NIFAT32_read_content2buffer(ci, offset, (const_buffer_t)encoded_page_name, PAGE_NAME_SIZE * sizeof(unsigned short));

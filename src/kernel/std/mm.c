@@ -1,4 +1,4 @@
-#include "../include/mm.h"
+#include <mm.h>
 
 static unsigned char _buffer[ALLOC_BUFFER_SIZE] = { 0 };
 static mm_block_t* _mm_head = (mm_block_t*)_buffer;
@@ -86,13 +86,13 @@ static void* __malloc_s(unsigned int size, unsigned int offset, int prepare_mem)
 
 void* malloc_s(unsigned int size) {
     void* ptr = __malloc_s(size, NO_OFFSET, 0);
-    if (!ptr) print_mm("Allocation error! I can't allocate [%i]!", size);
+    if (!ptr) { print_mm("Allocation error! I can't allocate [%i]!", size); }
     return ptr;
 }
 
 void* malloc_off_s(unsigned int size, unsigned int offset) {
     void* ptr = __malloc_s(size, offset, 0);
-    if (!ptr) print_mm("Allocation error! I can't allocate [%i]!", size);
+    if (!ptr) { print_mm("Allocation error! I can't allocate [%i]!", size); }
     return ptr;
 }
 

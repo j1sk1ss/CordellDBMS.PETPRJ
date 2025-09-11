@@ -21,14 +21,14 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         char* temp_fdata = (char*)malloc_s(fdata_size + 1);
         if (!temp_fdata) return 0;
 
-        memcpy_s(temp_fdata, fdata, fdata_size);
+        str_memset(temp_fdata, fdata, fdata_size);
         temp_fdata[fdata_size] = '\0';
         char* mv_fdata = temp_fdata + strspn_s(temp_fdata, " ");
         
         char* temp_sdata = (char*)malloc_s(sdata_size + 1);
         if (!temp_sdata) return 0;
 
-        memcpy_s(temp_sdata, sdata, sdata_size);
+        str_memset(temp_sdata, sdata, sdata_size);
         temp_sdata[sdata_size] = '\0';
         char* mv_sdata = temp_sdata + strspn_s(temp_sdata, " ");
 
@@ -85,7 +85,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         for (int i = 0; i < expression->condition_count; i++) {
             results[i] = _compare_data(
                 expression->conditions[i].expression, (char*)(row_data + expression->conditions[i].col_info.offset), 
-                expression->conditions[i].col_info.size, expression->conditions[i].value, strlen_s(expression->conditions[i].value)
+                expression->conditions[i].col_info.size, expression->conditions[i].value, str_strlen(expression->conditions[i].value)
             );
         }
 
@@ -121,7 +121,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
         int data_start = answer->answer_size;
         answer->answer_size += data_size;
         answer->answer_body = (unsigned char*)realloc_s(answer->answer_body, answer->answer_size);
-        memcpy_s(answer->answer_body + data_start, data, data_size);
+        str_memset(answer->answer_body + data_start, data, data_size);
         return 1;
     }
 
@@ -165,7 +165,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
 kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc_s(sizeof(kernel_answer_t));
     if (!answer) return NULL;
-    memset_s(answer, 0, sizeof(kernel_answer_t));
+    str_memset(answer, 0, sizeof(kernel_answer_t));
 
     int current_start = 1;
     char* db_name = SAFE_GET_VALUE_POST_INC_S(argv, argc, current_start);
@@ -222,10 +222,10 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
         */
 #ifndef NO_VERSION_COMMAND
         else if (strcmp_s(command, VERSION) == 0) {
-            answer->answer_body = (unsigned char*)malloc_s(strlen_s(KERNEL_VERSION));
+            answer->answer_body = (unsigned char*)malloc_s(str_strlen(KERNEL_VERSION));
             if (!answer->answer_body) return answer;
-            memcpy_s(answer->answer_body, KERNEL_VERSION, strlen_s(KERNEL_VERSION));
-            answer->answer_size = strlen_s(KERNEL_VERSION);
+            str_memset(answer->answer_body, KERNEL_VERSION, str_strlen(KERNEL_VERSION));
+            answer->answer_size = str_strlen(KERNEL_VERSION);
         }
 #endif
         /*
@@ -314,7 +314,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                         column_count = current_stack_pointer / 5;
                         columns = (table_column_t**)malloc_s(column_count * sizeof(table_column_t*));
                         if (!columns) return answer;
-                        memset_s(columns, 0, column_count * sizeof(table_column_t*));
+                        str_memset(columns, 0, column_count * sizeof(table_column_t*));
 
                         for (int j = 0, k = 0; j < 512; j += 5, k++) {
                             if (column_stack[j] == NULL) break;
@@ -344,8 +344,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
 
                                 if (equals_pos && comma_pos) {
                                     columns[k]->module_params = COLUMN_MODULE_POSTLOAD;
-                                    if (strncmp_s(comma_pos + 1, MODULE_PRELOAD, strlen_s(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
-                                    else if (strncmp_s(comma_pos + 1, MODULE_BOTH_LOAD, strlen_s(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
+                                    if (strncmp_s(comma_pos + 1, MODULE_PRELOAD, str_strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
+                                    else if (strncmp_s(comma_pos + 1, MODULE_BOTH_LOAD, str_strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
 
                                     strncpy_s(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
                                     strncpy_s(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
@@ -390,7 +390,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 char* table_name = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
                 if (strcmp_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index), VALUES) == 0) {
                     char* input_data = SAFE_GET_VALUE_PRE_INC(commands, argc, command_index);
-                    int result = DB_append_row(database, table_name, (unsigned char*)input_data, strlen_s(input_data), access);
+                    int result = DB_append_row(database, table_name, (unsigned char*)input_data, str_strlen(input_data), access);
                     if (result >= 0) { print_log("Row [%s] successfully added to [%s] database!", input_data, database->header->name); }
                     else {
                         print_error("Error code: %i, Params: [%s] [%s] [%s] [%i]", result, database->header->name, table_name, input_data, access);
@@ -472,7 +472,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                 command_index++;
                 if (strcmp_s(SAFE_GET_VALUE_S(commands, argc, command_index), BY_INDEX) == 0) {
                     index = atoi_s(SAFE_GET_VALUE_PRE_INC_S(commands, argc, command_index));
-                    answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, strlen_s(data), access);
+                    answer->answer_code = DB_insert_row(database, table_name, index, (unsigned char*)data, str_strlen(data), access);
                 }
                 /*
                 Command syntax: update row <table_name> <new_data> by_exp column <column_name> <</>/!=/=/eq/neq> <value> values <data>

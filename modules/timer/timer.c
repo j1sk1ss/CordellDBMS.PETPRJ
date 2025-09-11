@@ -19,7 +19,7 @@ char* get_current_time() {
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     char* time_str = asctime(timeinfo);
-    time_str[strlen_s(time_str) - 1] = '\0';
+    time_str[str_strlen(time_str) - 1] = '\0';
 
     return time_str;
 }

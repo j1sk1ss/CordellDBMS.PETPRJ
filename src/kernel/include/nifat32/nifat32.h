@@ -1,5 +1,8 @@
 #ifndef NIFAT32_H_
 #define NIFAT32_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "null.h"
 #include "hamming.h"
@@ -23,17 +26,13 @@ typedef struct fat_extBS_32 {
     unsigned short extended_flags;
     unsigned short fat_version;
     unsigned int   root_cluster;
-    unsigned short fat_info;
-    unsigned short backup_BS_sector;
-    unsigned char  reserved_0[12];
     unsigned char  drive_number;
-    unsigned char  reserved_1;
     unsigned char  boot_signature;
     unsigned int   volume_id;
     unsigned char  volume_label[11];
     unsigned char  fat_type_label[8];
     checksum_t     checksum;
-} __attribute__((packed)) fat_extBS_32_t;
+} __attribute__((packed)) nifat32_ext32_bootsector_t;
 
 typedef struct fat_BS {
     unsigned char  bootjmp[3];
@@ -50,20 +49,25 @@ typedef struct fat_BS {
     unsigned short head_side_count;
     unsigned int   hidden_sector_count;
     unsigned int   total_sectors_32;
-    fat_extBS_32_t extended_section;
+    nifat32_ext32_bootsector_t extended_section;
     checksum_t     checksum;
-} __attribute__((packed)) fat_BS_t;
+} __attribute__((packed)) nifat32_bootsector_t;
 
-#define CACHE    1
-#define NO_CACHE 0
+#define NO_CACHE   0b00000000
+#define CACHE      0b00000001
+#define HARD_CACHE 0b00000010
 typedef struct {
-    char fat_cache;
-    int bs_num;
-    unsigned int ts;
+    char          fat_cache;
+    char          bs_num;   // bootsectors number
+    char          bs_count; // bootsector count
+    unsigned int  ts;       // total clusters
+    unsigned char jc;       // journals count
+    disk_io_t     disk_io;
+    log_io_t      logg_io;
 } nifat32_params;
 
 #define BOOT_MULTIPLIER 2654435761U   // Knuth's multiplier (2^32 / φ)
-#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % ts)
+#define GET_BOOTSECTOR(n, ts) (((((n) + 1) * BOOT_MULTIPLIER) >> 11) % (ts - 32))
 
 /*
 Init function. 
@@ -79,6 +83,14 @@ Return 0 if init was interrupted by error.
 int NIFAT32_init(nifat32_params* params);
 
 /*
+Restore bootsectors on mount image.
+Note: Will create a new bootsector from current info from RAM. 
+Note 2: This function will rewrite all existed copies on image.
+Return 1.
+*/
+int NIFAT32_repair_bootsectors();
+
+/*
 Unload sequence. Perform all cleanup tasks.
 Return 1.
 */
@@ -91,9 +103,9 @@ Return 0 if content not exists.
 int NIFAT32_content_exists(const char* path);
 
 /* Open mode flags */
-#define R_MODE     0b0001  // Read mode
-#define W_MODE     0b0010  // Write mode
-#define CR_MODE    0b0100  // Create mode
+#define R_MODE  0b0001 // Read mode
+#define W_MODE  0b0010 // Write mode
+#define CR_MODE 0b0100 // Create mode
 
 /* Create target flags */
 #define NO_TARGET   0b0000
@@ -120,6 +132,7 @@ Params:
 - rci - Root content index. If we don't want to search in entire file system.
         Note: By default use NO_RCI
 - path - Path to content (dir or file).
+         Note: Can be NULL. In this case will open ROOT directory.
 - mode - Content open mode.
          Note: If mode is CR_MODE, function will create all directories in path.
          For last entry in path will use DIR_ or FILE_ MODE. 
@@ -215,14 +228,11 @@ Return 0 if something goes wrong.
 */
 int NIFAT32_close_content(ci_t ci);
 
-#define PUT_TO_ROOT -1
 #define NO_RESERVE  1
 /*
 Add content to target content index. 
-Note: PUT_TO_ROOT will put content into the root directory.
 Params:
 - ci - Root content index. Should be directory.
-       Note: Can be PUT_TO_ROOT.
 - info - Pointer to info about new content.
 - reserve - Reserved cluster count for content. 
             Note: This option can be NO_RESERVE.
@@ -262,4 +272,20 @@ Return 0 if something goes wrong.
 */
 int NIFAT32_delete_content(ci_t ci);
 
+/*
+Repair content by reading, unpacking (error correcting) and writing to disk.
+Note: Will read, correct and write all directry entries in content.
+Note 2: This function will ignore file entries.
+Params:
+- ci - Content index.
+- rec - Recursive.
+
+Return 1 if repair success.
+Return 0 if something goes wrong.
+*/
+int NIFAT32_repair_content(const ci_t ci, int rec);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

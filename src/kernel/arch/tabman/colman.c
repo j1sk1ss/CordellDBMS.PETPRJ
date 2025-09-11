@@ -5,7 +5,7 @@ table_column_t* TBM_create_column(unsigned char type, unsigned short size, char*
     if (size > COLUMN_MAX_SIZE) return NULL;
     table_column_t* column = (table_column_t*)malloc_s(sizeof(table_column_t));
     if (!column) return NULL;
-    memset_s(column, 0, sizeof(table_column_t));
+    str_memset(column, 0, sizeof(table_column_t));
 
     column->magic = COLUMN_MAGIC;
     strncpy_s(column->name, name, COLUMN_NAME_SIZE);

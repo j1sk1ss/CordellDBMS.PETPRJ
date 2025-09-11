@@ -19,8 +19,8 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
         return NULL;
     }
 
-    memset_s(table, 0, sizeof(table_t));
-    memset_s(header, 0, sizeof(table_header_t));
+    str_memset(table, 0, sizeof(table_t));
+    str_memset(header, 0, sizeof(table_header_t));
 
     header->access = access;
     header->magic  = TABLE_MAGIC;
@@ -138,8 +138,8 @@ table_t* TBM_load_table(char* name) {
                         ARRAY_SOFT_FREE(columns, header->column_count);
                     } 
                     else {
-                        memset_s(table, 0, sizeof(table_t));
-                        memset_s(columns, 0, header->column_count * sizeof(table_column_t*));
+                        str_memset(table, 0, sizeof(table_t));
+                        str_memset(columns, 0, header->column_count * sizeof(table_column_t*));
                         for (int i = 0; i < header->column_count; i++) {
                             columns[i] = (table_column_t*)malloc_s(sizeof(table_column_t));
                             if (!columns[i]) { 
@@ -147,7 +147,7 @@ table_t* TBM_load_table(char* name) {
                                 continue;
                             }
 
-                            memset_s(columns[i], 0, sizeof(table_column_t));
+                            str_memset(columns[i], 0, sizeof(table_column_t));
                             unsigned short encoded_column[sizeof(table_column_t)] = { 0 };
                             NIFAT32_read_content2buffer(ci, offset, (buffer_t)encoded_column, sizeof(table_column_t) * sizeof(unsigned short));
                             unpack_memory((unsigned short*)encoded_header, (unsigned char*)columns[i], sizeof(table_column_t));

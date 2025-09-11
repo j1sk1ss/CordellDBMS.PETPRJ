@@ -1,38 +1,32 @@
 /*
- *  License:
- *  Copyright (C) 2024 Nikolaj Fot
- *
- *  This program is free software: you can redistribute it and/or modify it under the terms of 
- *  the GNU General Public License as published by the Free Software Foundation, version 3.
- *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
- *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
- *  See the GNU General Public License for more details.
- *  You should have received a copy of the GNU General Public License along with this program. 
- *  If not, see https://www.gnu.org/licenses/.
- * 
- *  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
- *  Credits: j1sk1ss
- */
+*  License:
+*  Copyright (C) 2024 Nikolaj Fot
+*
+*  This program is free software: you can redistribute it and/or modify it under the terms of 
+*  the GNU General Public License as published by the Free Software Foundation, version 3.
+*  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+*  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+*  See the GNU General Public License for more details.
+*  You should have received a copy of the GNU General Public License along with this program. 
+*  If not, see https://www.gnu.org/licenses/.
+* 
+*  CordellDBMS source code: https://github.com/j1sk1ss/CordellDBMS.EXMPL
+*  Credits: j1sk1ss
+*/
 
 #ifndef LOGGING_H_
 #define LOGGING_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include <stdio.h>
+#include "null.h"
 #include <stdarg.h>
-#include <time.h>
 
-#include "threading.h"
-#include "common.h"
-
-
-// Note: LOG_TO_FILE option very heavy function. Prefere console logging, if your host machine can do this.
-// If you use micro controller, use LOG_TO_FILE with disabled DEBUG, LOGGING, INFORMING and SPECIAL.
-// #define LOG_TO_FILE
-#define LOG_FILE_PATH       ENV_GET("LOG_FILE_PATH", "")
-#define LOG_FILE_EXTENSION  ENV_GET("LOG_FILE_EXTENSION", "log")
-
-#define LOG_FILE_NAME_SIZE  16
-#define LOG_FILE_SIZE       100
+typedef struct {
+    int (*fd_fprintf)(const char*, ...);
+    int (*fd_vfprintf)(const char*, va_list);
+} log_io_t;
 
 #ifdef ERROR_LOGS
     #define print_error(message, ...)   log_message("ERROR", __FILE__, __LINE__, message, ##__VA_ARGS__)
@@ -82,18 +76,19 @@
     #define print_spec(message, ...)
 #endif
 
-
 /*
-Write log to file descriptor.
-
+Logging init.
 Params:
-- level - Log level.
-- file - File descriptor.
-- line - Code line number.
-- message - Additional info message.
-- args - Args.
+- fd_fprintf - fprintf function in your platform. Can be NULL (Will disable all logging).
+- fd_vfprintf - vfprintf function in your platform. Can be NULL.
+
+Return 1 if setup success.
+Return 0 if something goes wrong.
 */
-void _write_log(const char* level, const char* file, int line, const char* message, va_list args);
+int LOG_setup(
+    int (*fd_fprintf)(const char*, ...),
+    int (*fd_vfprintf)(const char*, va_list)
+);
 
 /*
 Create log message.
@@ -103,6 +98,9 @@ Create log message.
 - line - Code line number.
 - message - Additional info message.
 */
-void log_message(const char* level, const char* file, int line, const char* message, ...);
+int log_message(const char* level, const char* file, int line, const char* message, ...);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

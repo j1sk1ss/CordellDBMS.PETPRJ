@@ -1,70 +1,66 @@
-#include "../include/threading.h"
+#include <threading.h>
 
+int THR_require_read(lock_t* lock) {
+    if (!lock) return 0;
+    int delay = REQUIRE_TIME;
 
-int THR_create_thread(void* (*entry)(void*), void* args) {
-    #ifdef NO_THREADS
-        entry(args);
-    #else
-        #ifdef _WIN32
-            HANDLE client_thread = CreateThread(NULL, 0, entry, args, 0, NULL);
-            if (client_thread == NULL) {
-                free_s(args);
-                return -1;
-            }
+    while (delay-- > 0) {
+        lock_t old_val = *lock;
+        if (LOCK_IS_WRITE(old_val)) {
+            sched_yield();
+            continue;
+        }
 
-            CloseHandle(client_thread);
-        #else
-            pthread_t client_thread;
-            if (pthread_create(&client_thread, NULL, entry, args) != 0) {
-                free_s(args);
-                return -1;
-            }
+        unsigned short readers = LOCK_GET_READERS(old_val);
+        if (readers >= MAX_READERS) return 0;
+        lock_t new_val = LOCK_PACK(readers + 1, UNLOCKED, 0);
+        if (__sync_bool_compare_and_swap(lock, old_val, new_val))
+            return 1;
+    }
 
-            pthread_detach(client_thread);
-        #endif
-    #endif
-
-    return 1;
+    return 0;
 }
 
-int THR_kill_thread() {
-    #ifndef NO_THREADS
-        #ifndef _WIN32
-            pthread_exit(NULL);
-        #endif
-    #endif
+int THR_release_read(lock_t* lock) {
+    if (!lock) return 0;
+    while (1) {
+        lock_t old_val = *lock;
+        if (LOCK_IS_WRITE(old_val)) return 0;
 
-    return 1;
+        unsigned short readers = LOCK_GET_READERS(old_val);
+        if (readers == 0) return 0;
+
+        lock_t new_val = LOCK_PACK(readers - 1, UNLOCKED, 0);
+        if (__sync_bool_compare_and_swap(lock, old_val, new_val))
+            return 1;
+    }
 }
 
-int THR_create_lock() {
-    return PACK_LOCK(UNLOCKED, NO_OWNER);
+int THR_require_write(lock_t* lock, owner_t owner) {
+    if (!lock) return 0;
+
+    int delay = REQUIRE_TIME;
+    while (delay-- > 0) {
+        lock_t old_val = *lock;
+        if (LOCK_GET_STATUS(old_val) == UNLOCKED && !LOCK_GET_READERS(old_val)) {
+            lock_t new_val = LOCK_PACK(0, LOCKED_WRITE, owner);
+            if (__sync_bool_compare_and_swap(lock, old_val, new_val))
+                return 1;
+        }
+
+        sched_yield();
+    }
+
+    return 0;
 }
 
-int THR_require_lock(unsigned short* lock, unsigned char owner) {
-    if (lock == NULL) return -2;
-    int delay = DEFAULT_DELAY;
-    while (THR_test_lock(lock, owner) == LOCKED)
-        if (--delay <= 0) return -1;
-
-    *lock = PACK_LOCK(LOCKED, owner);
-    return 1;
-}
-
-int THR_test_lock(unsigned short* lock, unsigned char owner) {
-    if (lock == NULL) return LOCKED;
-    unsigned short lock_owner = UNPACK_OWNER(*lock);
-    if (lock_owner == NO_OWNER) return UNLOCKED;
-    if (lock_owner != owner) return UNPACK_STATUS(*lock);
-    return UNLOCKED;
-}
-
-int THR_release_lock(unsigned short* lock, unsigned char owner) {
-    if (lock == NULL) return -3;
-    unsigned short lock_status = UNPACK_STATUS(*lock);
-    if (lock_status == UNLOCKED) return -1;
-    if (THR_test_lock(lock, owner) == LOCKED) return -2;
-
-    *lock = PACK_LOCK(UNLOCKED, NO_OWNER);
-    return 1;
+int THR_release_write(lock_t* lock, owner_t owner) {
+    if (!lock) return 0;
+    while (1) {
+        lock_t old_val = *lock;
+        if (!LOCK_GET_STATUS(old_val)) return 0;
+        if (LOCK_GET_OWNER(old_val) != owner) return 0;
+        if (__sync_bool_compare_and_swap(lock, old_val, NULL_LOCK))
+            return 1;
+    }
 }
