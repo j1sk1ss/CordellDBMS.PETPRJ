@@ -7,7 +7,7 @@ static int _unlink_table_from_database(database_t* __restrict database, char* __
         for (int i = 0; i < database->header->table_count; i++) {
             if (!strncmp_s(database->table_names[i], name, TABLE_NAME_SIZE)) {
                 for (int j = i; j < database->header->table_count - 1; j++) {
-                    strncpy_s(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
+                    str_strncpy(database->table_names[j], database->table_names[j + 1], TABLE_NAME_SIZE);
                 }
 
                 database->header->table_count--;
@@ -77,7 +77,7 @@ int DB_append_row(
             if (previous_data != NULL) {
                 if (DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), access, previous_data, table->row_size)) {
                     char number_buffer[128] = { 0 };
-                    strncpy_s(number_buffer, (char*)(previous_data + column_offset), table->columns[i]->size);
+                    str_strncpy(number_buffer, (char*)(previous_data + column_offset), table->columns[i]->size);
 
                     char buffer[128] = { 0 };
                     sprintf(buffer, "%0*d", table->columns[i]->size, atoi_s(number_buffer) + 1);
@@ -265,6 +265,6 @@ int DB_delete_table(database_t* __restrict database, char* __restrict table_name
 int DB_link_table2database(database_t* __restrict database, table_t* __restrict table) {
     if (database->header->table_count + 1 >= TABLES_PER_DATABASE) return -1;
     #pragma omp critical (link_table2database)
-    strncpy_s(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
+    str_strncpy(database->table_names[database->header->table_count++], table->header->name, TABLE_NAME_SIZE);
     return 1;
 }

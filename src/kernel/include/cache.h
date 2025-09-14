@@ -24,7 +24,6 @@
 #include "common.h"
 #include "threading.h"
 
-
 #define ENTRY_COUNT     8
 #define ENTRY_NAME_SIZE 8
 
@@ -34,22 +33,19 @@
 #define DIRECTORY_CACHE     1
 #define PAGE_CACHE          0
 
-
 typedef struct {
     unsigned short lock;
-    unsigned char is_cached;
-    void* body;
+    unsigned char  is_cached;
+    void*          body;
 } cache_body_t;
 
 typedef struct {
-    char name[ENTRY_NAME_SIZE];
-    char* base_path;
-
+    char          name[ENTRY_NAME_SIZE];
+    char*         base_path;
     unsigned char type;
-    void* pointer;
-
-    void (*free)(void* p);
-    void (*save)(void* p);
+    void*         pointer;
+    void          (*free)(void* p);
+    void          (*save)(void* p);
 } cache_t;
 
 

@@ -13,7 +13,7 @@ database_t* DB_create_database(char* name) {
     str_memset(header, 0, sizeof(database_header_t));
 
     header->magic = DATABASE_MAGIC;
-    if (name) strncpy_s(header->name, name, DATABASE_NAME_SIZE);
+    if (name) str_strncpy(header->name, name, DATABASE_NAME_SIZE);
     database->header = header;
     return database;
 }
@@ -48,33 +48,29 @@ int DB_free_database(database_t* database) {
 
 int DB_save_database(database_t* database) {
     int status = -1;
-    #pragma omp critical (save_database)
-    {
-        char save_path[DEFAULT_PATH_SIZE] = { 0 };
-        get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
+    char save_path[DEFAULT_PATH_SIZE] = { 0 };
+    get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
 
-        ci_t ci = NIFAT32_open_content(NO_RCI, save_path, MODE(CR_MODE, FILE_TARGET));
-        if (ci < 0) { print_error("Can`t create or open file: [%s]", save_path); }
-        else {
-            status = 1;
-            unsigned short encoded_header[sizeof(database_header_t)] = { 0 };
-            pack_memory((unsigned char*)database->header, (unsigned short*)encoded_header, sizeof(database_header_t));
-            if (NIFAT32_write_buffer2content(
-                ci, 0, (const_buffer_t)encoded_header, sizeof(database_header_t) * sizeof(unsigned short)) != sizeof(database_header_t)
-            ) status = -2;
-            for (int i = 0; i < database->header->table_count; i++) {
-                unsigned short encoded_table_name[TABLE_NAME_SIZE] = { 0 };
-                pack_memory((unsigned char*)database->table_names[i], (unsigned short*)encoded_table_name, TABLE_NAME_SIZE);
-                if (NIFAT32_write_buffer2content(
-                    ci, (sizeof(database_header_t)  * sizeof(unsigned short)) + TABLE_NAME_SIZE * i, 
-                    (const_buffer_t)encoded_table_name, TABLE_NAME_SIZE * sizeof(unsigned short)
-                ) != TABLE_NAME_SIZE) {
-                    status = -3;
-                }
-            }
+    ci_t ci = NIFAT32_open_content(NO_RCI, save_path, MODE(CR_MODE, FILE_TARGET));
+    if (ci < 0) { print_error("Can`t create or open file: [%s]", save_path); }
+    else {
+        status = 1;
+        decoded_t encoded_header[sizeof(database_header_t)] = { 0 };
+        pack_memory((byte_t*)database->header, (decoded_t*)encoded_header, sizeof(database_header_t));
+        if (status == 1 && NIFAT32_write_buffer2content(
+            ci, 0, (const_buffer_t)encoded_header, sizeof(database_header_t) * sizeof(decoded_t)) != sizeof(database_header_t)
+        ) status = -2;
 
-            NIFAT32_close_content(ci);
+        for (int i = 0; i < database->header->table_count; i++) {
+            decoded_t encoded_table_name[TABLE_NAME_SIZE] = { 0 };
+            pack_memory((byte_t*)database->table_names[i], (decoded_t*)encoded_table_name, TABLE_NAME_SIZE);
+            if (status == 1 && NIFAT32_write_buffer2content(
+                ci, (sizeof(database_header_t)  * sizeof(decoded_t)) + TABLE_NAME_SIZE * i, 
+                (const_buffer_t)encoded_table_name, TABLE_NAME_SIZE * sizeof(decoded_t)
+            ) != TABLE_NAME_SIZE) status = -3;
         }
+
+        NIFAT32_close_content(ci);
     }
 
     return status;
@@ -85,35 +81,33 @@ database_t* DB_load_database(char* name) {
     get_load_path(name, DATABASE_NAME_SIZE, load_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
 
     database_t* loaded_database = NULL;
-    #pragma omp critical (load_database)
-    {
-        ci_t ci = NIFAT32_open_content(NO_RCI, load_path, DF_MODE);
-        print_io("Loading database [%s]", load_path);
-        if (ci < 0) { print_error("Database file not found! [%s]", load_path); }
-        else {
-            loaded_database = DB_create_database(NULL);
-            if (loaded_database) {
-                unsigned short encoded_header[sizeof(database_header_t)] = { 0 };
-                NIFAT32_read_content2buffer(ci, 0, (buffer_t)encoded_header, sizeof(database_header_t) * sizeof(unsigned short));
-                unpack_memory((unsigned short*)encoded_header, (unsigned char*)loaded_database->header, sizeof(database_header_t));
-                if (loaded_database->header->magic != DATABASE_MAGIC) {
-                    print_error("Database file wrong magic for [%s]", load_path);
-                    DB_free_database(loaded_database);
-                } else {
-                    for (int i = 0; i < loaded_database->header->table_count; i++) {
-                        unsigned short encoded_table_name[TABLE_NAME_SIZE] = { 0 };
-                        NIFAT32_read_content2buffer(
-                            ci, (sizeof(database_header_t)  * sizeof(unsigned short)) + TABLE_NAME_SIZE * i, 
-                            (buffer_t)encoded_table_name, TABLE_NAME_SIZE * sizeof(unsigned short)
-                        );
+    ci_t ci = NIFAT32_open_content(NO_RCI, load_path, DF_MODE);
+    print_io("Loading database [%s]", load_path);
+    if (ci < 0) { print_error("Database file not found! [%s]", load_path); }
+    else {
+        loaded_database = DB_create_database(NULL);
+        if (loaded_database) {
+            encoded_t encoded_header[sizeof(database_header_t)] = { 0 };
+            NIFAT32_read_content2buffer(ci, 0, (buffer_t)encoded_header, sizeof(database_header_t) * sizeof(encoded_t));
+            unpack_memory((encoded_t*)encoded_header, (byte_t*)loaded_database->header, sizeof(database_header_t));
+            if (loaded_database->header->magic != DATABASE_MAGIC) {
+                print_error("Database file wrong magic for [%s]", load_path);
+                DB_free_database(loaded_database);
+            } 
+            else {
+                for (int i = 0; i < loaded_database->header->table_count; i++) {
+                    encoded_t encoded_table_name[TABLE_NAME_SIZE] = { 0 };
+                    NIFAT32_read_content2buffer(
+                        ci, (sizeof(database_header_t)  * sizeof(encoded_t)) + TABLE_NAME_SIZE * i, 
+                        (buffer_t)encoded_table_name, TABLE_NAME_SIZE * sizeof(encoded_t)
+                    );
 
-                        unpack_memory((unsigned short*)encoded_table_name, (unsigned char*)loaded_database->table_names[i], TABLE_NAME_SIZE);
-                    }
+                    unpack_memory((encoded_t*)encoded_table_name, (byte_t*)loaded_database->table_names[i], TABLE_NAME_SIZE);
                 }
             }
-
-            NIFAT32_close_content(ci);
         }
+
+        NIFAT32_close_content(ci);
     }
 
     return loaded_database;

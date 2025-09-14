@@ -14,7 +14,6 @@
  *  Credits: j1sk1ss
  */
 
-
 #ifndef COMMON_H_
 #define COMMON_H_
 
@@ -46,8 +45,7 @@
 
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
-      free_s((ptr));           \
-      (ptr) = NULL;          \
+      free_s((ptr));         \
     }                        \
   } while(0)
 #define ARRAY_SOFT_FREE(ptr, size) do {               \

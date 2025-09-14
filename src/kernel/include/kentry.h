@@ -34,7 +34,6 @@
 #include "cache.h"
 #include "common.h"
 #include "dataman.h"
-#include "sighandler.h"
 
 
 #define SAFE_GET_VALUE(argv, max, index)            index >= max ? NULL : argv[index]

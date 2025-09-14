@@ -24,10 +24,6 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
-#ifndef _WIN32
-    #include <unistd.h>
-#endif
-
 #include "nifat32/nifat32.h"
 #include "common.h"
 #include "tabman.h"

@@ -100,7 +100,7 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
     }
 
     GCT[current].pointer = entry;
-    strncpy_s(GCT[current].name, name, ENTRY_NAME_SIZE);
+    str_strncpy(GCT[current].name, name, ENTRY_NAME_SIZE);
     GCT[current].type = type;
     GCT[current].free = free;
     GCT[current].save = save;
@@ -144,11 +144,9 @@ int CHC_sync() {
 
 int CHC_free() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
-        if (GCT[i].pointer == NULL) continue;
+        if (!GCT[i].pointer) continue;
         if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) != -1) _flush_index(i);
-        else {
-            return -1;
-        }
+        else return 0;
     }
 
     return 1;

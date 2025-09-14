@@ -162,7 +162,7 @@ static database_t* _connections[MAX_CONNECTIONS] = { NULL };
 #pragma endregion
 
 
-kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection) {
+kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
     kernel_answer_t* answer = (kernel_answer_t*)malloc_s(sizeof(kernel_answer_t));
     if (!answer) return NULL;
     str_memset(answer, 0, sizeof(kernel_answer_t));
@@ -347,8 +347,8 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char ac
                                     if (strncmp_s(comma_pos + 1, MODULE_PRELOAD, str_strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_PRELOAD;
                                     else if (strncmp_s(comma_pos + 1, MODULE_BOTH_LOAD, str_strlen(MODULE_PRELOAD)) == 0) columns[k]->module_params = COLUMN_MODULE_BOTH;
 
-                                    strncpy_s(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
-                                    strncpy_s(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
+                                    str_strncpy(columns[k]->module_name, column_data_type, MIN(equals_pos - column_data_type, MODULE_NAME_SIZE));
+                                    str_strncpy(columns[k]->module_querry, equals_pos + 1, MIN(comma_pos - equals_pos - 1, COLUMN_MODULE_SIZE));
                                     print_debug(
                                         "Module [%s] registered with [%s] querry", columns[k]->module_name, columns[column_count]->module_querry
                                     );

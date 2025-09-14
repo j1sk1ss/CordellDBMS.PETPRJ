@@ -8,7 +8,7 @@ table_column_t* TBM_create_column(unsigned char type, unsigned short size, char*
     str_memset(column, 0, sizeof(table_column_t));
 
     column->magic = COLUMN_MAGIC;
-    strncpy_s(column->name, name, COLUMN_NAME_SIZE);
+    str_strncpy(column->name, name, COLUMN_NAME_SIZE);
     column->type = type;
     column->size = size;
 
@@ -23,7 +23,7 @@ int TBM_get_column_info(table_t* table, char* column_name, table_columns_info_t*
 
     int offset = 0;
     for (int i = 0; i < table->header->column_count; i++) {
-        if (strcmp_s(table->columns[i]->name, column_name)) offset += table->columns[i]->size;
+        if (str_strcmp(table->columns[i]->name, column_name)) offset += table->columns[i]->size;
         else {
             info->offset = offset;
             info->size = table->columns[i]->size;
@@ -42,7 +42,7 @@ int TBM_check_signature(table_t* __restrict table, unsigned char* __restrict dat
         if (data_type == COLUMN_TYPE_ANY || data_type == COLUMN_TYPE_MODULE) continue;
 
         char value[COLUMN_MAX_SIZE] = { 0 };
-        strncpy_s(value, (char*)data_pointer, table->columns[i]->size);
+        str_strncpy(value, (char*)data_pointer, table->columns[i]->size);
         data_pointer += table->columns[i]->size;
 
         switch (data_type) {

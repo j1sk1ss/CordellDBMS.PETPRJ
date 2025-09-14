@@ -2,7 +2,7 @@
 
 static int _link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
     #pragma omp critical (link_dir2table)
-    strncpy_s(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
+    str_strncpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
     return 1;
 }
 
@@ -317,7 +317,7 @@ int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data
                 char* formula = table->columns[i]->module_querry;
                 char* output_querry = (char*)malloc_s(COLUMN_MODULE_SIZE);
                 if (!output_querry) return -1;
-                strncpy_s(output_querry, formula, COLUMN_MODULE_SIZE);
+                str_strncpy(output_querry, formula, COLUMN_MODULE_SIZE);
 
                 int content_offset = 0;
                 for (int j = 0; j < table->header->column_count; j++) {
@@ -328,7 +328,7 @@ int TBM_invoke_modules(table_t* __restrict table, unsigned char* __restrict data
                         return -2;
                     }
 
-                    strncpy_s(content_part, (char*)content_pointer, table->columns[j]->size);
+                    str_strncpy(content_part, (char*)content_pointer, table->columns[j]->size);
                     char* next_output_querry = strrep(output_querry, table->columns[j]->name, content_part);
 
                     free_s(content_part);

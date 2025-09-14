@@ -12,6 +12,9 @@ typedef unsigned char byte_t;
 typedef unsigned short encoded_t;
 typedef unsigned short decoded_t;
 
+encoded_t encode_hamming_15_11(decoded_t data);
+decoded_t decode_hamming_15_11(encoded_t encoded);
+
 /*
 Unpack memory function should decode src pointed data from hamming 15,11 (With error correction).
 P.S. Before usage, allocate dst memory with size, same as count of elements in src.
