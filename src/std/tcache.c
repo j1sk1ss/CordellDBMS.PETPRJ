@@ -52,7 +52,7 @@ int CHC_init() {
 }
 
 int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, void* free, void* save) {
-    if (entry == NULL) return -2;
+    if (!entry) return -2;
     ((cache_body_t*)entry)->is_cached = 0;
 
     int free_current   = -1;
@@ -61,12 +61,14 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
 
     if (GCT_TYPES[type] >= GCT_TYPES_MAX[type]) should_replace = 1;
     for (int i = 0; i < ENTRY_COUNT; i++) {
-        if (GCT[i].pointer != NULL) {
-            if (THR_test_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) == UNLOCKED) {
+        if (GCT[i].pointer) {
+            if (THR_release_write(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num())) {
                 if (GCT[i].type == type && should_replace == 1) {
                     occup_current = i;
                     break;
                 }
+
+                THR_release_write(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num());
             }
         }
         else {
@@ -76,26 +78,24 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
 
     int current = -1;
     if (occup_current != -1) current = occup_current;
-    else if (free_current != -1 && should_replace == 0) current = free_current;
+    else if (free_current != -1 && !should_replace) current = free_current;
     else return -4;
 
-    if (GCT[current].pointer != NULL) {
-        if (THR_require_lock(&((cache_body_t*)GCT[current].pointer)->lock, get_thread_num()) != -1) {
-            #pragma omp critical (gct_types_decreese)
-            GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0);
-            GCT[current].save(GCT[current].pointer);
-            _flush_index(current);
-        }
-        else {
-            return -1;
-        }
+    if (GCT[current].pointer) {
+        GCT_TYPES[GCT[current].type] = MAX(GCT_TYPES[GCT[current].type] - 1, 0); /* TODO lock guards */
+        GCT[current].save(GCT[current].pointer);
+        _flush_index(current);
     }
 
     ((cache_body_t*)entry)->is_cached = 1;
 
-    if (base_path != NULL) {
+    if (base_path) {
         GCT[current].base_path = (char*)malloc_s(str_strlen(base_path));
-        if (!GCT[current].base_path) return -5;
+        if (!GCT[current].base_path) {
+            THR_release_write(&((cache_body_t*)GCT[current].pointer)->lock, get_thread_num());
+            return -5;
+        }
+
         str_strcpy(GCT[current].base_path, base_path);
     }
 
@@ -105,17 +105,16 @@ int CHC_add_entry(void* entry, char* name, char* base_path, unsigned char type, 
     GCT[current].free = free;
     GCT[current].save = save;
 
-    #pragma omp critical (gct_types_increase)
-    GCT_TYPES[type] = MIN(GCT_TYPES[type] + 1, GCT_TYPES_MAX[type]);
+    GCT_TYPES[type] = MIN(GCT_TYPES[type] + 1, GCT_TYPES_MAX[type]); /* TODO lock guards */
+    THR_release_write(&((cache_body_t*)GCT[current].pointer)->lock, get_thread_num());
     return 1;
 }
 
 void* CHC_find_entry(char* name, char* base_path, unsigned char type) {
     for (int i = 0; i < ENTRY_COUNT; i++) {
-        if (GCT[i].pointer == NULL) continue;
+        if (!GCT[i].pointer) continue;
         if (
-            strncmp_s(GCT[i].name, name, ENTRY_NAME_SIZE) == 0 && 
-            (GCT[i].type == type || type == ANY_CACHE)
+            !str_strncmp(GCT[i].name, name, ENTRY_NAME_SIZE) && (GCT[i].type == type || type == ANY_CACHE)
         ) {
             if (!GCT[i].base_path && !base_path) return GCT[i].pointer;
             else {
@@ -130,9 +129,9 @@ void* CHC_find_entry(char* name, char* base_path, unsigned char type) {
 int CHC_sync() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (GCT[i].pointer == NULL) continue;
-        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) == 1) {
+        if (THR_require_write(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num())) {
             GCT[i].save(GCT[i].pointer);
-            THR_release_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num());
+            THR_release_write(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num());
         }
         else {
             return -1;
@@ -145,7 +144,7 @@ int CHC_sync() {
 int CHC_free() {
     for (int i = 0; i < ENTRY_COUNT; i++) {
         if (!GCT[i].pointer) continue;
-        if (THR_require_lock(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) != -1) _flush_index(i);
+        if (THR_release_write(&((cache_body_t*)GCT[i].pointer)->lock, get_thread_num()) != -1) _flush_index(i);
         else return 0;
     }
 
@@ -153,11 +152,10 @@ int CHC_free() {
 }
 
 int CHC_flush_entry(void* entry, unsigned char type) {
-    if (entry == NULL) return -1;
-
+    if (!entry) return -1;
     int index = -1;
     for (int i = 0; i < ENTRY_COUNT; i++) {
-        if (GCT[i].pointer == NULL) continue;
+        if (!GCT[i].pointer) continue;
         if (entry == GCT[i].pointer && type == GCT[i].type) {
             index = i;
             break;

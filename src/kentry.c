@@ -1,3 +1,4 @@
+/* TODO: Querry for requests */ 
 #include <kentry.h>
 
 static database_t* _connection = NULL;
@@ -18,26 +19,26 @@ static int _compare_data(char* expression, char* fdata, size_t fdata_size, char*
     if (!temp_fdata) return 0;
 
     str_memset(temp_fdata, fdata, fdata_size);
-    temp_fdata[fdata_size] = '\0';
+    temp_fdata[fdata_size] = 0;
     char* mv_fdata = temp_fdata + strspn_s(temp_fdata, " ");
     
     char* temp_sdata = (char*)malloc_s(sdata_size + 1);
     if (!temp_sdata) return 0;
 
     str_memset(temp_sdata, sdata, sdata_size);
-    temp_sdata[sdata_size] = '\0';
+    temp_sdata[sdata_size] = 0;
     char* mv_sdata = temp_sdata + strspn_s(temp_sdata, " ");
 
     int comparison = 0;
-    if (str_strcmp(expression, STR_EQUALS) == 0) comparison = str_strcmp(mv_fdata, mv_sdata) == 0;
-    else if (str_strcmp(expression, STR_NEQUALS) == 0) comparison = str_strcmp(mv_fdata, mv_sdata) != 0;
+    if (!str_strcmp(expression, STR_EQUALS)) comparison = !str_strcmp(mv_fdata, mv_sdata);
+    else if (!str_strcmp(expression, STR_NEQUALS)) comparison = str_strcmp(mv_fdata, mv_sdata);
     else {
         int first = atoi_s(mv_fdata);
         int second = atoi_s(mv_sdata);
-        if (str_strcmp(expression, NEQUALS) == 0) comparison = first != second;
-        else if (str_strcmp(expression, EQUALS) == 0) comparison = first == second;
-        else if (str_strcmp(expression, LESS_THAN) == 0) comparison = first < second;
-        else if (str_strcmp(expression, MORE_THAN) == 0) comparison = first > second;
+        if (!str_strcmp(expression, NEQUALS)) comparison = first != second;
+        else if (!str_strcmp(expression, EQUALS)) comparison = first == second;
+        else if (!str_strcmp(expression, LESS_THAN)) comparison = first < second;
+        else if (!str_strcmp(expression, MORE_THAN)) comparison = first > second;
     }
 
     free_s(temp_fdata);
@@ -189,7 +190,7 @@ kernel_answer_t* kernel_process_command(int argc, char* argv[]) {
     Handle command.
     */
     for (int i = 0; i < MAX_COMMANDS; i++) {
-        if (commands[i] == NULL) break;
+        if (!commands[i]) break;
         char* command = commands[i];
         int command_index = i;
 

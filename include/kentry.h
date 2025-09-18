@@ -102,7 +102,7 @@
         #define MORE_THAN   ">"
         #define LESS_THAN   "<"
         #define NEQUALS     "!="
-        #define EQUALS      "="
+        #define EQUALS      "=="
         #define STR_NEQUALS "neq"
         #define STR_EQUALS  "eq"
 
