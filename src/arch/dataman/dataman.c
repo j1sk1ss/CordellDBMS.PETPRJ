@@ -1,4 +1,4 @@
-#include "../../include/dataman.h"
+#include <dataman.h>
 
 static int _unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
     int status = 0;
@@ -28,26 +28,13 @@ static int _get_global_offset(int row_size, int row) {
     return global_offset;
 }
 
-static table_t* _get_table_access(
-    database_t* __restrict database, char* __restrict table_name, int access, int (*check_access)(int, int)
-) {
-    table_t* table = DB_get_table(database, table_name);
-    if (!table) return NULL;
-    if (check_access(access, table->header->access) == -1) {
-        TBM_flush_table(table);
-        return NULL;
-    }
-
-    return table;
-}
-
 #pragma region [CRUD]
 
 int DB_append_row(
     database_t* __restrict database, char* __restrict table_name, 
-    unsigned char* __restrict data, size_t data_size, unsigned char access
+    unsigned char* __restrict data, size_t data_size
 ) {
-    table_t* table = _get_table_access(database, table_name, access, check_write_access);
+    table_t* table = DB_get_table(database, table_name);
     if (!table) return -4;
     if (table->row_size > data_size) {
         TBM_flush_table(table);
@@ -75,7 +62,7 @@ int DB_append_row(
         ) {
             unsigned char* previous_data = (unsigned char*)malloc_s(table->row_size);
             if (previous_data != NULL) {
-                if (DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), access, previous_data, table->row_size)) {
+                if (DB_get_row(database, table_name, MAX(table->header->row_count - 1, 0), previous_data, table->row_size)) {
                     char number_buffer[128] = { 0 };
                     str_strncpy(number_buffer, (char*)(previous_data + column_offset), table->columns[i]->size);
 
@@ -97,7 +84,7 @@ int DB_append_row(
         table_columns_info_t primary_info;
         TBM_get_column_info(table, primary_column->name, &primary_info);
         int row = DB_find_data_row(
-            database, table_name, primary_column->name, 0, data + primary_info.offset, primary_column->size, access
+            database, table_name, primary_column->name, 0, data + primary_info.offset, primary_column->size
         );
 
         // If in table already presented this value.
@@ -117,11 +104,11 @@ int DB_append_row(
 }
 
 int DB_get_row(
-    database_t* __restrict database, char* __restrict table_name, int row, unsigned char access, 
+    database_t* __restrict database, char* __restrict table_name, int row, 
     unsigned char* buffer, size_t buffer_size
 ) {
-    table_t* table = _get_table_access(database, table_name, access, check_write_access);
-    if (table == NULL) return 0;
+    table_t* table = DB_get_table(database, table_name);
+    if (!table) return 0;
 
     int get_result = TBM_get_content(table, _get_global_offset(table->row_size, row), buffer, buffer_size);
     if (get_result) {
@@ -134,11 +121,11 @@ int DB_get_row(
 
 int DB_insert_row(
     database_t* __restrict database, char* __restrict table_name, 
-    int row, unsigned char* __restrict data, size_t data_size, unsigned char access
+    int row, unsigned char* __restrict data, size_t data_size
 ) {
 #ifndef NO_UPDATE_COMMAND
-    table_t* table = _get_table_access(database, table_name, access, check_write_access);
-    if (table == NULL) return -1;
+    table_t* table = DB_get_table(database, table_name);
+    if (!table) return -1;
     if (table->row_size > data_size) {
         TBM_flush_table(table);
         return -5;
@@ -162,10 +149,10 @@ int DB_insert_row(
     return 1;
 }
 
-int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access) {
+int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row) {
 #ifndef NO_DELETE_COMMAND
-    table_t* table = _get_table_access(database, table_name, access, check_delete_access);
-    if (table == NULL) return -1;
+    table_t* table = DB_get_table(database, table_name);
+    if (!table) return -1;
 
     int result = -1;
     if (THR_require_write(&table->lock, get_thread_num())) {
@@ -197,10 +184,10 @@ int DB_cleanup_tables(database_t* database) {
 
 int DB_find_data_row(
     database_t* __restrict database, char* __restrict table_name, 
-    char* __restrict column, int offset, unsigned char* __restrict data, size_t data_size, unsigned char access
+    char* __restrict column, int offset, unsigned char* __restrict data, size_t data_size
 ) {
-    table_t* table = _get_table_access(database, table_name, access, check_read_access);
-    if (table == NULL) return -1;
+    table_t* table = DB_get_table(database, table_name);
+    if (!table) return -1;
 
     table_columns_info_t col_info;
     TBM_get_column_info(table, column, &col_info);

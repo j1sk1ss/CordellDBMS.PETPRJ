@@ -31,10 +31,9 @@
 #ifndef KENTRY_H_
 #define KENTRY_H_
 
-#include "cache.h"
-#include "common.h"
-#include "dataman.h"
-
+#include <tcache.h>
+#include <common.h>
+#include <dataman.h>
 
 #define SAFE_GET_VALUE(argv, max, index)            index >= max ? NULL : argv[index]
 #define SAFE_GET_VALUE_PRE_INC(argv, max, index)    index + 1 >= max ? NULL : argv[++index]
@@ -116,28 +115,27 @@
 
 #pragma endregion
 
-#define KERNEL_VERSION     "v2.9 (secure-mem)"
-
+#define KERNEL_VERSION     "v3.0 (nifat32)"
 
 typedef struct {
-    signed char answer_code;
+    signed char    answer_code;
     unsigned short answer_size;
     unsigned char* answer_body;
 } kernel_answer_t;
 
 typedef struct {
     table_columns_info_t col_info;
-    char* expression;
-    char* value;
+    char*                expression;
+    char*                value;
 } condition_t;
 
 typedef struct {
     condition_t conditions[MAX_STATEMENTS];
-    int condition_count;
-    char* operators[MAX_STATEMENTS];
-    int operator_count;
-    int offset;
-    int limit;
+    int         condition_count;
+    char*       operators[MAX_STATEMENTS];
+    int         operator_count;
+    int         offset;
+    int         limit;
 } expression_t;
 
 /*
@@ -150,33 +148,6 @@ Params:
 
 Return NULL or answer.
 */
-kernel_answer_t* kernel_process_command(int argc, char* argv[], unsigned char access, int connection);
-
-/*
-Close connection by index.
-
-Params:
-- connection - Connection index.
-
-Return 1 if success.
-*/
-int close_connection(int connection);
-
-/*
-Free answer structure.
-
-Params:
-- answer - answer pointer.
-
-Return -1 or 1.
-*/
-int kernel_free_answer(kernel_answer_t* answer);
-
-/*
-Cleanup kernel will free all entries from GCT.
-Also cleanup function free all database connections.
-Note: don't invoke this function. 
-*/
-void cleanup_kernel();
+kernel_answer_t* kernel_process_command(int argc, char* argv[]);
 
 #endif

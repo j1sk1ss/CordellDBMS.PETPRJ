@@ -1,4 +1,4 @@
-#include "../../include/dirman.h"
+#include <dirman.h>
 
 directory_t* DRM_create_directory(char* name) {
     directory_t* directory = (directory_t*)malloc_s(sizeof(directory_t));

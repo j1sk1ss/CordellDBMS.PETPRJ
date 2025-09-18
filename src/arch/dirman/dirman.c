@@ -1,4 +1,4 @@
-#include "../../include/dirman.h"
+#include <dirman.h>
 
 static int _link_page2dir(directory_t* __restrict directory, page_t* __restrict page) {
     str_strncpy(directory->page_names[directory->header->page_count++], page->header->name, PAGE_NAME_SIZE);

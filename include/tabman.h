@@ -32,15 +32,11 @@
 #ifndef TABMAN_H_
 #define TABMAN_H_
 
-#ifndef _WIN32
-    #include <unistd.h>
-#endif
-
-#include "nifat32/nifat32.h"
-#include "common.h"
-#include "dirman.h"
-#include "module.h"
-#include "cache.h"
+#include <common.h>
+#include <dirman.h>
+#include <module.h>
+#include <tcache.h>
+#include <nifat32/nifat32.h>
 
 #define TABLE_MAGIC             0xAA
 #define TABLE_NAME_SIZE         8
@@ -50,48 +46,6 @@
 // Set here default path for save.
 // Important Note ! : This path is main for ALL tables
 #define TABLE_BASE_PATH         ENV_GET("TABLE_BASE_PATH", ".")
-
-#pragma region [Access]
-
-    // Create access byte for new tables and for users. For input, this
-    // function take values from 0 to 3.
-    #define CREATE_ACCESS_BYTE(read_access, write_access, delete_access) \
-        (((read_access & 0b11) << 4) | ((write_access & 0b11) << 2) | (delete_access & 0b11))
-
-    // Macros for getting access level
-    #define GET_READ_ACCESS(access_byte)    ((access_byte >> 4) & 0b11)
-    #define GET_WRITE_ACCESS(access_byte)   ((access_byte >> 2) & 0b11)
-    #define GET_DELETE_ACCESS(access_byte)  (access_byte & 0b11)
-
-    /*
-    Macros for checking read access level. Will return -1 if access denied.
-    Note: This function usualy used in lower abstraction levels.
-    uaccess - user access level.
-    taccess - table access level.
-    */
-    static inline int check_read_access(int uaccess, int taccess) {
-        return GET_READ_ACCESS(taccess) < GET_READ_ACCESS(uaccess) ? -1 : 0;
-    }
-    /*
-    Macros for checking write access level. Will return -1 if access denied.
-    Note: This function usualy used in lower abstraction levels.
-    uaccess - user access level.
-    taccess - table access level.
-    */
-    static inline int check_write_access(int uaccess, int taccess) {
-        return GET_WRITE_ACCESS(taccess) < GET_WRITE_ACCESS(uaccess) ? -1 : 0;
-    }
-    /*
-    Macros for checking delete access level. Will return -1 if access denied.
-    Note: This function usualy used in lower abstraction levels.
-    uaccess - user access level.
-    taccess - table access level.
-    */
-    static inline int check_delete_access(int uaccess, int taccess) {
-        return GET_DELETE_ACCESS(taccess) < GET_DELETE_ACCESS(uaccess) ? -1 : 0;
-    }
-
-#pragma endregion
 
 #pragma region [Column]
 
@@ -421,7 +375,7 @@
 
     Return pointer to new table
     */
-    table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access);
+    table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count);
 
     /*
     Save table to the disk

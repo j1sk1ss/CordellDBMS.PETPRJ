@@ -31,10 +31,10 @@
 #ifndef DIRMAN_H_
 #define DIRMAN_H_
 
-#include "nifat32/nifat32.h"
-#include "cache.h"
-#include "common.h"
-#include "pageman.h"
+#include <nifat32/nifat32.h>
+#include <tcache.h>
+#include <common.h>
+#include <pageman.h>
 
 #define DIRECTORY_EXTENSION ENV_GET("DIRECTORY_EXTENSION", "dr")
 // Set here default path for save.

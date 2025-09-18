@@ -1,4 +1,4 @@
-#include "../../include/dataman.h"
+#include <dataman.h>
 
 database_t* DB_create_database(char* name) {
     database_t* database = (database_t*)malloc_s(sizeof(database_t));

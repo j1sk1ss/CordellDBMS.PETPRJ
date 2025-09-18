@@ -1,6 +1,6 @@
-#include "../../include/tabman.h"
+#include <tabman.h>
 
-table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count, unsigned char access) {
+table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict columns, int col_count) {
 #ifndef NO_CREATE_COMMAND
     int row_size = 0;
     for (int i = 0; i < col_count; i++) {
@@ -19,7 +19,6 @@ table_t* TBM_create_table(char* __restrict name, table_column_t** __restrict col
     str_memset(table, 0, sizeof(table_t));
     str_memset(header, 0, sizeof(table_header_t));
 
-    header->access = access;
     header->magic  = TABLE_MAGIC;
     str_strncpy(header->name, name, TABLE_NAME_SIZE);
     header->column_count = col_count;

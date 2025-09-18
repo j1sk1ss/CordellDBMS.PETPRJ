@@ -18,8 +18,8 @@
  *  Credits: j1sk1ss
  */
 
-#ifndef CACHE_H_
-#define CACHE_H_
+#ifndef TCACHE_H_
+#define TCACHE_H_
 
 #include "common.h"
 #include "threading.h"

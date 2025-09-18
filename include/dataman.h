@@ -24,11 +24,10 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
-#include "nifat32/nifat32.h"
-#include "common.h"
-#include "tabman.h"
-#include "cache.h"
-
+#include <common.h>
+#include <tabman.h>
+#include <tcache.h>
+#include <nifat32/nifat32.h>
 
 #define TABLES_PER_DATABASE     0xFF
 #define DATABASE_EXTENSION      ENV_GET("DATABASE_EXTENSION", "db")
@@ -95,7 +94,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return pointer to data.
     */
     int DB_get_row(
-        database_t* __restrict database, char* __restrict table_name, int row, unsigned char access, 
+        database_t* __restrict database, char* __restrict table_name, int row,
         unsigned char* buffer, size_t buffer_size
     );
 
@@ -131,7 +130,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 1 if row append cause directory creation.
     Return 2 if row append cause page creation.
     */
-    int DB_append_row(database_t* __restrict database, char* __restrict table_name, unsigned char* __restrict data, size_t data_size, unsigned char access);
+    int DB_append_row(database_t* __restrict database, char* __restrict table_name, unsigned char* __restrict data, size_t data_size);
 
     /*
     Insert row function works different with row_append function. Main difference in disabling auto-creation of pages and directories.
@@ -164,7 +163,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return 2 if row insert was success, but was trunc
     */
     int DB_insert_row(
-        database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size, unsigned char access
+        database_t* __restrict database, char* __restrict table_name, int row, unsigned char* __restrict data, size_t data_size
     );
 
     /*
@@ -182,7 +181,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     Return -1 if something goes wrong.
     Return 1 if row delete was success.
     */
-    int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row, unsigned char access);
+    int DB_delete_row(database_t* __restrict database, char* __restrict table_name, int row);
 
     /*
     Init cascade cleanup of empty directories and empty pages in all table in database.
@@ -230,7 +229,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     */
     int DB_find_data_row(
         database_t* __restrict database, char* __restrict table_name, char* __restrict column, 
-        int offset, unsigned char* __restrict data, size_t data_size, unsigned char access
+        int offset, unsigned char* __restrict data, size_t data_size
     );
 
 #pragma endregion
@@ -353,7 +352,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - MAX_DIRECTORIES or less directories.
     - MAX_PAGES or less pages.
     In few words, that means, that you can input data with 40960KB (40MB) size to 10 directories at one time.
-    Note 2: MAX_TABLES, MAX_DIRECTORIES and MAX_PAGES can be found in "cache.h".
+    Note 2: MAX_TABLES, MAX_DIRECTORIES and MAX_PAGES can be found in "tcache.h".
 
     Return 1 if transaction init success.
     Return -1 if we can't free GCT.

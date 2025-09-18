@@ -20,9 +20,9 @@
 #include <time.h>
 #include <stdio.h>
 
-#include "nifat32/nifat32.h"
-#include "mm.h"
-#include "cache.h"
+#include <mm.h>
+#include <tcache.h>
+#include <nifat32/nifat32.h>
 
 #ifdef NO_ENV
   #define getenv(key) NULL

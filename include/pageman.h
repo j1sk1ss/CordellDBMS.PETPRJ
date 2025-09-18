@@ -31,11 +31,11 @@
 #ifndef PAGEMAN_H_
 #define PAGEMAN_H_
 
-#include "nifat32/nifat32.h"
-#include "common.h"
-#include "cache.h"
-#include "checksum.h"
-#include "hamming.h"
+#include <common.h>
+#include <tcache.h>
+#include <hamming.h>
+#include <checksum.h>
+#include <nifat32/nifat32.h>
 
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
 // Set here default path for save.

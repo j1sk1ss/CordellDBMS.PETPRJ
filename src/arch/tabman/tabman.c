@@ -1,30 +1,24 @@
-#include "../../include/tabman.h"
+#include <tabman.h>
 
 static int _link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
-    #pragma omp critical (link_dir2table)
     str_strncpy(table->dir_names[table->header->dir_count++], directory->header->name, DIRECTORY_NAME_SIZE);
     return 1;
 }
 
 static int _unlink_dir_from_table(table_t* table, const char* dir_name) {
-    int status = 0;
-    #pragma omp critical (unlink_dir_from_table)
-    {
-        for (int i = 0; i < table->header->dir_count; i++) {
-            if (strncmp_s(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
-                for (int j = i; j < table->header->dir_count - 1; j++) {
-                    str_memset(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
-                }
-
-                table->header->dir_count--;
-                table->append_offset = MAX(table->append_offset - 1, 0);
-                status = 1;
-                break;
+    for (int i = 0; i < table->header->dir_count; i++) {
+        if (str_strncmp(table->dir_names[i], dir_name, DIRECTORY_NAME_SIZE) == 0) {
+            for (int j = i; j < table->header->dir_count - 1; j++) {
+                str_memset(table->dir_names[j], table->dir_names[j + 1], DIRECTORY_NAME_SIZE);
             }
+
+            table->header->dir_count--;
+            table->append_offset = MAX(table->append_offset - 1, 0);
+            return 1;
         }
     }
 
-    return status;
+    return 0;
 }
 
 #pragma region [CRUD]
@@ -265,9 +259,9 @@ int TBM_migrate_table(table_t* __restrict src, table_t* __restrict dst, char* __
 #ifndef NO_MIGRATE_COMMAND
     if (THR_require_read(&src->lock) && THR_require_write(&dst->lock, get_thread_num())) {
         int offset = 0;
+        
         unsigned char* data = (unsigned char*)" ";
-
-        while (*data != '\0') {
+        while (*data) {
             SOFT_FREE(data);
             data = (unsigned char*)malloc_s(src->row_size);
             if (!data) return -2;

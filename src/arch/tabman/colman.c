@@ -1,4 +1,4 @@
-#include "../../include/tabman.h"
+#include <tabman.h>
 
 table_column_t* TBM_create_column(unsigned char type, unsigned short size, char* name) {
 #ifndef NO_CREATE_COMMAND
