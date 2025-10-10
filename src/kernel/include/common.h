@@ -17,6 +17,9 @@
 
 #ifndef COMMON_H_
 #define COMMON_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <time.h>
 #include <stdio.h>
@@ -35,7 +38,7 @@
 #endif
 
 #include "mm.h"
-#include "cache.h"
+#include "ecache.h"
 
 #ifdef NO_ENV
   #define getenv(key) NULL
@@ -58,8 +61,7 @@
 
 #define SOFT_FREE(ptr) do {  \
     if (ptr != NULL) {       \
-      free_s((ptr));           \
-      (ptr) = NULL;          \
+      free_s((ptr));         \
     }                        \
   } while(0)
 #define ARRAY_SOFT_FREE(ptr, size) do {               \
@@ -320,4 +322,7 @@ int islower_s(int c);
 int tolower_s(int c);
 int toupper_s(int c);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

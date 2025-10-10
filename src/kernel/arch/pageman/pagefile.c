@@ -1,5 +1,4 @@
-#include "../../include/pageman.h"
-
+#include <pageman.h>
 
 page_t* PGM_create_page(char* __restrict name, unsigned char* __restrict buffer, size_t data_size) {
     page_t* page = (page_t*)malloc_s(sizeof(page_t));
@@ -62,10 +61,16 @@ int PGM_save_page(page_t* page) {
             else {
                 status = 1;
                 page->header->checksum = page_cheksum;
+
+#ifdef HAMMING_CODES
                 unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
                 pack_memory((unsigned char*)page->header, (unsigned short*)encoded_header, sizeof(page_header_t));
-                if (pwrite(fd, &encoded_header, sizeof(page_header_t) * sizeof(unsigned short), 0) != sizeof(page_header_t) * sizeof(unsigned short)) status = -2;
+                if (pwrite(fd, encoded_header, sizeof(page_header_t) * sizeof(unsigned short), 0) != sizeof(page_header_t) * sizeof(unsigned short)) status = -2;
                 if (pwrite(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), sizeof(page_header_t) * sizeof(unsigned short)) != (ssize_t)(PAGE_CONTENT_SIZE * sizeof(unsigned short))) status = -3;
+#else
+                if (pwrite(fd, (unsigned char*)page->header, sizeof(page_header_t), 0) != sizeof(page_header_t)) status = -2;
+                if (pwrite(fd, page->content, PAGE_CONTENT_SIZE, sizeof(page_header_t)) != (ssize_t)(PAGE_CONTENT_SIZE)) status = -3;
+#endif
 
                 fsync(fd);
                 close(fd);
@@ -99,10 +104,15 @@ page_t* PGM_load_page(char* base_path, char* name) {
                 int offset = 0;
                 memset_s(header, 0, sizeof(page_header_t));
 
+#ifdef HAMMING_CODES
                 unsigned short encoded_header[sizeof(page_header_t)] = { 0 };
                 pread(fd, encoded_header, sizeof(page_header_t) * sizeof(unsigned short), offset);
                 unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(page_header_t));
                 offset += sizeof(page_header_t) * sizeof(unsigned short);
+#else
+                pread(fd, (unsigned char*)header, sizeof(page_header_t), offset);
+                offset += sizeof(page_header_t);
+#endif
 
                 // Check page magic
                 if (header->magic != PAGE_MAGIC) {
@@ -114,9 +124,14 @@ page_t* PGM_load_page(char* base_path, char* name) {
                     page_t* page = (page_t*)malloc_s(sizeof(page_t));
                     if (!page) free_s(header);
                     else {
+#ifdef HAMMING_CODES
                         unsigned short encoded_pm = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
                         for (int i = 0; i < PAGE_CONTENT_SIZE; i++) page->content[i] = encoded_pm;
                         pread(fd, page->content, PAGE_CONTENT_SIZE * sizeof(unsigned short), offset);
+#else
+                        for (int i = 0; i < PAGE_CONTENT_SIZE; i++) page->content[i] = PAGE_EMPTY;
+                        pread(fd, page->content, PAGE_CONTENT_SIZE, offset);
+#endif
                         close(fd);
 
                         page->lock   = THR_create_lock();

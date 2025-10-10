@@ -30,12 +30,15 @@
 
 #ifndef DIRMAN_H_
 #define DIRMAN_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef _WIN32
     #include <unistd.h>
 #endif
 
-#include "cache.h"
+#include "ecache.h"
 #include "common.h"
 #include "logging.h"
 #include "pageman.h"
@@ -307,4 +310,7 @@
 
 #pragma endregion
 
+#ifdef __cplusplus
+}
+#endif
 #endif

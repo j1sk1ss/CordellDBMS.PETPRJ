@@ -1,8 +1,6 @@
-#include "include/kentry.h"
-
+#include <kentry.h>
 
 static database_t* _connections[MAX_CONNECTIONS] = { NULL };
-
 
 #pragma region [Private]
 

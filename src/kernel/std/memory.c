@@ -1,5 +1,4 @@
-#include "../include/common.h"
-
+#include <common.h>
 
 void* memcpy_s(void* destination, void* source, size_t num) {
     unsigned int num_dwords = num / 4;

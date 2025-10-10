@@ -1,5 +1,4 @@
-#include "../include/threading.h"
-
+#include <threading.h>
 
 int THR_create_thread(void* (*entry)(void*), void* args) {
     #ifdef NO_THREADS

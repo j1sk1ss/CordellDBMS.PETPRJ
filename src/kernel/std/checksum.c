@@ -1,5 +1,4 @@
-#include "../include/common.h"
-
+#include <common.h>
 
 static const unsigned int crc32_table[] = {
     0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9,

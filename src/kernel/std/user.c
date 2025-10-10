@@ -1,5 +1,4 @@
-#include "../include/user.h"
-
+#include <user.h>
 
 user_t* USR_auth(char* name, char* password) {
 #ifndef NO_USER

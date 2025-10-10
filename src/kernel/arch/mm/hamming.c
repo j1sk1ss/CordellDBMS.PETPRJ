@@ -2,6 +2,7 @@
 
 
 unsigned short encode_hamming_15_11(unsigned short data) {
+#ifdef HAMMING_CODES
     unsigned short encoded = 0;
     encoded = SET_BIT(encoded, 2, GET_BIT(data, 0));
     encoded = SET_BIT(encoded, 4, GET_BIT(data, 1));
@@ -25,9 +26,13 @@ unsigned short encode_hamming_15_11(unsigned short data) {
     encoded = SET_BIT(encoded, 3, p4);
     encoded = SET_BIT(encoded, 7, p8);
     return encoded;
+#else
+    return data;
+#endif
 }
 
 unsigned short decode_hamming_15_11(unsigned short encoded) {
+#ifdef HAMMING_CODES
     unsigned char s1 = GET_BIT(encoded, 0) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 8) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 14);
     unsigned char s2 = GET_BIT(encoded, 1) ^ GET_BIT(encoded, 2) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 9) ^ GET_BIT(encoded, 10) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
     unsigned char s4 = GET_BIT(encoded, 3) ^ GET_BIT(encoded, 4) ^ GET_BIT(encoded, 5) ^ GET_BIT(encoded, 6) ^ GET_BIT(encoded, 11) ^ GET_BIT(encoded, 12) ^ GET_BIT(encoded, 13) ^ GET_BIT(encoded, 14);
@@ -49,6 +54,9 @@ unsigned short decode_hamming_15_11(unsigned short encoded) {
     data = SET_BIT(data, 9, GET_BIT(encoded, 13));
     data = SET_BIT(data, 10, GET_BIT(encoded, 14));
     return data;
+#else
+    return encoded;
+#endif
 }
 
 unsigned char _get_byte(unsigned short* ptr, int offset) {

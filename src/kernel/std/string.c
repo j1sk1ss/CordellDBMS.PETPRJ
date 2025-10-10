@@ -1,5 +1,4 @@
-#include "../include/common.h"
-
+#include <common.h>
 
 void strrand(char* dest, size_t length, int offset) {
     static const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

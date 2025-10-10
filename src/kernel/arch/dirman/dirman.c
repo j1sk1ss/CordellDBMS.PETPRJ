@@ -1,5 +1,4 @@
-#include "../../include/dirman.h"
-
+#include <dirman.h>
 
 static int _link_page2dir(directory_t* __restrict directory, page_t* __restrict page) {
     #pragma omp critical (link_page2dir)

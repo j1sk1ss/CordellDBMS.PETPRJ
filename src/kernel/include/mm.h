@@ -1,10 +1,12 @@
 #ifndef MM_H_
 #define MM_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stddef.h>
-#include "common.h"
-#include "logging.h"
-
+#include <common.h>
+#include <logging.h>
 
 #define ALLOC_BUFFER_SIZE   65536
 #define ALIGNMENT           8  
@@ -15,14 +17,12 @@
 #define SET_BIT(n, i, v) (v ? (n | (1 << i)) : (n & ~(1 << i)))
 #define TOGGLE_BIT(b, i) (b ^ (1 << i))
 
-
 typedef struct mm_block {
-    unsigned int magic;
-    size_t size;
-    unsigned char free;
+    unsigned int     magic;
+    size_t           size;
+    unsigned char    free;
     struct mm_block* next;
 } mm_block_t;
-
 
 /*
 Init first memory block in memory manager.
@@ -125,4 +125,7 @@ Return pointer to dst.
 */
 void* pack_memory(unsigned char* src, unsigned short* dst, size_t len);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

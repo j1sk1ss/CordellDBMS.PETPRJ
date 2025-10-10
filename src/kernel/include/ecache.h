@@ -20,10 +20,12 @@
 
 #ifndef CACHE_H_
 #define CACHE_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include "common.h"
-#include "threading.h"
-
+#include <common.h>
+#include <threading.h>
 
 #define ENTRY_COUNT     8
 #define ENTRY_NAME_SIZE 8
@@ -34,24 +36,22 @@
 #define DIRECTORY_CACHE     1
 #define PAGE_CACHE          0
 
-
 typedef struct {
     unsigned short lock;
-    unsigned char is_cached;
-    void* body;
+    unsigned char  is_cached;
+    void*          body;
 } cache_body_t;
 
 typedef struct {
-    char name[ENTRY_NAME_SIZE];
-    char* base_path;
+    char          name[ENTRY_NAME_SIZE];
+    char*         base_path;
 
     unsigned char type;
-    void* pointer;
+    void*         pointer;
 
-    void (*free)(void* p);
-    void (*save)(void* p);
+    void          (*free)(void* p);
+    void          (*save)(void* p);
 } cache_t;
-
 
 /*
 Cache init fill GCT by empty entrie.
@@ -123,4 +123,7 @@ Return 1 if cleanup success.
 */
 int CHC_flush_entry(void* entry, unsigned char type);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

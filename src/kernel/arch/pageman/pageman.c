@@ -1,22 +1,29 @@
-#include "../../include/pageman.h"
-
+#include <pageman.h>
 
 #pragma region [CRUD]
 
 int PGM_get_content(page_t* __restrict page, int offset, unsigned char* __restrict buffer, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
+#ifdef HAMMING_CODES
     for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) {
         buffer[j] = (unsigned char)decode_hamming_15_11(page->content[i]);
     }
+#else
+    memcpy_s(buffer, page->content + offset, MIN((int)data_length, PAGE_CONTENT_SIZE - offset));
+#endif
 
     return end_index - offset;
 }
 
 int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __restrict data, size_t data_length) {
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)data_length + offset);
+#ifdef HAMMING_CODES
     for (int i = offset, j = 0; i < end_index && j < (int)data_length; i++, j++) {
         page->content[i] = encode_hamming_15_11((unsigned short)data[j]);
     }
+#else
+    memcpy_s(page->content + offset, data, MIN((int)data_length, PAGE_CONTENT_SIZE - offset));
+#endif
 
     return end_index - offset;
 }
@@ -24,7 +31,11 @@ int PGM_insert_content(page_t* __restrict page, int offset, unsigned char* __res
 int PGM_delete_content(page_t* page, int offset, size_t length) {
 #ifndef NO_DELETE_COMMAND
     int end_index = MIN(PAGE_CONTENT_SIZE, (int)length + offset);
+#ifdef HAMMING_CODES
     for (int i = offset; i < end_index; i++) page->content[i] = encode_hamming_15_11((unsigned short)PAGE_EMPTY);
+#else
+    memset_s(page->content + offset, PAGE_EMPTY, MIN((int)length, PAGE_CONTENT_SIZE - offset));
+#endif
     return end_index - offset;
 #endif
     return 1;

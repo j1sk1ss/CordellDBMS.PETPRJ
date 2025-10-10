@@ -1,5 +1,4 @@
-#include "../include/common.h"
-
+#include <common.h>
 
 int isdigit_s(int c) {
     return (c >= '0' && c <= '9');

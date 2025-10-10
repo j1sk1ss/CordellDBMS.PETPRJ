@@ -30,6 +30,9 @@
 
 #ifndef PAGEMAN_H_
 #define PAGEMAN_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <fcntl.h>
 
@@ -43,7 +46,7 @@
 #include "threading.h"
 #include "logging.h"
 #include "common.h"
-#include "cache.h"
+#include "ecache.h"
 
 
 #define PAGE_EXTENSION  ENV_GET("PAGE_EXTENSION", "pg")
@@ -296,4 +299,7 @@
 
 #pragma endregion
 
+#ifdef __cplusplus
+}
+#endif
 #endif

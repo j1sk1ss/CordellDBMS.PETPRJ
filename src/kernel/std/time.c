@@ -1,5 +1,4 @@
-#include "../include/common.h"
-
+#include <common.h>
 
 char* get_current_time() {
     static char time_str[72] = { 0 };

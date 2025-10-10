@@ -13,6 +13,9 @@
 
 #ifndef TRACEBACK_H_
 #define TRACEBACK_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdio.h>
 #include <signal.h>
@@ -23,9 +26,6 @@
     #include <unistd.h>
 #endif
 #endif
-
-#include "kentry.h"
-
 
 /*
 Enable trace back.
@@ -48,4 +48,7 @@ Cleanup handler.
 */
 void cleanup_handler();
 
+#ifdef __cplusplus
+}
+#endif
 #endif

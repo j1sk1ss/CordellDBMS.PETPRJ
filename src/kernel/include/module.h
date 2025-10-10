@@ -13,9 +13,12 @@
 
 #ifndef MODULE_H_
 #define MODULE_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include "logging.h"
-#include "common.h"
+#include <common.h>
+#include <logging.h>
 
 #ifdef _WIN32
     #define popen   _popen
@@ -28,11 +31,9 @@
     #include <sys/wait.h>
 #endif
 
-
 #define MODULE_NAME_SIZE    8
 #define MODULE_EXTENSION    ENV_GET("MODULE_EXTENSION", "mdl")
 #define MODULE_BASE_PATH    ENV_GET("MODULE_BASE_PATH", "")
-
 
 /*
 Launch module by provided name.
@@ -53,4 +54,7 @@ Return 1 if launch and answer was success.
 */
 int MDL_launch_module(char* module_name, char* args, unsigned char* buffer, size_t buffer_size);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

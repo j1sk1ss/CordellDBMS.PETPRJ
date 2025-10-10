@@ -1,5 +1,4 @@
-#include "../../include/dataman.h"
-
+#include <dataman.h>
 
 database_t* DB_create_database(char* name) {
     database_t* database = (database_t*)malloc_s(sizeof(database_t));
@@ -52,7 +51,6 @@ int DB_save_database(database_t* database) {
     int status = -1;
     #pragma omp critical (save_database)
     {
-        // We generate default path
         char save_path[DEFAULT_PATH_SIZE] = { 0 };
         get_load_path(database->header->name, DATABASE_NAME_SIZE, save_path, DATABASE_BASE_PATH, DATABASE_EXTENSION);
 
@@ -60,6 +58,7 @@ int DB_save_database(database_t* database) {
         if (fd < 0) { print_error("Can`t create or open file: [%s]", save_path); }
         else {
             status = 1;
+#ifdef HAMMING_CODES
             unsigned short encoded_header[sizeof(database_header_t)] = { 0 };
             pack_memory((unsigned char*)database->header, (unsigned short*)encoded_header, sizeof(database_header_t));
             if (pwrite(fd, encoded_header, sizeof(database_header_t) * sizeof(unsigned short), 0) != sizeof(database_header_t)) status = -2;
@@ -70,7 +69,16 @@ int DB_save_database(database_t* database) {
                     status = -3;
                 }
             }
-
+#else
+            if (pwrite(fd, (unsigned char*)database->header, sizeof(database_header_t), 0) != sizeof(database_header_t)) status = -2;
+            for (int i = 0; i < database->header->table_count; i++) {
+                if (
+                    pwrite(
+                        fd, (unsigned char*)database->table_names[i], TABLE_NAME_SIZE, (sizeof(database_header_t)) + TABLE_NAME_SIZE * i
+                    ) != TABLE_NAME_SIZE
+                ) status = -3;
+            }
+#endif
             fsync(fd);
             close(fd);
         }
@@ -92,19 +100,33 @@ database_t* DB_load_database(char* name) {
         else {
             loaded_database = DB_create_database(NULL);
             if (loaded_database) {
+#ifdef HAMMING_CODES
                 unsigned short encoded_header[sizeof(database_header_t)] = { 0 };
                 pread(fd, encoded_header, sizeof(database_header_t) * sizeof(unsigned short), 0);
                 unpack_memory((unsigned short*)encoded_header, (unsigned char*)loaded_database->header, sizeof(database_header_t));
                 if (loaded_database->header->magic != DATABASE_MAGIC) {
                     print_error("Database file wrong magic for [%s]", load_path);
                     DB_free_database(loaded_database);
-                } else {
+                } 
+                else {
                     for (int i = 0; i < loaded_database->header->table_count; i++) {
                         unsigned short encoded_table_name[TABLE_NAME_SIZE] = { 0 };
                         pread(fd, encoded_table_name, TABLE_NAME_SIZE * sizeof(unsigned short), (sizeof(database_header_t)  * sizeof(unsigned short)) + TABLE_NAME_SIZE * i);
                         unpack_memory((unsigned short*)encoded_table_name, (unsigned char*)loaded_database->table_names[i], TABLE_NAME_SIZE);
                     }
                 }
+#else
+                pread(fd, (unsigned char*)loaded_database->header, sizeof(database_header_t), 0);
+                if (loaded_database->header->magic != DATABASE_MAGIC) {
+                    print_error("Database file wrong magic for [%s]", load_path);
+                    DB_free_database(loaded_database);
+                } 
+                else {
+                    for (int i = 0; i < loaded_database->header->table_count; i++) {
+                        pread(fd, (unsigned char*)loaded_database->table_names[i], TABLE_NAME_SIZE, (sizeof(database_header_t)) + TABLE_NAME_SIZE * i);
+                    }
+                }
+#endif
             }
 
             close(fd);

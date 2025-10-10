@@ -1,5 +1,4 @@
-#include "../../include/tabman.h"
-
+#include <tabman.h>
 
 static int _link_dir2table(table_t* __restrict table, directory_t* __restrict directory) {
     #pragma omp critical (link_dir2table)

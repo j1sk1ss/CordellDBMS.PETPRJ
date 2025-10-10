@@ -1,5 +1,4 @@
-#include "../include/sighandler.h"
-
+#include <sighandler.h>
 
 void traceback_handler(int sig) {
     #ifndef NO_TRACE

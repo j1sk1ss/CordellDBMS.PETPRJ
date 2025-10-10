@@ -1,5 +1,4 @@
-#include "../../include/dataman.h"
-
+#include <dataman.h>
 
 static int _unlink_table_from_database(database_t* __restrict database, char* __restrict name) {
     int status = 0;

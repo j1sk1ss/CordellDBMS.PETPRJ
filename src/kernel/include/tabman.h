@@ -31,6 +31,9 @@
 
 #ifndef TABMAN_H_
 #define TABMAN_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef _WIN32
     #include <unistd.h>
@@ -41,7 +44,7 @@
 #include "common.h"
 #include "dirman.h"
 #include "module.h"
-#include "cache.h"
+#include "ecache.h"
 
 
 #define TABLE_MAGIC             0xAA
@@ -541,4 +544,7 @@
 
 #pragma endregion
 
+#ifdef __cplusplus
+}
+#endif
 #endif

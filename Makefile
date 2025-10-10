@@ -45,23 +45,24 @@ DISABLE_CHECK_SIGNATURE ?= 0
 
 # Logger flags
 ERROR_LOGS ?= 1
-WARN_LOGS ?= 1
-INFO_LOGS ?= 1
-DEBUG_LOGS ?= 1
+WARN_LOGS ?= 0
+INFO_LOGS ?= 0
+DEBUG_LOGS ?= 0
 IO_LOGS ?= 0
 MEM_LOGS ?= 0
 LOGGING_LOGS ?= 0
-SPECIAL_LOGS ?= 1
+SPECIAL_LOGS ?= 0
 
 # DEEP IO SAVING
 DISABLE_TABLE_CHECKSUM ?= 1
 DISABLE_DIRECTORY_CHECKSUM ?= 1
 DISABLE_PAGE_CHECKSUM ?= 1
+DISABLE_HAMMING_CODES ?= 0
 
 #########
 # Base flags
 DEBUG_FLAGS = 
-CFLAGS = -Wall -Wextra -Ikernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-overflow
+CFLAGS = -Wall -Wextra -Isrc/kernel/include -Wcomment -Wno-unknown-pragmas -Wno-unused-result -Wno-empty-body -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-overflow
 ifeq ($(PROD), 1)
     CC = musl-gcc
     CFLAGS += -Os -s -flto -fno-stack-protector -D_FORTIFY_SOURCE=0
@@ -163,6 +164,10 @@ endif
 
 ifeq ($(DISABLE_PAGE_CHECKSUM), 1)
     CFLAGS += -DNO_PAGE_SAVE_OPTIMIZATION
+endif
+
+ifeq ($(DISABLE_HAMMING_CODES), 0)
+    CFLAGS += -DHAMMING_CODES
 endif
 
 ifeq ($(OMP), 1)

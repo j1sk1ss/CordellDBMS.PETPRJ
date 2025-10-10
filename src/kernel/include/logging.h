@@ -16,14 +16,15 @@
 
 #ifndef LOGGING_H_
 #define LOGGING_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#include <time.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <time.h>
-
-#include "threading.h"
-#include "common.h"
-
+#include <common.h>
+#include <threading.h>
 
 // Note: LOG_TO_FILE option very heavy function. Prefere console logging, if your host machine can do this.
 // If you use micro controller, use LOG_TO_FILE with disabled DEBUG, LOGGING, INFORMING and SPECIAL.
@@ -105,4 +106,7 @@ Create log message.
 */
 void log_message(const char* level, const char* file, int line, const char* message, ...);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

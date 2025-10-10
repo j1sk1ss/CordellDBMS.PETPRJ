@@ -1,5 +1,4 @@
-#include "../../include/dirman.h"
-
+#include <dirman.h>
 
 directory_t* DRM_create_directory(char* name) {
     directory_t* directory = (directory_t*)malloc_s(sizeof(directory_t));
@@ -52,6 +51,7 @@ int DRM_save_directory(directory_t* directory) {
                 status = 1;
                 directory->header->checksum = DRM_get_checksum(directory);
 
+#ifdef HAMMING_CODES
                 unsigned short encoded_header[sizeof(directory_header_t)] = { 0 };
                 pack_memory((unsigned char*)directory->header, (unsigned short*)encoded_header, sizeof(directory_header_t));
                 if (pwrite(fd, encoded_header, sizeof(directory_header_t) * sizeof(unsigned short), offset) != sizeof(directory_header_t) * sizeof(unsigned short)) status = -1;
@@ -66,6 +66,17 @@ int DRM_save_directory(directory_t* directory) {
 
                     offset += PAGE_NAME_SIZE * sizeof(unsigned short);
                 }
+#else
+                if (pwrite(fd, (unsigned char*)directory->header, sizeof(directory_header_t), offset) != sizeof(directory_header_t)) status = -1;
+                offset += sizeof(directory_header_t);
+                for (int i = 0; i < directory->header->page_count; i++) {
+                    if (pwrite(fd, (unsigned char*)directory->page_names[i], PAGE_NAME_SIZE, offset) != PAGE_NAME_SIZE) {
+                        status = -1;
+                    }
+
+                    offset += PAGE_NAME_SIZE;
+                }
+#endif
 
                 fsync(fd);
                 close(fd);
@@ -99,30 +110,42 @@ directory_t* DRM_load_directory(char* name) {
                 int offset = 0;
                 memset_s(header, 0, sizeof(directory_header_t));
 
+#ifdef HAMMING_CODES
                 unsigned short encoded_header[sizeof(directory_header_t)] = { 0 };
                 pread(fd, encoded_header, sizeof(directory_header_t) * sizeof(unsigned short), offset);
                 unpack_memory((unsigned short*)encoded_header, (unsigned char*)header, sizeof(directory_header_t));
                 offset += sizeof(directory_header_t) * sizeof(unsigned short);
+#else
+                pread(fd, (unsigned char*)header, sizeof(directory_header_t), offset);
+                offset += sizeof(directory_header_t);
+#endif
 
                 // Check directory magic
                 if (header->magic != DIRECTORY_MAGIC) {
                     print_error("Directory file wrong magic for [%s]", load_path);
                     free_s(header);
                     close(fd);
-                } else {
+                } 
+                else {
                     // First we allocate memory for directory struct
                     // Then we read page names
                     directory_t* directory = (directory_t*)malloc_s(sizeof(directory_t));
                     if (!directory) free_s(header);
                     else {
                         memset_s(directory, 0, sizeof(directory_t));
+#ifdef HAMMING_CODES
                         for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
                             unsigned short encoded_page_name[PAGE_NAME_SIZE] = { 0 };
                             pread(fd, encoded_page_name, PAGE_NAME_SIZE * sizeof(unsigned short), offset);
                             unpack_memory((unsigned short*)encoded_page_name, (unsigned char*)directory->page_names[i], PAGE_NAME_SIZE);
                             offset += PAGE_NAME_SIZE * sizeof(unsigned short);
                         }
-
+#else
+                        for (int i = 0; i < MIN(header->page_count, PAGES_PER_DIRECTORY); i++) {
+                            pread(fd, (unsigned char*)directory->page_names[i], PAGE_NAME_SIZE, offset);
+                            offset += PAGE_NAME_SIZE;
+                        }
+#endif
                         // Close file directory
                         close(fd);
 

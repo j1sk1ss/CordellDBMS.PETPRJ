@@ -1,4 +1,4 @@
-#include "../include/cache.h"
+#include <ecache.h>
 
 /*
 Global Cache Table used for caching results of I/O operations.

@@ -23,6 +23,9 @@
 
 #ifndef DATABASE_H_
 #define DATABASE_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef _WIN32
     #include <unistd.h>
@@ -31,7 +34,7 @@
 #include "logging.h"
 #include "common.h"
 #include "tabman.h"
-#include "cache.h"
+#include "ecache.h"
 
 
 #define TABLES_PER_DATABASE     0xFF
@@ -360,7 +363,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
     - MAX_DIRECTORIES or less directories.
     - MAX_PAGES or less pages.
     In few words, that means, that you can input data with 40960KB (40MB) size to 10 directories at one time.
-    Note 2: MAX_TABLES, MAX_DIRECTORIES and MAX_PAGES can be found in "cache.h".
+    Note 2: MAX_TABLES, MAX_DIRECTORIES and MAX_PAGES can be found in "ecache.h".
 
     Return 1 if transaction init success.
     Return -1 if we can't free GCT.
@@ -380,4 +383,7 @@ we use cache in pages (lowest level) and table cache at the highest level.
 
 #pragma endregion
 
+#ifdef __cplusplus
+}
+#endif
 #endif

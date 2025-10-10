@@ -1,5 +1,4 @@
-#include "../../include/dataman.h"
-
+#include <dataman.h>
 
 int DB_init_transaction(database_t* database) {
     DB_save_database(database);

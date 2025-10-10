@@ -22,7 +22,7 @@
 
 #include "kernel/include/mm.h"
 #include "kernel/include/user.h"
-#include "kernel/include/cache.h"
+#include "kernel/include/ecache.h"
 #include "kernel/include/kentry.h"
 #include "kernel/include/logging.h"
 #include "kernel/include/threading.h"
